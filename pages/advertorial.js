@@ -27,11 +27,11 @@ const BLOQUES = [
 ]
 
 const D = {
-  bg:'#07111c', card:'#0b1e2d', cardBorder:'#0d2f45',
-  input:'#071824', inputBorder:'#0d2f45',
-  blue:'#1a8cc4', blueLight:'#6ab8d8', blueDark:'#0a2236',
-  text:'#c8dde8', textMid:'#8ab4cc', textDim:'#3d7a9a',
-  green:'#1f7a60', yellow:'#d4a574',
+  bg:'#ffffff', card:'#ffffff', cardBorder:'#e5e7eb',
+  input:'#ffffff', inputBorder:'#d1d5db',
+  blue:'#2563eb', blueLight:'#3b82f6', blueDark:'#eff6ff',
+  text:'#111827', textMid:'#4b5563', textDim:'#6b7280',
+  green:'#059669', yellow:'#d97706',
 }
 
 const inp = {
@@ -208,13 +208,13 @@ export default function AdvertorialCreator() {
     return String(v)
   }
 
-  const lbl = { color:D.text, fontSize:11, fontWeight:700, letterSpacing:'0.4px', display:'block', marginBottom:4 }
+  const lbl = { color:D.textMid, fontSize:11, fontWeight:700, letterSpacing:'0.4px', display:'block', marginBottom:4 }
   const wrap = { padding:'32px 20px', maxWidth:780, margin:'0 auto' }
-  const globalStyle = `body,html{background:#07111c;margin:0;padding:0}`
+  const globalStyle = `body,html{background:#ffffff;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#111827}`
 
   // ── FORMULARIO ───────────────────────────────────────────
   if (vista === 'form') return (
-    <div style={{ background:'#07111c', minHeight:'100vh' }}>
+    <div style={{ background:'#ffffff', minHeight:'100vh' }}>
       <style>{globalStyle}</style>
       <div style={wrap}>
         <h1 style={{ color:D.text, fontSize:20, fontWeight:800, marginBottom:4 }}>Advertorial Creator</h1>
@@ -223,7 +223,7 @@ export default function AdvertorialCreator() {
         </p>
 
         {error && (
-          <div style={{ padding:12, background:'#1a0a0a', border:'1px solid #a33', borderRadius:6, color:'#f88', fontSize:12, marginBottom:16 }}>
+          <div style={{ padding:12, background:'#fef2f2', border:'1px solid #fecaca', borderRadius:6, color:'#b91c1c', fontSize:12, marginBottom:16 }}>
             ⚠️ {error}
           </div>
         )}
@@ -266,8 +266,8 @@ export default function AdvertorialCreator() {
           <div>
             <label style={lbl}>DOCUMENTOS DE INVESTIGACIÓN</label>
             {archivos.map((f,i) => (
-              <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:6, padding:'8px 12px', background:D.input, border:`1px solid ${D.green}`, borderRadius:5 }}>
-                <span style={{ color:'#4ecba6', fontSize:12 }}>📄 {f.name}</span>
+              <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:6, padding:'8px 12px', background:'#f0fdf4', border:'1px solid #a7f3d0', borderRadius:5 }}>
+                <span style={{ color:'#047857', fontSize:12 }}>📄 {f.name}</span>
                 <button onClick={()=>quitarArchivo(i)} style={{ color:D.textDim, background:'none', border:'none', cursor:'pointer', fontSize:12 }}>✕</button>
               </div>
             ))}
@@ -299,7 +299,7 @@ export default function AdvertorialCreator() {
             </select>
           </div>
           <div style={{ marginTop:12, padding:8, background:D.blueDark, borderRadius:4, fontSize:10, color:D.textDim, fontFamily:'monospace' }}>
-            Motivo: <span style={{ color:D.blueLight }}>Educativo (fijo)</span> · Nivel 2 (fijo) · Producto: bloque 9 · 15 bloques totales
+            Motivo: <span style={{ color:D.blueLight }}>Educativo (fijo)</span> · Nivel 2 (fijo) · Producto: bloque 11 · 16 bloques totales
           </div>
         </div>
 
@@ -315,7 +315,7 @@ export default function AdvertorialCreator() {
 
   // ── LOADING ───────────────────────────────────────────────
   if (vista === 'loading') return (
-    <div style={{ background:'#07111c', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
+    <div style={{ background:'#ffffff', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <style>{globalStyle}</style>
       <div style={{ textAlign:'center', width:'100%', padding:'0 20px' }}>
         <div style={{ fontSize:36, marginBottom:16 }}>⚡</div>
@@ -331,9 +331,9 @@ export default function AdvertorialCreator() {
             return (
               <div key={s} style={{
                 padding:'5px 14px', borderRadius:4, fontSize:11, fontFamily:'monospace', fontWeight:700,
-                background: done ? '#061a13' : active ? D.blueDark : D.card,
-                border:`1px solid ${done ? '#1f4a38' : active ? D.blue : D.cardBorder}`,
-                color: done ? '#4ecba6' : active ? D.blueLight : D.textDim,
+                background: done ? '#f0fdf4' : active ? D.blueDark : D.card,
+                border:`1px solid ${done ? '#86efac' : active ? D.blue : D.cardBorder}`,
+                color: done ? '#15803d' : active ? D.blueLight : D.textDim,
               }}>{done ? '✓ ' : ''}{s}</div>
             )
           })}
@@ -345,7 +345,7 @@ export default function AdvertorialCreator() {
 
   // ── RESULTADO ─────────────────────────────────────────────
   return (
-    <div style={{ background:'#07111c', minHeight:'100vh' }}>
+    <div style={{ background:'#ffffff', minHeight:'100vh' }}>
       <style>{globalStyle}</style>
       <div style={wrap}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
@@ -382,13 +382,13 @@ export default function AdvertorialCreator() {
                   display:'inline-flex', alignItems:'center', justifyContent:'center',
                   width:22, height:22,
                   background: b.num===11 ? D.yellow : b.producto ? D.green : D.blue,
-                  color: b.num===9 ? '#1a1208' : '#fff',
+                  color: b.num===11 ? '#1a1208' : '#fff',
                   borderRadius:'50%', fontSize:10, fontWeight:700, marginRight:8, flexShrink:0,
                 }}>{b.num}</span>
-                <h4 style={{ color: b.num===11 ? D.yellow : b.producto ? '#4ecba6' : D.blueLight, fontSize:12, margin:0 }}>
+                <h4 style={{ color: b.num===11 ? D.yellow : b.producto ? D.green : D.blueLight, fontSize:12, margin:0 }}>
                   {b.titulo}
                 </h4>
-                {b.num===11 && <span style={{ marginLeft:8, fontSize:9, color:D.yellow, fontFamily:'monospace', background:'#1a1208', padding:'2px 6px', borderRadius:3, border:`1px solid ${D.yellow}` }}>← PRODUCTO</span>}
+                {b.num===11 && <span style={{ marginLeft:8, fontSize:9, color:'#b45309', fontFamily:'monospace', background:'#fffbeb', padding:'2px 6px', borderRadius:3, border:'1px solid #fcd34d' }}>← PRODUCTO</span>}
               </div>
               <button id={`copy-${b.key}`} onClick={()=>copiarBloque(b)}
                 style={{ padding:'4px 10px', background:D.input, border:`1px solid ${D.cardBorder}`, color:D.blueLight, borderRadius:4, fontSize:10, cursor:'pointer', fontFamily:'monospace' }}>
@@ -445,7 +445,7 @@ export default function AdvertorialCreator() {
 
       {modalAd && (
         <div onClick={(e)=>{ if(e.target===e.currentTarget) setModalAd(false) }}
-          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          style={{ position:'fixed', inset:0, background:'rgba(17,24,39,0.5)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div style={{ background:D.card, border:`1px solid ${D.cardBorder}`, borderRadius:10, padding:24, maxWidth:600, width:'100%', maxHeight:'90vh', overflowY:'auto' }}>
             <div style={{ fontSize:13, color:D.blueLight, fontWeight:700, marginBottom:4 }}>Configurar Ad/Guion</div>
             <div style={{ fontSize:11, color:D.textDim, marginBottom:18 }}>

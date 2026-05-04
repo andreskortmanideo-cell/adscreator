@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import Head from 'next/head'
 
 const D = {
-  bg:'#07111c',card:'#0b1e2d',cardBorder:'#0d2f45',
-  input:'#071824',inputBorder:'#0d2f45',
-  blue:'#1a8cc4',blueLight:'#6ab8d8',blueDark:'#0a2236',blueDim:'#0d3a52',
-  text:'#c8dde8',textMid:'#8ab4cc',textDim:'#3d7a9a',textFaint:'#1d5a78',
-  accent:'#071420',green:'#1f7a60',greenBg:'#071e1a',greenBorder:'#0a3028'
+  bg:'#fafafa',card:'#ffffff',cardBorder:'#e5e7eb',
+  input:'#ffffff',inputBorder:'#d1d5db',
+  blue:'#1a8cc4',blueLight:'#0e6a98',blueDark:'#eff6fb',blueDim:'#bfdde9',
+  text:'#111827',textMid:'#374151',textDim:'#6b7280',textFaint:'#9ca3af',
+  accent:'#f9fafb',green:'#059669',greenBg:'#ecfdf5',greenBorder:'#a7f3d0'
 }
 
 export default function Home() {
@@ -599,13 +599,13 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
       <Head>
         <title>Ideo Team — Ads Creator</title>
         <meta name="viewport" content="width=device-width,initial-scale=1"/>
-        <style>{`*{box-sizing:border-box;margin:0;padding:0}body{background:${D.bg};font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif}textarea:focus,input:focus,select:focus{outline:none;border-color:${D.blue}!important}textarea::placeholder,input::placeholder{color:#1d4a62}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${D.bg}}::-webkit-scrollbar-thumb{background:${D.cardBorder};border-radius:2px}`}</style>
+        <style>{`*{box-sizing:border-box;margin:0;padding:0}body{background:${D.bg};font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif}textarea:focus,input:focus,select:focus{outline:none;border-color:${D.blue}!important}textarea::placeholder,input::placeholder{color:#9ca3af}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${D.bg}}::-webkit-scrollbar-thumb{background:${D.cardBorder};border-radius:2px}`}</style>
       </Head>
       <div style={{background:D.bg,minHeight:'100vh',color:D.text}}>
 
         {modalPrompt&&(
-          <div onClick={()=>setModalPrompt(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',zIndex:100,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'40px 16px',overflowY:'auto'}}>
-            <div onClick={e=>e.stopPropagation()} style={{background:'#0d1f2e',border:`1px solid ${D.cardBorder}`,borderRadius:14,padding:'1.25rem',width:'100%',maxWidth:700}}>
+          <div onClick={()=>setModalPrompt(null)} style={{position:'fixed',inset:0,background:'rgba(17,24,39,0.5)',zIndex:100,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'40px 16px',overflowY:'auto'}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:'#ffffff',border:`1px solid ${D.cardBorder}`,borderRadius:14,padding:'1.25rem',width:'100%',maxWidth:700}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
                 <div style={{fontSize:11,fontWeight:600,color:D.blue,letterSpacing:'.07em',textTransform:'uppercase'}}>Prompt — {modalPrompt.label}</div>
                 <button onClick={()=>setModalPrompt(null)} style={{fontSize:12,border:'none',background:'transparent',cursor:'pointer',color:D.textDim}}>✕</button>
@@ -619,7 +619,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
         )}
 
         {/* ── HEADER ── */}
-        <div style={{background:'#07111cee',borderBottom:`1px solid ${D.cardBorder}`,padding:'0 28px',height:58,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
+        <div style={{background:'#ffffff',borderBottom:`1px solid ${D.cardBorder}`,padding:'0 28px',height:58,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
           <div style={{lineHeight:1}}>
             <div style={{fontSize:16,fontWeight:800,color:'#fff',letterSpacing:'.1em'}}>IDEO TEAM</div>
             <div style={{fontSize:9,color:D.blue,letterSpacing:'.2em',textTransform:'uppercase',marginTop:3}}>Ads Creator</div>
@@ -656,7 +656,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
         </div>
 
         {mostrarSesion&&(
-          <div style={{background:'#0a1a28',borderBottom:`1px solid ${D.cardBorder}`,padding:'12px 16px'}}>
+          <div style={{background:'#f9fafb',borderBottom:`1px solid ${D.cardBorder}`,padding:'12px 16px'}}>
             <div style={{maxWidth:700,margin:'0 auto'}}>
               <div style={{fontSize:10,color:D.textDim,letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10,fontWeight:500}}>
                 Generaciones de esta sesión ({sesionHistorial.length}) — clic para recuperar
@@ -1294,14 +1294,14 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
                 <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
                   <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:D.blueDark,color:D.blue,border:`1px solid ${D.blueDim}`}}>{tipo}</span>
-                  <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:D.greenBg,color:'#1d9e75',border:`1px solid ${D.greenBorder}`}}>
+                  <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:D.greenBg,color:'#059669',border:`1px solid ${D.greenBorder}`}}>
                     {formato==='imagen'?'Imagen estática':`Video ${duracion}s`}
                   </span>
                   <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:'#0f1a20',color:D.textDim,border:`1px solid ${D.cardBorder}`}}>{pais} · Nivel {nivelSel||analisis?.nivel_recomendado}</span>
-                  <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:modeloSel.startsWith('claude')?'#0a1f0a':'#1a1000',color:modeloSel.startsWith('claude')?'#2aaa6a':'#c8892a',border:`1px solid ${modeloSel.startsWith('claude')?'#0d3020':'#2a1e00'}`}}>
+                  <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:modeloSel.startsWith('claude')?'#ecfdf5':'#1a1000',color:modeloSel.startsWith('claude')?'#059669':'#92400e',border:`1px solid ${modeloSel.startsWith('claude')?'#a7f3d0':'#fde68a'}`}}>
                     {modeloSel==='gpt-4.1-mini'?'GPT 4.1 Mini':modeloSel==='gpt-4o-mini'?'GPT 4o Mini':modeloSel==='gpt-4o'?'GPT-4o':modeloSel.includes('sonnet')?'Claude Sonnet':'Claude Haiku'}
                   </span>
-                  {historial.length>0&&<span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:'#1a0800',color:'#ba7517',border:'1px solid #2a1e00'}}>{historial.length} corrección{historial.length>1?'es':''}</span>}
+                  {historial.length>0&&<span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:'#fef3c7',color:'#ba7517',border:'1px solid #fde68a'}}>{historial.length} corrección{historial.length>1?'es':''}</span>}
                   <InfoBtn prompt={promptGen} label={`Generación ${tipo}`}/>
                 </div>
               </div>
@@ -1366,7 +1366,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                         </div>
                         <div style={{display:'flex',gap:6,flexShrink:0}}>
                           <button onClick={()=>navigator.clipboard.writeText(v.guionNeto||v.guionVisual||v.guionCompleto)} style={{fontSize:11,color:D.blueLight,border:`1px solid ${D.blue}`,background:'transparent',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}>Copiar</button>
-                          <button onClick={()=>{setVersionActiva(i);setTimeout(generarVariaciones,50)}} disabled={generandoVariaciones} style={{fontSize:11,color:'#1d9e75',border:'1px solid #1a6a40',background:'#071e14',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',opacity:generandoVariaciones?.5:1}}>⟳ Variaciones</button>
+                          <button onClick={()=>{setVersionActiva(i);setTimeout(generarVariaciones,50)}} disabled={generandoVariaciones} style={{fontSize:11,color:'#059669',border:'1px solid #a7f3d0',background:'#071e14',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',opacity:generandoVariaciones?.5:1}}>⟳ Variaciones</button>
                         </div>
                       </div>
                       <div style={{fontSize:14,color:'#fff',lineHeight:1.9,whiteSpace:'pre-wrap'}}>{(()=>{
@@ -1440,17 +1440,17 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
           )}
 
           {variaciones.length>0&&(
-            <div id="variaciones-section" style={{background:'#07180f',border:'1px solid #0d3020',borderRadius:14,padding:'18px 20px',marginBottom:10}}>
+            <div id="variaciones-section" style={{background:'#07180f',border:'1px solid #a7f3d0',borderRadius:14,padding:'18px 20px',marginBottom:10}}>
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
-                <div style={{width:24,height:24,borderRadius:'50%',border:'1px solid #1d9e75',background:'#071e14',color:'#1d9e75',fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>⟳</div>
+                <div style={{width:24,height:24,borderRadius:'50%',border:'1px solid #059669',background:'#071e14',color:'#059669',fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>⟳</div>
                 <div style={{fontSize:12,fontWeight:500,color:'#8ab4cc',letterSpacing:'.06em',textTransform:'uppercase'}}>Variaciones del guión seleccionado</div>
                 <button onClick={()=>setVariaciones([])} style={{marginLeft:'auto',fontSize:10,color:'#3d7a9a',border:'1px solid #0d2f45',background:'transparent',borderRadius:6,padding:'2px 8px',cursor:'pointer',fontFamily:'inherit'}}>✕ cerrar</button>
               </div>
               <div style={{display:'flex',gap:8,marginBottom:16}}>
                 {variaciones.map((v,i)=>(
                   <button key={i} onClick={()=>setVariacionActiva(i)}
-                    style={{flex:1,padding:'10px 8px',borderRadius:9,border:`1px solid ${variacionActiva===i?'#1d9e75':'#0d3020'}`,background:variacionActiva===i?'#071e14':'#060f0a',cursor:'pointer',textAlign:'left',transition:'all .15s'}}>
-                    <div style={{fontSize:10,fontWeight:600,color:variacionActiva===i?'#1d9e75':'#3d7a9a',letterSpacing:'.05em',textTransform:'uppercase',marginBottom:3}}>Variación {i+1}</div>
+                    style={{flex:1,padding:'10px 8px',borderRadius:9,border:`1px solid ${variacionActiva===i?'#059669':'#a7f3d0'}`,background:variacionActiva===i?'#071e14':'#060f0a',cursor:'pointer',textAlign:'left',transition:'all .15s'}}>
+                    <div style={{fontSize:10,fontWeight:600,color:variacionActiva===i?'#059669':'#3d7a9a',letterSpacing:'.05em',textTransform:'uppercase',marginBottom:3}}>Variación {i+1}</div>
                     <div style={{fontSize:11,color:variacionActiva===i?'#6ab8d8':'#1d5a78',lineHeight:1.3}}>{v.hook}</div>
                   </button>
                 ))}

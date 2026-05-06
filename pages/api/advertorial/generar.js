@@ -186,7 +186,29 @@ MECANISMO BASE: ${briefing.mecanismo}
 TONO: ${briefing.tono}`
 }
 
-const SYSTEM_BASE = `Eres copywriter de publireportajes científicos. Estilo periodístico de revista médica.
+function buildEjeNarrativoBlock(eje) {
+  if (!eje || typeof eje !== 'object') return ''
+  const { villano, metaforaMecanismo, verdadOculta, momentoDescubrimiento, mecanismoSolucion } = eje
+  if (!villano && !metaforaMecanismo && !verdadOculta && !momentoDescubrimiento && !mecanismoSolucion) return ''
+  return `
+REGLA G — EJE NARRATIVO COHERENTE (OBLIGATORIO)
+Este advertorial tiene UN eje narrativo único, calculado al inicio. Úsalo en TODOS los bloques sin reformularlo, sin sustituirlo, sin contradecirlo:
+
+VILLANO: ${villano || ''}
+METÁFORA DEL MECANISMO DEL PROBLEMA: ${metaforaMecanismo || ''}
+VERDAD OCULTA (CONTRASTE CREENCIA vs REALIDAD): ${verdadOculta || ''}
+MOMENTO DE DESCUBRIMIENTO DEL EXPERTO: ${momentoDescubrimiento || ''}
+MECANISMO DE SOLUCIÓN: ${mecanismoSolucion || ''}
+
+Cada metáfora, transición, ejemplo, comparación o explicación que escribas debe alinear con este eje. La apertura debe sembrar el villano. La autoridad debe protagonizar el momento de descubrimiento. La causa raíz debe revelar la verdad oculta. El mecanismo debe ser exactamente el descrito. Los testimonios deben validar la solución de este villano específico, no de un problema genérico. El cierre debe contraponer "seguir con el villano" vs "atacar la causa raíz con este mecanismo".
+
+NUNCA inventes un villano o metáfora paralela. Hay UNO solo en este advertorial.
+`
+}
+
+function buildSystemBase(ejeNarrativo = null) {
+  const ejeBlock = buildEjeNarrativoBlock(ejeNarrativo)
+  return `Eres copywriter de publireportajes científicos. Estilo periodístico de revista médica.
 
 REGLAS:
 1. Párrafos cortos: máximo 3-4 oraciones.
@@ -249,12 +271,13 @@ PRINCIPIOS DE DENSIDAD:
 - Tamaño total del advertorial completo: alrededor de 2.500-3.000 palabras (no más).
 
 REGLA ABSOLUTA: si te excedes del límite de un bloque, REESCRIBE más conciso. NO entregues bloques más largos creyendo que "es mejor". Lo conciso convierte mejor.
-
+${ejeBlock}
 Devuelve SOLO JSON válido.`
+}
 
 // PARTE 1: Bloques 1-6 (titular, bajada, ficha, apertura, historia, cita)
-async function parte1(ctx, modelo) {
-  const system = `${SYSTEM_BASE}
+async function parte1(ctx, modelo, ejeNarrativo) {
+  const system = `${buildSystemBase(ejeNarrativo)}
 
 Genera la APERTURA del advertorial.
 
@@ -328,11 +351,11 @@ GENERA AHORA, respetando los límites de palabras de cada bloque.`
 }
 
 // PARTE 2: Bloques 7-10 (educativo, comparativa, por qué fallan, mecanismo)
-async function parte2(ctx, modelo, parte1Data) {
+async function parte2(ctx, modelo, parte1Data, ejeNarrativo) {
   const expertoNombre = parte1Data.fichaExperto?.split('\n')[0] || 'Dr./Dra.'
   const pacienteNombre = (parte1Data.historiaPaciente || '').match(/[A-Z][a-z]+ [A-Z][a-z]+/)?.[0] || 'el paciente'
 
-  const system = `${SYSTEM_BASE}
+  const system = `${buildSystemBase(ejeNarrativo)}
 
 Genera el DESARROLLO + MECANISMO. El experto es: ${expertoNombre}
 
@@ -421,11 +444,11 @@ GENERA AHORA.`
 }
 
 // PARTE 3: Bloques 11-16 (producto, promociones, garantía, testimonios, faq, cierre)
-async function parte3(ctx, modelo, parte1Data, parte2Data) {
+async function parte3(ctx, modelo, parte1Data, parte2Data, ejeNarrativo) {
   const expertoNombre = parte1Data.fichaExperto?.split('\n')[0] || 'Dr./Dra.'
   const mecanismo = parte2Data.nombresMecanismo?.[0] || 'Mecanismo'
 
-  const system = `${SYSTEM_BASE}
+  const system = `${buildSystemBase(ejeNarrativo)}
 
 Genera CIERRE del advertorial. Experto: ${expertoNombre}. Mecanismo: ${mecanismo}.
 
@@ -563,6 +586,7 @@ export default async function handler(req, res) {
   try {
     const { nombre, contexto, avatar, lineamiento, mercado, documento, briefing, modelo } = req.body
     const ctx = buildContext({ nombre, contexto, avatar, lineamiento, mercado, documento, briefing })
+    const ejeNarrativo = briefing?.ejeNarrativo || null
 
     const estiloNarrativo = pickRandom(ESTILOS_NARRATIVOS)
     const aperturaElegida = pickRandom(APERTURAS_VARIANTES)
@@ -581,9 +605,9 @@ ESTRUCTURAS A USAR (no las copies textualmente, son guías de estilo):
 
 REGLA: el TONO completo del advertorial debe seguir el estilo "${estiloNarrativo.nombre}". Cada bloque mantiene ese estilo aunque varíe el tema.`
 
-    const p1 = await parte1(ctx + variaciones, modelo)
-    const p2 = await parte2(ctx + variaciones, modelo, p1)
-    const p3 = await parte3(ctx + variaciones, modelo, p1, p2)
+    const p1 = await parte1(ctx + variaciones, modelo, ejeNarrativo)
+    const p2 = await parte2(ctx + variaciones, modelo, p1, ejeNarrativo)
+    const p3 = await parte3(ctx + variaciones, modelo, p1, p2, ejeNarrativo)
 
     const advertorialRaw = { ...p1, ...p2, ...p3 }
 

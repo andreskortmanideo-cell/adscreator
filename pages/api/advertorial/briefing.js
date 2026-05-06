@@ -176,13 +176,25 @@ export default async function handler(req, res) {
 
     const system = `Eres copywriter de publireportajes científicos. El producto aparece en el bloque 9 — los primeros 8 son educación pura.
 
+Tu tarea incluye calcular un EJE NARRATIVO ÚNICO que será la columna vertebral de TODO el advertorial. Sus 5 elementos (villano, metaforaMecanismo, verdadOculta, momentoDescubrimiento, mecanismoSolucion) deben cumplir 3 reglas:
+- ESPECÍFICOS al producto/avatar de esta solicitud. NO genéricos. NO intercambiables con otro producto del mismo nicho. Si copiando-y-pegando esos 5 elementos a un advertorial de otro producto seguirían funcionando igual, están demasiado abstractos — reescríbelos.
+- COHERENTES entre sí. El villano explica la verdad oculta. La metáfora ilustra cómo opera ese villano dentro del cuerpo. El momento de descubrimiento es donde el experto entendió ese villano y esa verdad. El mecanismo de solución ataca exactamente lo que ese villano causa, no otra cosa.
+- VÍVIDOS y memorables. Lenguaje sensorial, escenas concretas, números o detalles clínicos. Evita abstracciones tipo "el problema persistente", "la molestia constante", "salud general", "el sistema afectado".
+
 Devuelve SOLO JSON válido, sin markdown, sin texto antes ni después:
 {
   "enemigo": "el verdadero villano del avatar (hábito, industria, mito, falso tratamiento)",
   "mecanismo": "mecanismo único científico del producto explicado en 2-3 oraciones",
   "estructura": "cómo fluirá la narrativa: gancho, desarrollo educativo, transición al producto, cierre",
   "tono": "tono y voz específicos para este advertorial",
-  "lineamientosCriticos": "lista de reglas absolutas que deben cumplirse (basadas en el lineamiento del cliente)"
+  "lineamientosCriticos": "lista de reglas absolutas que deben cumplirse (basadas en el lineamiento del cliente)",
+  "ejeNarrativo": {
+    "villano": "string — el enemigo concreto compartido entre experto y avatar (industria, mito de salud, falso tratamiento, hábito instalado). Específico al producto, no genérico.",
+    "metaforaMecanismo": "string — UNA metáfora central del mecanismo del problema, cotidiana y vívida. Formato: '[parte del cuerpo/sistema] funciona como [analogía cotidiana]. Cuando [falla X], [consecuencia visible Y].' Inventa nueva, no recicles.",
+    "verdadOculta": "string — la creencia popular vs la realidad biológica/funcional. Formato literal: 'Lo que creen: [creencia común]. La verdad: [realidad opuesta]. Si [síntoma observable], no estás mirando [creencia]. Estás mirando [verdad].'",
+    "momentoDescubrimiento": "string — 1-2 frases narrativas del momento exacto en que el experto se dio cuenta del villano/verdad oculta. Concreto, con detalle sensorial (paciente específico, observación clínica, frustración acumulada).",
+    "mecanismoSolucion": "string — nombre técnico/científico del mecanismo único de la solución (ej: 'Activación linfática controlada por gradiente térmico') + 1 frase de cómo opera diferente a alternativas convencionales."
+  }
 }`
 
     const inputBlock = buildInputBlock({ nombre, contexto, avatar, lineamiento, documento })

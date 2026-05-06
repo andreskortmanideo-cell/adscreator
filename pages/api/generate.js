@@ -474,12 +474,13 @@ REGLA ESPECIAL ANTI-CRUCE INFOGRÁFICO/BENEFICIOS (aplica solo si el tipo es uno
         })()
 
         // FIX #7 — pre-selección de 3 hooks de HOOKS_JEFE para imagen (uno por idea/eje)
+        const plataformaImg = userMsg.match(/PLATAFORMA: ([^\n]+)/)?.[1]?.trim() || ''
         const hooksImg = await seleccionarHooksJefe({
           motivo: tipo,
           angulo: anguloImg,
           nivel: nivelImg,
           avatar: avatarImg,
-          plataforma: plat
+          plataforma: plataformaImg
         })
 
         // FIX correctivo — regla de estructura del texto en pieza por tipo (sobreescribe el "siempre 6 bullets")

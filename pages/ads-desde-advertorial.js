@@ -138,7 +138,7 @@ CIERRE CTA: ${txt(adv.cierreCTA)}
 
   function tiposAjustados(nivel) {
     if (!analisis) return []
-    const aj = {1:{Educativo:+15,Emocional:+10,Racional:-10,Directo:-20},2:{Emocional:+15,Funcional:+10,Educativo:+5,Directo:-15},3:{Funcional:+15,Educativo:+10,Racional:+5,Directo:-5},4:{Directo:+20,Funcional:+10,Racional:+5,Emocional:-10},5:{Directo:+25,Funcional:+5,Emocional:-10,Educativo:-15}}
+    const aj = {1:{Educativo:+15,Emocional:+10,Racional:-10,Aspiracional:-20},2:{Emocional:+15,Funcional:+10,Educativo:+5,Aspiracional:-15},3:{Funcional:+15,Educativo:+10,Racional:+5,Aspiracional:-5},4:{Aspiracional:+20,Funcional:+10,Racional:+5,Emocional:-10},5:{Aspiracional:+25,Funcional:+5,Emocional:-10,Educativo:-15}}
     const adj = nivel === analisis.nivel_recomendado ? {} : (aj[nivel] || {})
     return [...analisis.tipos].map(t => ({...t, score: Math.min(99, Math.max(10, t.score + (adj[t.tipo] || 0)))})).sort((a,b) => b.score - a.score)
   }

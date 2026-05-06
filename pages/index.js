@@ -90,8 +90,8 @@ export default function Home() {
         {tipo:'Emocional', score:80, porque_convierte:'Conecta con emociones del avatar', porque_no:'Puede sentirse manipulador', mejor_nivel:2},
         {tipo:'Funcional', score:75, porque_convierte:'Comunica beneficios concretos',   porque_no:'Frío sin contexto emocional',mejor_nivel:3},
         {tipo:'Educativo', score:78, porque_convierte:'Construye autoridad y confianza', porque_no:'Puede ser largo o pasivo',  mejor_nivel:2},
-        {tipo:'Racional',  score:70, porque_convierte:'Datos, garantías, comparativas',  porque_no:'No genera deseo emocional',  mejor_nivel:4},
-        {tipo:'Directo',   score:72, porque_convierte:'CTA fuerte, urgencia',            porque_no:'Sin warm-up no convierte',    mejor_nivel:5},
+        {tipo:'Racional',     score:70, porque_convierte:'Datos, garantías, comparativas',          porque_no:'No genera deseo emocional',           mejor_nivel:4},
+        {tipo:'Aspiracional', score:72, porque_convierte:'Conecta con la identidad y aspiración del avatar', porque_no:'Requiere claridad sobre la identidad deseada', mejor_nivel:4},
       ].map(t=>t.tipo===dec.tipo?{...t,score:90}:t).sort((a,b)=>b.score-a.score)
 
       const analisisSint={
@@ -214,7 +214,7 @@ export default function Home() {
 
   function tiposAjustados(nivel) {
     if(!analisis) return []
-    const aj={1:{Educativo:+15,Emocional:+10,Racional:-10,Directo:-20},2:{Emocional:+15,Funcional:+10,Educativo:+5,Directo:-15},3:{Funcional:+15,Educativo:+10,Racional:+5,Directo:-5},4:{Directo:+20,Funcional:+10,Racional:+5,Emocional:-10},5:{Directo:+25,Funcional:+5,Emocional:-10,Educativo:-15}}
+    const aj={1:{Educativo:+15,Emocional:+10,Racional:-10,Aspiracional:-20},2:{Emocional:+15,Funcional:+10,Educativo:+5,Aspiracional:-15},3:{Funcional:+15,Educativo:+10,Racional:+5,Aspiracional:-5},4:{Aspiracional:+20,Funcional:+10,Racional:+5,Emocional:-10},5:{Aspiracional:+25,Funcional:+5,Emocional:-10,Educativo:-15}}
     const adj=nivel===analisis.nivel_recomendado?{}:(aj[nivel]||{})
     return [...analisis.tipos].map(t=>({...t,score:Math.min(99,Math.max(10,t.score+(adj[t.tipo]||0)))})).sort((a,b)=>b.score-a.score)
   }
@@ -437,7 +437,10 @@ ${txt(adv.cierreCTA)}
     const tipoVar = tipo || sesionHistorial.find(e=>e.id===sesionActiva)?.tipo || 'Funcional'
     const paisVar = pais || sesionHistorial.find(e=>e.id===sesionActiva)?.pais || 'Colombia'
     const durVar = duracion || sesionHistorial.find(e=>e.id===sesionActiva)?.duracion || '30'
-    const ctx = `TIPO: ${tipoVar}\nMERCADO: ${paisVar}\nPLATAFORMA: ${plat}\nFORMATO: video\nDURACIÓN: ${durVar} segundos\nNIVEL: ${nv} - ${ni?.nombre||''}\n\n${v.guionCompleto}`
+    const avatarStr = avatarManual.trim() ? avatarManual.trim() : (avatarSel!==null && analisis?.avatares?.[avatarSel] ? analisis.avatares[avatarSel].nombre + ' — ' + analisis.avatares[avatarSel].dolor_principal : '')
+    const avatarLine = avatarStr ? `\nAVATAR: ${avatarStr}` : ''
+    const anguloLine = anguloSel ? `\nANGULO_VENTA: ${anguloSel}` : ''
+    const ctx = `TIPO: ${tipoVar}\nMERCADO: ${paisVar}\nPLATAFORMA: ${plat}\nFORMATO: video\nDURACIÓN: ${durVar} segundos\nNIVEL: ${nv} - ${ni?.nombre||''}${avatarLine}${anguloLine}\n\n${v.guionCompleto}`
     try {
       const d = await api([{role:'user',content:ctx}],'variaciones')
       const text = d.content?.[0]?.text||''
@@ -866,8 +869,8 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                     'Emocional': {accent:'#c43a7a', icon:'♥'},
                     'Funcional': {accent:'#3a8cc4', icon:'⚙'},
                     'Educativo': {accent:'#8a5cd0', icon:'◆'},
-                    'Racional':  {accent:'#3aa87e', icon:'▤'},
-                    'Directo':   {accent:'#c47a3a', icon:'➤'},
+                    'Racional':     {accent:'#3aa87e', icon:'▤'},
+                    'Aspiracional': {accent:'#c4a83a', icon:'🌟'},
                   }
                   const def = TIPO_DEF[t.tipo] || TIPO_DEF['Emocional']
                   const isSel=tipo===t.tipo

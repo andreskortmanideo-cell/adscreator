@@ -1,22 +1,102 @@
 const { HOOKS_COMPLETOS, TODOS_LOS_HOOKS } = require('../../data/hooks-data')
 
 const ANGULOS_VENTA = {
-  'Problema/Dolor': 'Empieza activando el problema concreto que vive el avatar. Muestra el dolor de forma reconocible antes de cualquier solución.',
-  'Beneficio/Resultado': 'Empieza mostrando el resultado final ya logrado. Lo que el avatar va a tener/sentir/lograr es el centro de todo el guión.',
-  'Curiosidad': 'Abre con un dato, hecho o pregunta que genere "necesito saber más". Mantén el misterio durante el desarrollo y resuélvelo al final.',
-  'Urgencia/Escasez': 'El motor del guión es el tiempo o disponibilidad limitada. "Antes de que se acabe", "solo por hoy", "últimas unidades". El producto es lo que urge tomar ya.',
-  'Autoridad/Prueba Social': 'Apóyate en evidencia externa: número de clientes, recomendado por X, testimonios reales, datos verificables. La credibilidad la da el otro.',
-  'Novedad': 'Posiciona como algo nuevo, recién llegado, descubrimiento reciente. "Acaba de salir", "lo último en", "la nueva forma de".',
-  'Comparación/Contraste': 'Confronta dos opciones: el producto vs lo tradicional, antes vs ahora, ellos vs nosotros. El producto siempre gana la comparación.',
-  'Enemigo en Común': 'Identifica un villano externo (la industria, un hábito mainstream, un mito, otra marca implícita) contra el que el producto pelea junto al avatar.',
-  'Historia': 'Narrativa de un personaje (real o representativo) que vivió una transformación gracias al producto. Estructura: situación, conflicto, descubrimiento, resolución.',
-  'Transformación': 'Centro en el cambio del avatar: quién era antes vs quién es ahora. El producto es el catalizador del cambio personal.',
-  'FOMO': 'Ya hay gente que lo tiene/usa/disfruta y eso está pasando ahora. Quien no actúa se queda fuera. "Mientras tú lees esto otros ya están..."',
-  'Simplicidad': 'El ángulo es la facilidad. "Solo 3 pasos", "tan simple como", "sin complicaciones". El producto resuelve sin esfuerzo.',
-  'Ironía/Provocación': 'Tono irreverente o sarcástico. Cuestiona algo obvio, se ríe de una creencia común, rompe la cuarta pared. Memorable por descarado.',
-  'Precio/Valor': 'El centro es la relación valor/precio. "Por menos de", "lo que pagas por X equivale a Y", "una sola compra que reemplaza Z". Justifica económicamente.',
-  'Exclusividad': 'No es para todos. Selectivo, especial, para quienes saben/merecen/buscan algo distinto. Apela al estatus o pertenencia a un grupo selecto.',
-  'Aspiracional': 'Apela al ideal, al deseo de convertirse en una mejor versión. Conecta el producto con el estilo de vida o identidad que el avatar quiere tener.'
+  'Problema/Dolor': {
+    que_hace: 'Activa el problema concreto que vive el avatar antes de cualquier solución',
+    estructura: '1) Identifica el dolor específico con detalle sensorial. 2) Profundiza en cómo afecta el día a día del avatar. 3) Valida que no es culpa suya, hay una causa. 4) Apunta a que existe respuesta (sin decir cuál si es nivel 1-2)',
+    tono: 'Empático, directo, sin rodeos',
+    ejemplo: '¿Cansado de no poder dormir bien?'
+  },
+  'Beneficio/Resultado': {
+    que_hace: 'Empieza mostrando el resultado final ya logrado, lo que el avatar tendrá',
+    estructura: '1) Pinta la imagen del resultado deseado de forma vívida. 2) Conecta ese resultado con la realidad actual del avatar. 3) Explica brevemente cómo se llega ahí. 4) Cierre con invitación a hacerlo realidad',
+    tono: 'Positivo, optimista, concreto',
+    ejemplo: 'Pierde 5 kilos en 30 días sin dejar de comer lo que amas'
+  },
+  'Curiosidad': {
+    que_hace: 'Genera intriga con un dato, pregunta o secreto que despierta necesidad de saber más',
+    estructura: '1) Pregunta provocadora o dato sorprendente al inicio. 2) Mantén el misterio durante el desarrollo. 3) Ofrece pistas pero no resuelve completamente. 4) CTA hacia el enlace para descubrir más',
+    tono: 'Misterioso, intrigante, casi conspirativo',
+    ejemplo: 'El secreto que los dentistas no quieren que sepas'
+  },
+  'Urgencia/Escasez': {
+    que_hace: 'El motor del guión es el tiempo o disponibilidad limitada',
+    estructura: '1) Establece la oferta o disponibilidad. 2) Marca claramente el límite de tiempo o cantidad. 3) Visualiza la consecuencia de no actuar. 4) CTA inmediato y específico',
+    tono: 'Urgente, directo, con tensión',
+    ejemplo: 'Solo quedan 3 unidades. Oferta termina hoy'
+  },
+  'Autoridad/Prueba Social': {
+    que_hace: 'Apoya el mensaje en evidencia externa, números, expertos o testimonios',
+    estructura: '1) Establece la credencial o cifra impactante. 2) Conecta esa credencial con el avatar. 3) Refuerza con caso concreto o testimonio. 4) Invita al avatar a sumarse a quienes ya confían',
+    tono: 'Confiado, respaldado, institucional pero cercano',
+    ejemplo: 'Más de 10,000 clientes satisfechos en Colombia'
+  },
+  'Novedad': {
+    que_hace: 'Posiciona el producto como algo recién llegado, descubrimiento o primero en su categoría',
+    estructura: '1) Anuncia la novedad con énfasis. 2) Explica qué la hace diferente a lo que existía. 3) Muestra el contraste con la vieja forma. 4) Invita a ser de los primeros en probarlo',
+    tono: 'Fresco, exclusivo, vanguardista',
+    ejemplo: 'La primera app en Latinoamérica que hace X'
+  },
+  'Comparación/Contraste': {
+    que_hace: 'Confronta el producto con la alternativa tradicional para mostrar por qué es superior',
+    estructura: '1) Presenta lo que hace todo el mundo. 2) Muestra los problemas de esa alternativa. 3) Contrasta con la propuesta del producto. 4) Cierra con la elección obvia',
+    tono: 'Argumentativo, racional, con contraste claro',
+    ejemplo: 'Deja de gastar en pastillas que no funcionan. Esto sí tiene respaldo científico'
+  },
+  'Enemigo en Común': {
+    que_hace: 'Identifica un villano externo contra el que el producto pelea junto al avatar',
+    estructura: '1) Nombra al enemigo común con claridad. 2) Expone cómo te afecta a ti y al avatar. 3) Posiciona al producto como aliado contra ese enemigo. 4) Invita a unirse a la resistencia',
+    tono: 'Combativo, cómplice, nosotros contra ellos',
+    ejemplo: 'Las grandes farmacéuticas no quieren que sepas que esto existe'
+  },
+  'Historia': {
+    que_hace: 'Cuenta una historia real (propia o de un cliente) que naturalmente lleva al producto',
+    estructura: '1) Situación inicial del personaje. 2) Conflicto o momento de quiebre. 3) Descubrimiento donde aparece el producto. 4) Resolución y vida después',
+    tono: 'Narrativo, humano, en primera persona',
+    ejemplo: 'Hace 2 años no podía caminar sin dolor. Hoy entreno todos los días'
+  },
+  'Transformación': {
+    que_hace: 'Muestra el antes y el después del avatar de forma clara y contrastada',
+    estructura: '1) Pinta vívidamente el antes. 2) Marca el momento de cambio. 3) Pinta vívidamente el después. 4) Atribuye la transformación al producto',
+    tono: 'Inspirador, con contraste fuerte, esperanzador',
+    ejemplo: 'De no saber nada de inglés a trabajar en una empresa internacional en 8 meses'
+  },
+  'FOMO': {
+    que_hace: 'Hace sentir al avatar que otros ya están avanzando sin él',
+    estructura: '1) Describe lo que ya está pasando ahora mismo. 2) Posiciona al avatar como el que aún no actúa. 3) Visualiza la brecha que se crea. 4) Invita a no quedarse atrás',
+    tono: 'Urgente, social, casi competitivo',
+    ejemplo: 'Mientras lees esto, tu competencia ya está usando IA para vender más'
+  },
+  'Simplicidad': {
+    que_hace: 'Le dice al avatar que lo que parecía difícil, con este producto es fácil',
+    estructura: '1) Reconoce la dificultad percibida. 2) Desmonta el mito de complejidad. 3) Muestra los pocos pasos necesarios. 4) Invita a probar lo fácil que es',
+    tono: 'Tranquilizador, claro, sin tecnicismos',
+    ejemplo: 'No necesitas experiencia. En 3 pasos tienes tu negocio funcionando'
+  },
+  'Ironía/Provocación': {
+    que_hace: 'Va contra la creencia común para generar reacción y romper el patrón',
+    estructura: '1) Lanza la provocación o creencia opuesta. 2) Explica por qué la mayoría se equivoca. 3) Revela la lógica detrás del contrasentido. 4) Cierre que invita a pensar diferente',
+    tono: 'Irreverente, sarcástico, anti-cliché',
+    ejemplo: 'Dejar de hacer dieta fue lo que me hizo bajar de peso'
+  },
+  'Precio/Valor': {
+    que_hace: 'Justifica económicamente el precio convirtiéndolo en inversión, no gasto',
+    estructura: '1) Establece el precio o costo. 2) Lo compara con un gasto cotidiano del avatar. 3) Cuantifica el retorno o beneficio a largo plazo. 4) Resalta la ganancia real',
+    tono: 'Lógico, calculador, justificado',
+    ejemplo: 'Menos de lo que gastas en café al mes para dormir sin dolor el resto de tu vida'
+  },
+  'Exclusividad': {
+    que_hace: 'Hace sentir al avatar que el producto no es para todos, sino para él específicamente',
+    estructura: '1) Define quién SÍ es el cliente ideal. 2) Define quién NO es. 3) Refuerza la pertenencia al grupo selecto. 4) Invita a entrar al círculo',
+    tono: 'Selectivo, premium, casi excluyente',
+    ejemplo: 'Esto no es para todos. Solo para quienes van en serio con su salud'
+  },
+  'Aspiracional': {
+    que_hace: 'Conecta el producto con la imagen, identidad o vida que el avatar quiere tener',
+    estructura: '1) Muestra la vida o persona ideal. 2) Conecta esa imagen con valores del avatar. 3) Posiciona al producto como puente hacia esa identidad. 4) Invita a convertirse en esa versión',
+    tono: 'Inspirador, deseable, identitario',
+    ejemplo: 'Vive como la gente que sí tiene libertad financiera'
+  }
 }
 
 const PROMPTS_POR_TIPO = {
@@ -35,6 +115,9 @@ ESTRUCTURA OBLIGATORIA:
 7. Cierre con orgullo + CTA suave
 CLAVES: Sonar real. Lenguaje simple, humano, cercano. El producto NO es el héroe, es el facilitador.
 ESTILO: Tipo selfie / UGC / testimonial. Cercano, íntimo, casi como confesión.
+EMOCIÓN DOMINANTE: arco de Frustración hacia Orgullo.
+PALABRAS CLAVE QUE DEBES INCORPORAR: yo sentía, no era la única, por fin, alivio, me entiende
+PIEZA IDEAL: Storytelling / Testimonios
 EVITA: Sonar como anuncio. Frases cliché. Promesas exageradas. CTA agresivos. Mencionar tiendas o plataformas de venta.`,
 
   Funcional: `Quiero que actúes como un experto senior en marketing digital especializado en Meta Ads y respuesta directa.
@@ -51,6 +134,9 @@ ESTRUCTURA OBLIGATORIA:
 7. Cierre con CTA natural
 CLAVES: Mostrar > decir. Before creíble. After evidente pero realista. Ritmo dinámico.
 ESTILO: UGC directo, tipo selfie o demostración real.
+EMOCIÓN DOMINANTE: Confianza / Control.
+PALABRAS CLAVE QUE DEBES INCORPORAR: mira cómo, el resultado es, en X días, la diferencia se nota
+PIEZA IDEAL: Before & After / UGC directo
 EVITA: Promesas irreales. Explicaciones técnicas. Sonar como comercial. Mencionar tiendas o plataformas de venta.`,
 
   Educativo: `Quiero que actúes como un experto senior en marketing digital especializado en Meta Ads y respuesta directa.
@@ -64,6 +150,9 @@ ESTRUCTURA OBLIGATORIA:
 5. Introducción del producto como herramienta lógica
 6. Cierre persuasivo y natural con CTA verbal
 TONO: Humano, directo y creíble. Sensación de autoridad y claridad.
+EMOCIÓN DOMINANTE: Curiosidad / Claridad.
+PALABRAS CLAVE QUE DEBES INCORPORAR: sabías que, la razón es, esto pasa porque, lo que muchos no saben
+PIEZA IDEAL: Tutoriales / tips / comparativas
 EVITA: Sonar como comercial. Frases genéricas. Promesas exageradas. Mencionar tiendas o plataformas de venta.`,
 
   Racional: `Quiero que actúes como un experto senior en marketing digital especializado en Meta Ads y respuesta directa.
@@ -79,22 +168,30 @@ ESTRUCTURA OBLIGATORIA:
 6. Resultado mental/emocional → Sensación de orden y control
 7. Cierre con CTA natural
 ESTILO: Tipo guía corta / mini tutorial. Tono seguro, claro y tranquilo.
+EMOCIÓN DOMINANTE: Orden / Tranquilidad.
+PALABRAS CLAVE QUE DEBES INCORPORAR: el método, los pasos son, sin complicaciones, claro y simple
+PIEZA IDEAL: Explicativos / guías cortas
 EVITA: Explicaciones largas. Lenguaje técnico. Sonar como conferencia. CTA agresivos. Mencionar tiendas o plataformas de venta.`,
 
-  Directo: `Quiero que actúes como un experto senior en marketing digital especializado en Meta Ads y respuesta directa.
-Ayúdame a construir un guión para un video publicitario con enfoque directo, para audiencias nivel de consciencia 4 y 5.
-El objetivo: presentar el producto de forma clara y persuasiva para impulsar la conversión inmediata.
-ESTRUCTURA OBLIGATORIA:
-1. Hook directo (0-3s) → Mostrar el producto en acción o resultado claro
-2. Presentación clara → Qué es + para quién es
-3. Beneficios principales (rápidos y concretos)
-4. Diferenciador clave → Qué lo hace mejor o distinto
-5. Demostración breve / uso → Lo fácil que es usarlo
-6. Refuerzo de confianza
-7. Cierre con CTA directo pero natural
-CLAVES: Ir al punto rápidamente. El producto es el protagonista desde el segundo 1.
-ESTILO: Demostrativo / directo a cámara / hands-on.
-EVITA: Storytelling largo. Rodeos. CTA agresivos. Mencionar tiendas o plataformas de venta.`
+  Aspiracional: `Eres un copywriter senior especializado en marketing de respuesta directa con visión de transformación de identidad.
+
+Tu tarea: escribir un guión publicitario ASPIRACIONAL.
+
+EMOCIÓN DOMINANTE: Deseo y admiración. El avatar debe sentir "yo quiero ser esa persona".
+
+ENFOQUE: Imagen, identidad y transformación de vida. NO se trata del producto, se trata de en quién se convierte el avatar usándolo.
+
+ESTRUCTURA NARRATIVA OBLIGATORIA:
+1. Vida actual del avatar con la insatisfacción sutil de no ser quien quiere ser
+2. Vida deseada, la persona en la que quiere convertirse
+3. Producto como puente entre esas dos vidas
+4. Cierre invitando a convertirse en esa versión
+
+PALABRAS CLAVE QUE DEBES INCORPORAR: vive como, sé esa persona, tu mejor versión, por fin tener, convertirte en
+
+PIEZA IDEAL: Lifestyle, video aspiracional, transformación de identidad
+
+EVITA: Hablar de características técnicas, precios, beneficios funcionales. Esto NO es Funcional ni Racional, es identidad pura.`
 }
 
 const FORMATOS_IMAGEN = {
@@ -253,7 +350,7 @@ El avatar_recomendado es el índice (0-4) del más relevante por tamaño + aline
 4. ANGULOS DE VENTA RECOMENDADOS: De los 16 ángulos posibles, identifica los 5 más efectivos para este producto con score del 1 al 100 y por qué. Los 16 ángulos son: Problema/Dolor, Beneficio/Resultado, Curiosidad, Urgencia/Escasez, Autoridad/Prueba Social, Novedad, Comparación/Contraste, Enemigo en Común, Historia, Transformación, FOMO, Simplicidad, Ironía/Provocación, Precio/Valor, Exclusividad, Aspiracional.
 
 Luego responde SOLO el JSON con tus conclusiones reales, sin texto antes ni despues:
-{"niveles":[{"numero":1,"nombre":"Inconsciente","angulo":"","porque_si":"","porque_no":"","ejemplo_hook":""},{"numero":2,"nombre":"Consciente del problema","angulo":"","porque_si":"","porque_no":"","ejemplo_hook":""},{"numero":3,"nombre":"Consciente de la solucion","angulo":"","porque_si":"","porque_no":"","ejemplo_hook":""},{"numero":4,"nombre":"Consciente del producto","angulo":"","porque_si":"","porque_no":"","ejemplo_hook":""},{"numero":5,"nombre":"Totalmente consciente","angulo":"","porque_si":"","porque_no":"","ejemplo_hook":""}],"tipos":[{"tipo":"Emocional","score":0,"porque_convierte":"","porque_no":"","mejor_nivel":0},{"tipo":"Funcional","score":0,"porque_convierte":"","porque_no":"","mejor_nivel":0},{"tipo":"Educativo","score":0,"porque_convierte":"","porque_no":"","mejor_nivel":0},{"tipo":"Racional","score":0,"porque_convierte":"","porque_no":"","mejor_nivel":0},{"tipo":"Directo","score":0,"porque_convierte":"","porque_no":"","mejor_nivel":0}],"nivel_recomendado":0,"tipo_recomendado":"","razon_recomendacion":"","avatares":[{"nombre":"","descripcion":"","dolor_principal":"","tamano_publico":"","relevancia":0},{"nombre":"","descripcion":"","dolor_principal":"","tamano_publico":"","relevancia":0},{"nombre":"","descripcion":"","dolor_principal":"","tamano_publico":"","relevancia":0},{"nombre":"","descripcion":"","dolor_principal":"","tamano_publico":"","relevancia":0},{"nombre":"","descripcion":"","dolor_principal":"","tamano_publico":"","relevancia":0}],"avatar_recomendado":0,"angulos_recomendados":[{"angulo":"","score":0,"porque":""}]}
+{"niveles":[{"numero":1,"nombre":"Inconsciente","angulo":"","porque_si":"","porque_no":"","ejemplo_hook":""},{"numero":2,"nombre":"Consciente del problema","angulo":"","porque_si":"","porque_no":"","ejemplo_hook":""},{"numero":3,"nombre":"Consciente de la solucion","angulo":"","porque_si":"","porque_no":"","ejemplo_hook":""},{"numero":4,"nombre":"Consciente del producto","angulo":"","porque_si":"","porque_no":"","ejemplo_hook":""},{"numero":5,"nombre":"Totalmente consciente","angulo":"","porque_si":"","porque_no":"","ejemplo_hook":""}],"tipos":[{"tipo":"Emocional","score":0,"porque_convierte":"","porque_no":"","mejor_nivel":0},{"tipo":"Funcional","score":0,"porque_convierte":"","porque_no":"","mejor_nivel":0},{"tipo":"Educativo","score":0,"porque_convierte":"","porque_no":"","mejor_nivel":0},{"tipo":"Racional","score":0,"porque_convierte":"","porque_no":"","mejor_nivel":0},{"tipo":"Aspiracional","score":0,"porque_convierte":"","porque_no":"","mejor_nivel":0}],"nivel_recomendado":0,"tipo_recomendado":"","razon_recomendacion":"","avatares":[{"nombre":"","descripcion":"","dolor_principal":"","tamano_publico":"","relevancia":0},{"nombre":"","descripcion":"","dolor_principal":"","tamano_publico":"","relevancia":0},{"nombre":"","descripcion":"","dolor_principal":"","tamano_publico":"","relevancia":0},{"nombre":"","descripcion":"","dolor_principal":"","tamano_publico":"","relevancia":0},{"nombre":"","descripcion":"","dolor_principal":"","tamano_publico":"","relevancia":0}],"avatar_recomendado":0,"angulos_recomendados":[{"angulo":"","score":0,"porque":""}]}
 
 Completa todos los campos vacios con tu analisis real del producto. CRITICO: score DEBE ser un INTEGER (85, 72, 60...) NUNCA texto ni palabras en ingles. ejemplo_hook sin comillas.`
       promptEjecutado = promptAnalisis
@@ -279,7 +376,7 @@ Completa todos los campos vacios con tu analisis real del producto. CRITICO: sco
         const formatoImgSel = userMsg.match(/FORMATO_IMG: ([^\n]+)/)?.[1]?.trim() || 'Funcional'
         const avatarImg = userMsg.match(/AVATAR: ([^\n]+)/)?.[1]?.trim() || ''
         const anguloImg = userMsg.match(/ANGULO_VENTA: ([^\n]+)/)?.[1]?.trim() || ''
-        const defAnguloImg = anguloImg && ANGULOS_VENTA[anguloImg] ? `\n\nÁNGULO DE VENTA: ${anguloImg}\nDEFINICIÓN: ${ANGULOS_VENTA[anguloImg]}\nLas 3 ideas deben aplicar este ángulo en su composición y mensaje visual.` : ''
+        const defAnguloImg = anguloImg && ANGULOS_VENTA[anguloImg] ? `\n\nÁNGULO DE VENTA OBLIGATORIO: ${anguloImg}\nDEFINICIÓN: ${ANGULOS_VENTA[anguloImg].que_hace}\nESTRUCTURA DEL GUIÓN: ${ANGULOS_VENTA[anguloImg].estructura}\nTONO: ${ANGULOS_VENTA[anguloImg].tono}\nEJEMPLO DE REFERENCIA: "${ANGULOS_VENTA[anguloImg].ejemplo}"\nLas 3 ideas deben aplicar este ángulo en su composición y mensaje visual.` : ''
         const avatarImgLine = avatarImg ? `\n\nAVATAR OBJETIVO: ${avatarImg}\nLas ideas deben hablarle específicamente a esta persona — su contexto, su lenguaje visual, su realidad.` : ''
         promptFinal = `${PROMPT_IMAGEN_BASE(formatoImgSel)}${avatarImgLine}${defAnguloImg}
 
@@ -363,7 +460,7 @@ REGLAS:
 
       const nivelNumVar = parseInt(userMsg.match(/NIVEL:\s*(\d+)/)?.[1] || '3')
       const anguloVar = userMsg.match(/ANGULO_VENTA: ([^\n]+)/)?.[1]?.trim() || ''
-      const defAnguloVar = anguloVar && ANGULOS_VENTA[anguloVar] ? `\nMantén el ángulo de venta "${anguloVar}": ${ANGULOS_VENTA[anguloVar]}` : ''
+      const defAnguloVar = anguloVar && ANGULOS_VENTA[anguloVar] ? `\nÁNGULO DE VENTA OBLIGATORIO: ${anguloVar}\nDEFINICIÓN: ${ANGULOS_VENTA[anguloVar].que_hace}\nESTRUCTURA DEL GUIÓN: ${ANGULOS_VENTA[anguloVar].estructura}\nTONO: ${ANGULOS_VENTA[anguloVar].tono}\nEJEMPLO DE REFERENCIA: "${ANGULOS_VENTA[anguloVar].ejemplo}"` : ''
       const reglaNivelVar = nivelNumVar <= 2
         ? `REGLA CRÍTICA: Nivel de consciencia ${nivelNumVar}. NO menciones el producto, la marca ni ninguna solución específica. ${nivelNumVar===1?'Activa el dolor como revelación.':'Valida el dolor y promete que hay respuesta sin decirla.'} CTA: lleva a descubrir más, no a comprar.`
         : nivelNumVar === 3 ? `REGLA: Nivel 3. Presenta el producto como hallazgo natural, no como venta.`
@@ -641,11 +738,72 @@ ${listaNum.map((h,i)=>i+': '+h).join('\n')}`
 
       const nivelNumGen = parseInt(ctxOriginal.match(/NIVEL:\s*(\d+)/)?.[1] || '3')
       let reglaNivel = ''
-      if (nivelNumGen <= 1) reglaNivel = 'REGLA CRITICA NIVEL 1: El espectador NO sabe que tiene el problema. PROHIBIDO mencionar producto, marca o solucion. Activa el dolor como revelacion o dato curioso. CTA: lleva a descubrir por que le pasa esto, nunca a comprar.'
-      else if (nivelNumGen === 2) reglaNivel = 'REGLA CRITICA NIVEL 2: El espectador sabe que tiene el problema pero no busca solucion. PROHIBIDO mencionar producto o marca. Valida su dolor, hazle sentir que no esta solo y que hay respuesta — sin decir cual. CTA: lleva a entender como otros lo resolvieron, nunca a comprar.'
-      else if (nivelNumGen === 3) reglaNivel = 'REGLA NIVEL 3: El espectador conoce que existen soluciones. Presenta el producto como hallazgo natural ("descubri algo", "encontre una forma"), no como venta directa.'
-      else if (nivelNumGen === 4) reglaNivel = 'REGLA NIVEL 4: El espectador conoce productos similares. Menciona el producto con beneficios concretos. CTA con urgencia suave: "pruebalo", "es tu momento".'
-      else reglaNivel = 'REGLA NIVEL 5: El espectador conoce este producto. CTA directo y con conviccion: "pidelo ahora", "no lo dejes pasar". Puedes usar escasez o urgencia.'
+      if (nivelNumGen <= 1) reglaNivel = `REGLA SAGRADA NIVEL 1 — INCONSCIENTE
+AUDIENCIA: No sabe que tiene un problema.
+ESTRATEGIA: Crear conciencia mediante contenido educativo o disruptivo, mostrando la problemática.
+PROHIBIDO ABSOLUTAMENTE:
+- Mencionar el nombre del producto
+- Mencionar la marca
+- Nombrar una solución específica
+- Decir existe una solución o hay un producto
+- Mencionar ingredientes o mecanismos
+CÓMO ABRIR: Dato disruptivo, pregunta provocadora, o problemática que el avatar vive sin nombrarla
+CÓMO DESARROLLAR: Educar sobre el problema desde el ángulo elegido. Si el motivo es Educativo, enseña algo. Si es Funcional, muestra el problema visible.
+CTA OBLIGATORIO: Invitación a saber más en el enlace. Usa frases como:
+- Mira en el enlace por qué te pasa esto
+- Aprende qué hay detrás
+- Descubre lo que pocos saben
+- Entra al enlace y aprende más
+NUNCA invites a comprar. NUNCA menciones producto.`
+      else if (nivelNumGen === 2) reglaNivel = `REGLA SAGRADA NIVEL 2 — CONSCIENTE DEL PROBLEMA
+AUDIENCIA: Sabe que algo anda mal pero no busca soluciones activamente.
+ESTRATEGIA: Empatizar, educar sobre el problema y sus causas.
+PROHIBIDO ABSOLUTAMENTE:
+- Mencionar el nombre del producto
+- Mencionar la marca
+- Hacer promesas concretas de resolución
+- Vender directamente
+CÓMO ABRIR: Validación empática del dolor que el avatar reconoce, tipo si tú también
+CÓMO DESARROLLAR: Explicar las causas reales del problema. Hacer que el avatar entienda por qué le pasa.
+CTA OBLIGATORIO: Invitación a entender cómo otros lo resolvieron. Usa frases como:
+- Entra al enlace y entiende cómo otros lo resolvieron
+- Mira lo que muchos ya están haciendo
+- Conoce más en el enlace
+- Descubre qué hicieron quienes ya pasaron por esto
+NUNCA nombres el producto. NUNCA hagas venta directa.`
+      else if (nivelNumGen === 3) reglaNivel = `REGLA NIVEL 3 — CONSCIENTE DE LA SOLUCIÓN
+AUDIENCIA: Conoce que existen soluciones pero no conoce este producto específico.
+ESTRATEGIA: Presentar la propuesta como la mejor alternativa.
+PERMITIDO: Mencionar el producto, pero como hallazgo natural, NO como anuncio publicitario.
+CÓMO ABRIR: Conexión con la búsqueda activa del avatar, tipo estaba buscando algo que
+CÓMO DESARROLLAR: Presentar el producto como descubrimiento personal, sin lenguaje publicitario tipo el mejor, único, revolucionario.
+CTA: Invitación suave, sin presión:
+- Descubrí algo que cambió todo
+- Mira esto que encontré
+- Vale la pena que lo veas
+TONO: Hallazgo personal, no venta. NUNCA uses verbos imperativos de compra como compra u ordena.`
+      else if (nivelNumGen === 4) reglaNivel = `REGLA NIVEL 4 — CONSCIENTE DEL PRODUCTO
+AUDIENCIA: Conoce el producto pero duda.
+ESTRATEGIA: Mostrar beneficios concretos, testimonios, garantías, comparativas.
+PERMITIDO: Mencionar producto con beneficios, prueba social, urgencia suave.
+CÓMO ABRIR: Reconoce las dudas comunes del avatar
+CÓMO DESARROLLAR: Beneficios concretos, prueba social, garantías, comparativas
+CTA: Urgencia suave, NO agresiva:
+- Pruébalo tú mismo
+- Es momento de intentarlo
+- Únete a quienes ya lo usan
+- Date la oportunidad de comprobarlo`
+      else reglaNivel = `REGLA NIVEL 5 — TOTALMENTE CONSCIENTE
+AUDIENCIA: Ya conoce, confía, solo necesita el empujón final.
+ESTRATEGIA: Cerrar la venta con razón concreta para actuar HOY.
+PERMITIDO: Venta directa, escasez, urgencia real, ofertas.
+CÓMO ABRIR: Va al grano, sin preámbulos
+CÓMO DESARROLLAR: Razón concreta para actuar HOY (descuento, escasez, beneficio limitado)
+CTA: Acción directa:
+- Pídelo ahora
+- No lo dejes pasar
+- Ya sabes lo que hace, es tu momento
+- Última oportunidad antes de que se acabe`
 
       const prompts = [
         { hook: hooksElegidos[0], enfoque: 'PROBLEMA/DOLOR', estilo: estilosNarrativos[0] },
@@ -658,8 +816,11 @@ ${ctxOriginal}
 
 ${avatarV ? `AVATAR OBJETIVO: ${avatarV}
 Escribe el guión ESPECÍFICAMENTE para esta persona — usa su lenguaje, su contexto diario, su dolor concreto. No hables a un público genérico.` : ''}
-${anguloV ? `ÁNGULO DE VENTA OBLIGATORIO: ${anguloV}
-DEFINICIÓN del ángulo: ${ANGULOS_VENTA[anguloV] || 'Aplica este ángulo de forma coherente'}
+${anguloV && ANGULOS_VENTA[anguloV] ? `ÁNGULO DE VENTA OBLIGATORIO: ${anguloV}
+DEFINICIÓN: ${ANGULOS_VENTA[anguloV].que_hace}
+ESTRUCTURA DEL GUIÓN: ${ANGULOS_VENTA[anguloV].estructura}
+TONO: ${ANGULOS_VENTA[anguloV].tono}
+EJEMPLO DE REFERENCIA: "${ANGULOS_VENTA[anguloV].ejemplo}"
 Este ángulo es la estructura narrativa principal del guión — no solo afecta el hook, define cómo se desarrolla todo el mensaje.` : ''}
 
 TAREA: Escribe UN SOLO guión de video publicitario.

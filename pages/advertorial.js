@@ -474,7 +474,7 @@ export default function AdvertorialCreator() {
             <div style={{ marginBottom:16 }}>
               <label style={{ fontSize:10, color:D.textDim, letterSpacing:'.05em', textTransform:'uppercase', display:'block', marginBottom:6 }}>Motivo / Tipo</label>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                {['Emocional','Funcional','Educativo','Racional','Directo'].map(t => (
+                {['Emocional','Funcional','Educativo','Aspiracional','Racional'].map(t => (
                   <button key={t} onClick={()=>setAdTipo(t)}
                     style={{ padding:'7px 14px', background:adTipo===t?D.blueDark:D.input, border:`1px solid ${adTipo===t?D.blue:D.cardBorder}`, color:adTipo===t?D.blueLight:D.textMid, borderRadius:20, cursor:'pointer', fontSize:11, fontFamily:'inherit', fontWeight:adTipo===t?600:400 }}>
                     {t}

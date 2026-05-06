@@ -858,7 +858,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                               display:'flex',alignItems:'center',gap:12,
                               borderLeft:`3px solid ${def.accent}`,
                             }}>
-                            <span style={{fontSize:14,opacity:.75,flexShrink:0}}>{def.icon}</span>
+                            <div style={{width:28,height:28,borderRadius:'50%',background:D.accent,border:`2px solid ${def.accent}`,color:def.accent,fontWeight:700,fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{i+1}</div>
                             <div style={{flex:1}}>
                               <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3,flexWrap:'wrap'}}>
                                 <span style={{fontSize:12,fontWeight:600,color:D.text}}>{av.nombre}</span>
@@ -903,7 +903,8 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                         cursor:'pointer',
                         transition:'all .15s'
                       }}>
-                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:5}}>
+                        <div style={{width:28,height:28,borderRadius:'50%',background:D.accent,border:`2px solid ${accent}`,color:accent,fontWeight:700,fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{n.numero}</div>
                         <div style={{fontSize:11,fontWeight:600,color:D.text,textTransform:'uppercase',letterSpacing:'.05em'}}>Nivel {n.numero} · {n.nombre}</div>
                         {isRec&&<span style={{fontSize:9,color:accent,fontWeight:600,letterSpacing:'.05em',textTransform:'uppercase'}}>· Recomendado</span>}
                       </div>

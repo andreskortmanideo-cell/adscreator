@@ -425,7 +425,7 @@ REGLAS FINALES:
 CONTEXTO:
 ${userMsg}
 
-PALABRAS: ${duracion==='10'?22:duracion==='20'?43:duracion==='30'?65:duracion==='40'?87:duracion==='50'?108:130} palabras por versión (equivale a ${duracion} segundos). Las 3 versiones deben tener el mismo conteo.
+PALABRAS: ${duracion==='10'?30:duracion==='20'?60:duracion==='30'?90:duracion==='40'?120:duracion==='50'?150:180} palabras por versión (equivale a ${duracion} segundos). Las 3 versiones deben tener el mismo conteo.
 
 HOOKS DISPONIBLES — tipo ${tipo.toUpperCase()} (elige los 3 mejores y adáptalos al producto):
 - ${hooksStr}
@@ -468,7 +468,7 @@ REGLAS:
       const userMsg = body[0].content
       const durMatch = userMsg.match(/DURACI[OÓ]N: ([^\n]+)/)
       const duracion = durMatch ? durMatch[1].replace(' segundos','').trim() : '30'
-      const palabras = duracion==='10'?22:duracion==='20'?43:duracion==='30'?65:duracion==='40'?87:duracion==='50'?108:130
+      const palabras = duracion==='10'?30:duracion==='20'?60:duracion==='30'?90:duracion==='40'?120:duracion==='50'?150:180
       const tipoVar = userMsg.match(/TIPO: (\w+)/)?.[1] || 'Funcional'
       const hooksDelTipoVar = HOOKS_COMPLETOS[tipoVar] || TODOS_LOS_HOOKS
       const hooksStrVar = hooksDelTipoVar.join('\n- ')
@@ -726,7 +726,7 @@ Evidencia: [qué dato concreto del contexto se usa, o si el guion es genérico y
       const avatarV = ctxOriginal.match(/AVATAR: ([^\n]+)/)?.[1]?.trim() || ''
       const anguloV = ctxOriginal.match(/ANGULO_VENTA: ([^\n]+)/)?.[1]?.trim() || ''
       const paisV = ctxOriginal.match(/MERCADO: ([^\n]+)/)?.[1]?.trim() || pais
-      const npalabras = dur3==='10'?22:dur3==='20'?43:dur3==='30'?65:dur3==='40'?87:dur3==='50'?108:130
+      const npalabras = dur3==='10'?30:dur3==='20'?60:dur3==='30'?90:dur3==='40'?120:dur3==='50'?150:180
       const hooksV = (HOOKS_COMPLETOS[tipoV] || TODOS_LOS_HOOKS).join('\n- ')
       const basePrompt = PROMPTS_POR_TIPO[tipoV] || PROMPTS_POR_TIPO['Emocional']
 
@@ -937,7 +937,7 @@ Versión 2 terminó así: "${ultimasNPalabras(resultados[1] || '', 60)}"`
       responseText = resultados.join('\n\n')
 
       // Post-process: ajustar cada guión neto al número exacto de palabras
-      const objetivo = dur3==='10'?22:dur3==='20'?43:dur3==='30'?65:dur3==='40'?87:dur3==='50'?108:130
+      const objetivo = dur3==='10'?30:dur3==='20'?60:dur3==='30'?90:dur3==='40'?120:dur3==='50'?150:180
       responseText = ajustarNetosEnTexto(responseText, objetivo)
 
     } else if (modo === 'correccion' && !isImagenFormato) {
@@ -951,7 +951,7 @@ Versión 2 terminó así: "${ultimasNPalabras(resultados[1] || '', 60)}"`
 
       const durMatchC = body[0].content.match(/DURACI[ÓO]N: (\d+)/)
       const durC = durMatchC ? durMatchC[1] : '30'
-      const npalabrasC = durC==='10'?22:durC==='20'?43:durC==='30'?65:durC==='40'?87:durC==='50'?108:130
+      const npalabrasC = durC==='10'?30:durC==='20'?60:durC==='30'?90:durC==='40'?120:durC==='50'?150:180
       const maxTokC = durC==='10'?800:durC==='20'?900:durC==='30'?1000:durC==='40'?1200:durC==='50'?1500:2200
 
       const resultadosC = []

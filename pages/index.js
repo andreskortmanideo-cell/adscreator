@@ -641,7 +641,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
             else{const el=document.createElement('textarea');el.value=neto;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el)}
           }} style={{fontSize:11,color:D.blueLight,border:`1px solid ${D.blue}`,background:'transparent',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}>Copiar</button>
         </div>
-        <div style={{fontSize:14,color:'#fff',lineHeight:1.9,whiteSpace:'pre-wrap'}}>{neto}</div>
+        <div style={{fontSize:14,color:D.text,lineHeight:1.9,whiteSpace:'pre-wrap'}}>{neto}</div>
       </div>
     )
   }
@@ -689,29 +689,22 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
         {/* ── HEADER ── */}
         <div style={{background:'#ffffff',borderBottom:`1px solid ${D.cardBorder}`,padding:'0 28px',height:58,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
           <div style={{lineHeight:1}}>
-            <div style={{fontSize:16,fontWeight:800,color:'#fff',letterSpacing:'.1em'}}>IDEO TEAM</div>
+            <div style={{fontSize:16,fontWeight:800,color:D.text,letterSpacing:'.1em'}}>IDEO TEAM</div>
             <div style={{fontSize:9,color:D.blue,letterSpacing:'.2em',textTransform:'uppercase',marginTop:3}}>Ads Creator</div>
           </div>
 
           <div style={{display:'flex',alignItems:'center',gap:12}}>
-            {/* ── Selector de modelo ── */}
-            <div style={{display:'flex',alignItems:'center',gap:4,background:D.input,border:`1px solid ${D.cardBorder}`,borderRadius:20,padding:'3px 4px'}}>
-              {[
-                {id:'gpt-4.1-mini',  label:'GPT 4.1 Mini', desc:'Rápido · límites altos · recomendado'},
-                {id:'gpt-4o-mini',   label:'GPT 4o Mini',  desc:'Rápido · económico'},
-                {id:'gpt-4o',        label:'GPT-4o',       desc:'Mayor calidad'},
-                {id:'claude-sonnet-4-6',  label:'Sonnet 4.6',  desc:'Claude · mejor balance'},
-                {id:'claude-haiku-4-5', label:'Haiku 4.5',   desc:'Claude · rápido y barato'},
-              ].map(m=>(
-                <div key={m.id} title={m.desc} style={{position:'relative'}}>
-                  <button onClick={()=>setModeloSel(m.id)}
-                    style={{fontSize:11,fontWeight:600,padding:'4px 11px',borderRadius:16,border:'none',cursor:'pointer',fontFamily:'inherit',transition:'all .15s',
-                      background:modeloSel===m.id?D.blue:'transparent',
-                      color:modeloSel===m.id?'#fff':D.textDim}}>
-                    {m.label}
-                  </button>
-                </div>
-              ))}
+            {/* ── Selector de modelo (dropdown nativo) ── */}
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontSize:11,color:D.textDim,letterSpacing:0.5,textTransform:'uppercase',fontWeight:500}}>Modelo IA</span>
+              <select value={modeloSel} onChange={e=>setModeloSel(e.target.value)}
+                style={{background:D.input,border:`1px solid ${D.inputBorder}`,color:D.text,padding:'6px 28px 6px 10px',borderRadius:6,fontSize:13,cursor:'pointer',outline:'none',fontFamily:'inherit'}}>
+                <option value="gpt-4.1-mini">GPT-4.1 mini (rápido)</option>
+                <option value="gpt-4o-mini">GPT-4o mini (económico)</option>
+                <option value="gpt-4o">GPT-4o (calidad)</option>
+                <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (mejor Claude)</option>
+                <option value="claude-haiku-4-5">Claude Haiku 4.5 (rápido Claude)</option>
+              </select>
             </div>
 
             {sesionHistorial.length>0&&(
@@ -1268,14 +1261,14 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                   <div style={{marginTop:14, paddingTop:14, borderTop:`1px solid ${D.cardBorder}`}}>
                     {!auditorias[versionActiva] && (
                       <button onClick={()=>auditarVersion(versionActiva,'video')} disabled={auditando===String(versionActiva)}
-                        style={{fontSize:11, padding:'7px 14px', background:'#2a1d3a', border:'1px solid #5a3d8a', color:'#c5a8ff', borderRadius:7, cursor:'pointer', fontFamily:'inherit', fontWeight:600, opacity:auditando===String(versionActiva)?.5:1}}>
+                        style={{fontSize:11, padding:'7px 14px', background:D.accent, border:`1px solid ${D.cardBorder}`, color:D.textMid, borderRadius:7, cursor:'pointer', fontFamily:'inherit', fontWeight:600, opacity:auditando===String(versionActiva)?.5:1}}>
                         {auditando===String(versionActiva)?'🔍 Auditando...':'🔍 Auditar este guion'}
                       </button>
                     )}
                     {auditorias[versionActiva] && (
-                      <div style={{background:'#1a1228', border:'1px solid #5a3d8a', borderRadius:8, padding:'14px 16px', marginTop:6}}>
+                      <div style={{background:D.card, border:`1px solid ${D.cardBorder}`, borderRadius:8, padding:'14px 16px', marginTop:6}}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-                          <div style={{fontSize:11, color:'#c5a8ff', fontWeight:700, letterSpacing:'.05em', textTransform:'uppercase'}}>
+                          <div style={{fontSize:11, color:D.text, fontWeight:700, letterSpacing:'.05em', textTransform:'uppercase'}}>
                             🔍 Auditoría · Versión {versionActiva+1}
                           </div>
                           <button onClick={()=>setAuditorias(a=>{const n={...a};delete n[versionActiva];return n})}
@@ -1283,12 +1276,12 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                             ✕ cerrar
                           </button>
                         </div>
-                        <pre style={{margin:0, fontSize:12, color:D.text, lineHeight:1.6, fontFamily:'inherit', whiteSpace:'pre-wrap'}}>
+                        <pre style={{margin:0, fontSize:12, color:D.textMid, background:D.accent, padding:'10px 12px', borderRadius:6, lineHeight:1.6, fontFamily:'inherit', whiteSpace:'pre-wrap'}}>
                           {auditorias[versionActiva]}
                         </pre>
                         <div style={{marginTop:10, display:'flex', gap:6}}>
                           <button onClick={()=>auditarVersion(versionActiva,'video')} disabled={auditando===String(versionActiva)}
-                            style={{fontSize:10, color:'#c5a8ff', background:'transparent', border:'1px solid #5a3d8a', borderRadius:5, padding:'4px 9px', cursor:'pointer'}}>
+                            style={{fontSize:10, color:D.textMid, background:'transparent', border:`1px solid ${D.cardBorder}`, borderRadius:5, padding:'4px 9px', cursor:'pointer'}}>
                             ⟳ Re-auditar
                           </button>
                           <button onClick={()=>navigator.clipboard.writeText(auditorias[versionActiva])}
@@ -1311,7 +1304,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                         </div>
                         <div style={{display:'flex',gap:6,flexShrink:0}}>
                           <button onClick={()=>navigator.clipboard.writeText(v.guionNeto||v.guionVisual||v.guionCompleto)} style={{fontSize:11,color:D.blueLight,border:`1px solid ${D.blue}`,background:'transparent',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}>Copiar</button>
-                          <button onClick={()=>{setVersionActiva(i);setTimeout(generarVariaciones,50)}} disabled={generandoVariaciones} style={{fontSize:11,color:'#059669',border:'1px solid #a7f3d0',background:'#071e14',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',opacity:generandoVariaciones?.5:1}}>⟳ Variaciones</button>
+                          <button onClick={()=>{setVersionActiva(i);setTimeout(generarVariaciones,50)}} disabled={generandoVariaciones} style={{fontSize:11,color:D.green,border:`1px solid ${D.greenBorder}`,background:D.greenBg,borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',opacity:generandoVariaciones?.5:1}}>⟳ Variaciones</button>
                         </div>
                       </div>
                       <div style={{fontSize:14,color:'#fff',lineHeight:1.9,whiteSpace:'pre-wrap'}}>{(()=>{
@@ -1332,14 +1325,14 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                       <div style={{marginTop:12, paddingTop:10, borderTop:`1px solid ${D.cardBorder}`}}>
                         {!auditorias['imagen_'+i] && (
                           <button onClick={()=>auditarVersion(i,'imagen')} disabled={auditando==='imagen_'+i}
-                            style={{fontSize:11, padding:'6px 12px', background:'#2a1d3a', border:'1px solid #5a3d8a', color:'#c5a8ff', borderRadius:7, cursor:'pointer', fontFamily:'inherit', fontWeight:600, opacity:auditando==='imagen_'+i?.5:1}}>
+                            style={{fontSize:11, padding:'6px 12px', background:D.accent, border:`1px solid ${D.cardBorder}`, color:D.textMid, borderRadius:7, cursor:'pointer', fontFamily:'inherit', fontWeight:600, opacity:auditando==='imagen_'+i?.5:1}}>
                             {auditando==='imagen_'+i?'🔍 Auditando...':'🔍 Auditar esta idea'}
                           </button>
                         )}
                         {auditorias['imagen_'+i] && (
-                          <div style={{background:'#1a1228', border:'1px solid #5a3d8a', borderRadius:8, padding:'12px 14px', marginTop:6}}>
+                          <div style={{background:D.card, border:`1px solid ${D.cardBorder}`, borderRadius:8, padding:'12px 14px', marginTop:6}}>
                             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                              <div style={{fontSize:11, color:'#c5a8ff', fontWeight:700, letterSpacing:'.05em', textTransform:'uppercase'}}>
+                              <div style={{fontSize:11, color:D.text, fontWeight:700, letterSpacing:'.05em', textTransform:'uppercase'}}>
                                 🔍 Auditoría · Idea {i+1}
                               </div>
                               <button onClick={()=>setAuditorias(a=>{const n={...a};delete n['imagen_'+i];return n})}
@@ -1347,7 +1340,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                                 ✕
                               </button>
                             </div>
-                            <pre style={{margin:0, fontSize:11, color:D.text, lineHeight:1.6, fontFamily:'inherit', whiteSpace:'pre-wrap'}}>
+                            <pre style={{margin:0, fontSize:11, color:D.textMid, background:D.accent, padding:'10px 12px', borderRadius:6, lineHeight:1.6, fontFamily:'inherit', whiteSpace:'pre-wrap'}}>
                               {auditorias['imagen_'+i]}
                             </pre>
                           </div>
@@ -1385,18 +1378,18 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
           )}
 
           {variaciones.length>0&&(
-            <div id="variaciones-section" style={{background:'#07180f',border:'1px solid #a7f3d0',borderRadius:14,padding:'18px 20px',marginBottom:10}}>
+            <div id="variaciones-section" style={{background:D.greenBg,border:`1px solid ${D.greenBorder}`,borderRadius:14,padding:'18px 20px',marginBottom:10}}>
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
-                <div style={{width:24,height:24,borderRadius:'50%',border:'1px solid #059669',background:'#071e14',color:'#059669',fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>⟳</div>
-                <div style={{fontSize:12,fontWeight:500,color:'#8ab4cc',letterSpacing:'.06em',textTransform:'uppercase'}}>Variaciones del guión seleccionado</div>
-                <button onClick={()=>setVariaciones([])} style={{marginLeft:'auto',fontSize:10,color:'#3d7a9a',border:'1px solid #0d2f45',background:'transparent',borderRadius:6,padding:'2px 8px',cursor:'pointer',fontFamily:'inherit'}}>✕ cerrar</button>
+                <div style={{width:24,height:24,borderRadius:'50%',border:`1px solid ${D.green}`,background:D.card,color:D.green,fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>⟳</div>
+                <div style={{fontSize:12,fontWeight:500,color:D.textMid,letterSpacing:'.06em',textTransform:'uppercase'}}>Variaciones del guión seleccionado</div>
+                <button onClick={()=>setVariaciones([])} style={{marginLeft:'auto',fontSize:10,color:D.textDim,border:`1px solid ${D.cardBorder}`,background:'transparent',borderRadius:6,padding:'2px 8px',cursor:'pointer',fontFamily:'inherit'}}>✕ cerrar</button>
               </div>
               <div style={{display:'flex',gap:8,marginBottom:16}}>
                 {variaciones.map((v,i)=>(
                   <button key={i} onClick={()=>setVariacionActiva(i)}
-                    style={{flex:1,padding:'10px 8px',borderRadius:9,border:`1px solid ${variacionActiva===i?'#059669':'#a7f3d0'}`,background:variacionActiva===i?'#071e14':'#060f0a',cursor:'pointer',textAlign:'left',transition:'all .15s'}}>
-                    <div style={{fontSize:10,fontWeight:600,color:variacionActiva===i?'#059669':'#3d7a9a',letterSpacing:'.05em',textTransform:'uppercase',marginBottom:3}}>Variación {i+1}</div>
-                    <div style={{fontSize:11,color:variacionActiva===i?'#6ab8d8':'#1d5a78',lineHeight:1.3}}>{v.hook}</div>
+                    style={{flex:1,padding:'10px 8px',borderRadius:9,border:`1px solid ${variacionActiva===i?D.green:D.greenBorder}`,background:variacionActiva===i?D.card:D.input,cursor:'pointer',textAlign:'left',transition:'all .15s'}}>
+                    <div style={{fontSize:10,fontWeight:600,color:variacionActiva===i?D.green:D.textDim,letterSpacing:'.05em',textTransform:'uppercase',marginBottom:3}}>Variación {i+1}</div>
+                    <div style={{fontSize:11,color:variacionActiva===i?D.text:D.textMid,lineHeight:1.3}}>{v.hook}</div>
                   </button>
                 ))}
               </div>

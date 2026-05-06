@@ -393,6 +393,7 @@ export default async function handler(req, res) {
     const isVariaciones = modo === 'variaciones'
     let promptEjecutado = ''
     let imagePrompts3 = null  // FIX #8 — set por la rama imagen para señalizar 3 llamadas paralelas
+    let hooksIndicesUsados = []  // anti-repetición: índices de HOOKS_JEFE escogidos en este request, devueltos al frontend
 
     if (isAnalisis) {
       const userMsg = body[0].content
@@ -475,13 +476,19 @@ REGLA ESPECIAL ANTI-CRUCE INFOGRÁFICO/BENEFICIOS (aplica solo si el tipo es uno
 
         // FIX #7 — pre-selección de 3 hooks de HOOKS_JEFE para imagen (uno por idea/eje)
         const plataformaImg = userMsg.match(/PLATAFORMA: ([^\n]+)/)?.[1]?.trim() || ''
-        const hooksImg = await seleccionarHooksJefe({
+        // Anti-repetición: lista de índices ya usados en sesiones previas (frontend la inyecta)
+        const excluidosImgRaw = userMsg.match(/HOOKS_YA_USADOS:\s*([^\n]+)/)?.[1]?.trim() || ''
+        const excluidosImg = excluidosImgRaw.split(/[, ]+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n))
+        const seleccionImg = await seleccionarHooksJefe({
           motivo: tipo,
           angulo: anguloImg,
           nivel: nivelImg,
           avatar: avatarImg,
-          plataforma: plataformaImg
+          plataforma: plataformaImg,
+          excluidos: excluidosImg
         })
+        const hooksImg = seleccionImg.hooks
+        hooksIndicesUsados = seleccionImg.indices
 
         // FIX correctivo — regla de estructura del texto en pieza por tipo (sobreescribe el "siempre 6 bullets")
         const reglaTexto = docTipoImg?.reglaTextoEnPieza || 'Texto corto y claro.'
@@ -512,11 +519,22 @@ ${eje.instruccion}
 ${RELLENO_BLOCK(hookPreseleccionado)}
 ${bloqueReglaTexto}${refuerzoImg}
 
+REGLAS CRÍTICAS DEL HOOK (OBLIGATORIAS):
+- El HOOK debe ser UNA frase completa y autónoma, sin truncar a media idea.
+- El HOOK debe caber en UNA SOLA LÍNEA (sin saltos internos).
+- El HOOK debe terminar en sustantivo, verbo o signo de puntuación — NUNCA en preposición, artículo o conjunción ("y", "o", "de", "la", "el", "para", "con", "por", "en", "del", "al", "que").
+- Si al rellenar los placeholders del hook preseleccionado la frase queda muy larga (>12 palabras), reformula manteniendo el sentido pero acortando — prioriza completitud sobre longitud literal del template.
+
 OUTPUT EXPECTED (DEVUELVE EXACTAMENTE ESTAS 3 SECCIONES — IGNORA cualquier formato anterior del bloque PROMPT_IMAGEN_BASE inicial, este es el formato definitivo):
 
 IDEA DE IMAGEN 1
-HOOK: <una sola frase, el hook preseleccionado ya rellenado, sin viñetas>
-DESCRIPCIÓN DE LA IMAGEN: <composición visual concreta — elemento clave, ambiente y luz, plano. 3-5 líneas de texto corrido, sin viñetas>
+HOOK: <una sola frase completa, en una sola línea, sin viñetas, sin terminar en preposición>
+DESCRIPCIÓN DE LA IMAGEN: <Descripción OPERATIVA, no narrativa. Máximo 50 palabras totales. Estructurada en estos 4 elementos cortos separados por punto y aparte (no bullets):
+- COMPOSICIÓN: qué se ve (objetos, sujeto, posición). Máx 12 palabras.
+- PLANO: tipo de plano y ángulo. Máx 8 palabras.
+- LUZ Y AMBIENTE: tipo de luz, color dominante, lugar. Máx 12 palabras.
+- ELEMENTO CLAVE: qué detiene el scroll. Máx 12 palabras.
+NO escribas párrafo literario. NO describas emociones del personaje en detalle. SÍ ser específico y visual. Total: ~50 palabras máximo.>
 BULLETS: <respeta EXACTAMENTE la reglaTextoEnPieza del tipo "${formatoImgSel}". Si la regla dice "NO viñetas", devuelve texto corrido sin bullets bajo este header. Si dice "EXACTAMENTE 3 o 4 puntos", devuelve esa cantidad exacta. Si dice "máximo X palabras", NO te pases. NO siempre es una lista — adapta el contenido al tipo>
 
 NOTA: El header se llama "BULLETS:" por compatibilidad con el parser, PERO el contenido se adapta al tipo de imagen — no siempre es una lista con viñetas.
@@ -755,7 +773,13 @@ REGLAS DE FORMATO DE RESPUESTA:
     // Hace una pre-llamada barata a OpenAI gpt-4.1-mini independiente del provider del request.
     // Si OPENAI_API_KEY no está, fallback al provider del usuario via llamarModelo.
     // Si todo falla, devuelve 3 hooks distribuidos por la lista como fallback determinista.
-    async function seleccionarHooksJefe({ motivo, angulo, nivel, avatar, plataforma }) {
+    async function seleccionarHooksJefe({ motivo, angulo, nivel, avatar, plataforma, excluidos }) {
+      const excluidosSet = new Set((Array.isArray(excluidos) ? excluidos : []).map(n => parseInt(n, 10)).filter(n => !isNaN(n)))
+      const excluidosLista = Array.from(excluidosSet).sort((a,b) => a-b)
+      const bloqueExcluidos = excluidosLista.length > 0
+        ? `\n\nIMPORTANTE: NO elijas estos índices que ya se usaron antes en la sesión: [${excluidosLista.join(', ')}]. Elige 3 nuevos diferentes a esos.`
+        : ''
+
       const lista = HOOKS_JEFE.map((h, i) => `${i}: ${h}`).join('\n')
       const promptSel = `Tienes una lista de 585 plantillas de hooks. Cada plantilla puede tener:
 - ___ : espacio para rellenar con 1-3 palabras coherentes con el contexto.
@@ -771,18 +795,18 @@ CONTEXTO:
 LISTA DE HOOKS (índice: hook):
 ${lista}
 
-Tu tarea: elige los 3 índices de hooks MÁS compatibles con el contexto (motivo + ángulo + nivel + avatar). Elige hooks DIVERSOS entre sí en estructura (no 3 que empiecen igual).
+Tu tarea: elige los 3 índices de hooks MÁS compatibles con el contexto (motivo + ángulo + nivel + avatar). Elige hooks DIVERSOS entre sí en estructura (no 3 que empiecen igual).${bloqueExcluidos}
 
 Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
 
       let raw = ''
-      // Llamada directa a OpenAI gpt-4.1-mini, independiente del provider del request
+      // Llamada directa a OpenAI gpt-4.1-mini con temperature alta para diversidad entre regeneraciones
       try {
         if (process.env.OPENAI_API_KEY) {
           const r = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY },
-            body: JSON.stringify({ model: 'gpt-4.1-mini', max_tokens: 80, messages: [{ role: 'user', content: promptSel }] })
+            body: JSON.stringify({ model: 'gpt-4.1-mini', max_tokens: 80, temperature: 0.9, messages: [{ role: 'user', content: promptSel }] })
           })
           const d = await r.json()
           if (!d.error) raw = d.choices?.[0]?.message?.content || ''
@@ -802,20 +826,36 @@ Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
         const start = clean.indexOf('{'), end = clean.lastIndexOf('}')
         if (start !== -1 && end !== -1) {
           const obj = JSON.parse(clean.slice(start, end + 1))
-          const idx = (obj.indices || [])
+          let idx = (obj.indices || [])
             .map(n => parseInt(n, 10))
-            .filter(n => !isNaN(n) && n >= 0 && n < HOOKS_JEFE.length)
-          if (idx.length >= 3) return idx.slice(0, 3).map(i => HOOKS_JEFE[i])
+            .filter(n => !isNaN(n) && n >= 0 && n < HOOKS_JEFE.length && !excluidosSet.has(n))
+          if (idx.length >= 3) return { hooks: idx.slice(0, 3).map(i => HOOKS_JEFE[i]), indices: idx.slice(0, 3) }
+          // Si el LLM ignoró la exclusión, completa con índices distintos no excluidos
+          while (idx.length < 3) {
+            const candidato = Math.floor(Math.random() * HOOKS_JEFE.length)
+            if (!excluidosSet.has(candidato) && !idx.includes(candidato)) idx.push(candidato)
+          }
+          return { hooks: idx.slice(0, 3).map(i => HOOKS_JEFE[i]), indices: idx.slice(0, 3) }
         }
       } catch (e) { /* fallback abajo */ }
 
-      // Fallback determinista: 3 hooks distribuidos por la lista
-      const fb = [
+      // Fallback determinista: 3 hooks distribuidos por la lista (saltando excluidos si caen ahí)
+      const candidatos = [
         Math.floor(HOOKS_JEFE.length * 0.15),
         Math.floor(HOOKS_JEFE.length * 0.5),
         Math.floor(HOOKS_JEFE.length * 0.85)
       ]
-      return fb.map(i => HOOKS_JEFE[i])
+      const fb = candidatos.map(i => {
+        let n = i
+        let intento = 0
+        while (excluidosSet.has(n) && intento < HOOKS_JEFE.length) {
+          n = (n + 1) % HOOKS_JEFE.length
+          intento++
+        }
+        excluidosSet.add(n)
+        return n
+      })
+      return { hooks: fb.map(i => HOOKS_JEFE[i]), indices: fb }
     }
 
     // ── Ajustar guión neto a exactamente N palabras (post-process) ──
@@ -899,13 +939,18 @@ Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
       // FIX #7 — Selección de 3 hooks de HOOKS_JEFE (585 plantillas curadas por el jefe)
       // Pre-llamada barata a gpt-4.1-mini con todo el contexto (motivo, ángulo, nivel, avatar, plataforma)
       const plataformaV = ctxOriginal.match(/PLATAFORMA: ([^\n]+)/)?.[1]?.trim() || ''
-      const hooksElegidos = await seleccionarHooksJefe({
+      const excluidosVRaw = ctxOriginal.match(/HOOKS_YA_USADOS:\s*([^\n]+)/)?.[1]?.trim() || ''
+      const excluidosV = excluidosVRaw.split(/[, ]+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n))
+      const seleccionV = await seleccionarHooksJefe({
         motivo: tipoV,
         angulo: anguloV,
         nivel: nivelGen,
         avatar: avatarV,
-        plataforma: plataformaV
+        plataforma: plataformaV,
+        excluidos: excluidosV
       })
+      const hooksElegidos = seleccionV.hooks
+      hooksIndicesUsados = seleccionV.indices
       // FIX #7 — bloque legacy de selección eliminado; se conserva data/hooks-data.js en disco intacto
       // (ver fin de bloque más abajo)
       /* LEGACY_REMOVED_START
@@ -1213,7 +1258,7 @@ ${RELLENO_BLOCK_PRESERVAR}`
       }
     }
 
-    return res.status(200).json({ content: [{ text: responseText }], promptEjecutado })
+    return res.status(200).json({ content: [{ text: responseText }], promptEjecutado, hooksIndicesUsados })
 
   } catch(e) {
     res.status(500).json({ error: e.message })

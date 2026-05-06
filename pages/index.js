@@ -105,6 +105,7 @@ export default function Home() {
   const [openPanelAngulo,setOpenPanelAngulo]=useState(false)
   const [openPanelTipoImagen,setOpenPanelTipoImagen]=useState(false)
   const [copiadoKey,setCopiadoKey]=useState(null)
+  const [hooksUsadosImg,setHooksUsadosImg]=useState([])
   const [variaciones,setVariaciones]=useState([])
   const [variacionActiva,setVariacionActiva]=useState(0)
   // ── NUEVO: selector de API ──────────────────────────────────────
@@ -129,6 +130,7 @@ export default function Home() {
     setPromptGen('')
     setSesionActiva(null)
     setCopiadoKey(null)
+    setHooksUsadosImg([])
   },[formato])
 
   useEffect(()=>{
@@ -311,10 +313,11 @@ export default function Home() {
     const avatarStr = avatarManual.trim() ? avatarManual.trim() : (avatarSel!==null && analisis?.avatares?.[avatarSel] ? analisis.avatares[avatarSel].nombre + ' — ' + analisis.avatares[avatarSel].dolor_principal : '')
     const avatarLine = avatarStr ? `\nAVATAR: ${avatarStr}` : ''
     const anguloLine = anguloSel ? `\nANGULO_VENTA: ${anguloSel}` : ''
+    const hooksUsadosLine = (formato==='imagen' && hooksUsadosImg.length>0) ? `\nHOOKS_YA_USADOS: ${hooksUsadosImg.join(',')}` : ''
     const adv = ctxFromAdvertorial?.advertorial
     const txt = (v)=>typeof v==='string'?v:(v?JSON.stringify(v):'')
     const advLine = adv ? '\n\n'+buildAdvertorialContext(ctxFromAdvertorial) : ''
-    return `TIPO: ${tipo}\nMERCADO: ${pais}\nPLATAFORMA: ${plat}\nFORMATO: ${formato}${durStr}${fmtImgStr}\nNIVEL: ${nv} - ${ni.nombre}\nÁNGULO: ${ni.angulo}${avatarLine}${anguloLine}${prodStr}${urlStr}${advLine}`
+    return `TIPO: ${tipo}\nMERCADO: ${pais}\nPLATAFORMA: ${plat}\nFORMATO: ${formato}${durStr}${fmtImgStr}\nNIVEL: ${nv} - ${ni.nombre}\nÁNGULO: ${ni.angulo}${avatarLine}${anguloLine}${hooksUsadosLine}${prodStr}${urlStr}${advLine}`
   }
 
   function buildAdvertorialContext(ctx) {
@@ -408,6 +411,10 @@ ${txt(adv.cierreCTA)}
       const d=await api(newMsgs,esCorr?'correccion':'generar')
       const text=d.content?.[0]?.text||''
       if(d.promptEjecutado) setPromptGen(d.promptEjecutado)
+      // Anti-repetición: acumular índices de hooks usados (solo formato imagen)
+      if(formato==='imagen' && Array.isArray(d.hooksIndicesUsados) && d.hooksIndicesUsados.length>0) {
+        setHooksUsadosImg(prev => Array.from(new Set([...prev, ...d.hooksIndicesUsados.map(n=>parseInt(n,10)).filter(n=>!isNaN(n))])))
+      }
       const parsed=parseVersiones(text,formato)
       if(parsed.length>0) {
         const entrada={
@@ -438,13 +445,13 @@ ${txt(adv.cierreCTA)}
         .replace(/\n+En conclusi[oó]n[\s\S]*$/gi, '')
 
       const parseBloque = (bloque, idx) => {
-        const hookMatch = bloque.match(/Hook:\s*([^\n]+)/i)
+        // Hook: captura tolerante hasta el siguiente section-header o fin (no truncar a una sola línea)
+        const hookMatch = bloque.match(/Hook\s*:\s*([\s\S]*?)(?=\n\s*(?:Descripci[oó]n\s*de\s*la\s*imagen|Descripci[oó]n|Imagen|Texto en imagen|Bullets|Texto)\s*:|\n\s*---|$)/i)
         const hookTituloMatch = bloque.match(/IDEA DE IMAGEN\s*\d+[^\n]*?(?:Hook:|—\s*)([^\n]+)/i)
-        let hookRaw = hookMatch ? cleanStr(hookMatch[1]) : hookTituloMatch ? cleanStr(hookTituloMatch[1]) : `Idea ${idx+1}`
-        const hookPalabras = hookRaw.split(/\s+/).filter(w=>w.length>0)
-        // Permitir hasta 9 palabras (no cortar a 7 — eso truncaba frases)
-        const hook = hookPalabras.length > 9 ? hookPalabras.slice(0,9).join(' ') : hookRaw
-        // Detectar hooks cortados (terminan con preposición/artículo/conjunción)
+        let hookRaw = hookMatch ? cleanStr(hookMatch[1].trim().replace(/\n+/g,' ')) : hookTituloMatch ? cleanStr(hookTituloMatch[1]) : `Idea ${idx+1}`
+        // SIN cap rígido de 9 palabras — el LLM ya tiene instrucciones explícitas; mostramos hook completo.
+        const hook = hookRaw
+        // Detectar hooks cortados (terminan con preposición/artículo/conjunción) — solo como warning, no recorta.
         const palabrasCorte = ['de','la','el','los','las','un','una','que','y','o','con','por','para','en','del','al','sin','pero','aunque','mi','tu','su','este','esta','ese','esa']
         const ultimaPalabra = hook.replace(/[.,;:!?]+$/,'').split(/\s+/).pop()?.toLowerCase()
         const hookCortado = palabrasCorte.includes(ultimaPalabra)

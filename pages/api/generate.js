@@ -1,4 +1,5 @@
 const { HOOKS_COMPLETOS, TODOS_LOS_HOOKS } = require('../../data/hooks-data')
+const { HOOKS_JEFE } = require('../../data/hooks-jefe')
 const { DOCTRINA_TIPOS_IMAGEN } = require('../../data/doctrina-tipos-imagen')
 
 const ANGULOS_VENTA = {
@@ -357,6 +358,27 @@ const EJES_IMAGEN = [
   }
 ]
 
+// ── FIX #7 — bloque de relleno para hooks preseleccionados de HOOKS_JEFE ──
+const RELLENO_BLOCK = (hookText) => `
+
+HOOK ELEGIDO PARA ESTA VERSIÓN: ${hookText}
+
+REGLAS DE RELLENO DEL HOOK (OBLIGATORIAS):
+- Si el hook contiene ___ : reemplaza cada ___ con 1-3 palabras coherentes con el producto/avatar/ángulo. Usa palabras concretas y específicas, no genéricas.
+- Si el hook contiene # : reemplaza con un número específico (preferentemente entre 3 y 7).
+- Mantén la estructura original del hook intacta. NO cambies el orden de las palabras ni reescribas el hook.
+- El hook DEBE quedar AL INICIO del guión, integrado naturalmente como apertura. La narración del guión continúa desde ahí.
+- Si el hook resulta forzado para este contexto, prefiere mantenerlo y adaptar la narración alrededor en lugar de modificarlo.`
+
+// ── FIX #7 — bloque para variaciones/correcciones que preservan el hook existente ──
+const RELLENO_BLOCK_PRESERVAR = `
+
+REGLAS DE PRESERVACIÓN DEL HOOK (OBLIGATORIAS):
+- Mantén el hook ORIGINAL del guión intacto al inicio. NO lo cambies, NO lo reescribas.
+- NO cambies el orden de las palabras del hook ni sustituyas sinónimos.
+- Si el hook contiene placeholders ___ o # ya rellenados, mantenlos exactamente como están.
+- La narración continúa desde el hook. La variación o corrección afecta el cuerpo del mensaje, no el hook.`
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const { messages, modo, apiProvider, modelo } = req.body
@@ -451,16 +473,20 @@ REGLA ESPECIAL ANTI-CRUCE INFOGRÁFICO/BENEFICIOS (aplica solo si el tipo es uno
           return 'REGLA NIVEL 5: Producto y marca visibles. CTA directo pero no agresivo: "pídelo ahora", "ya sabes lo que hace".'
         })()
 
-        // FIX #8 — construir 3 prompts (uno por eje) en lugar de uno solo
-        const buildPromptIdea = (eje) => `${PROMPT_IMAGEN_BASE(formatoImgSel)}${avatarImgLine}${defAnguloImg}
+        // FIX #7 — pre-selección de 3 hooks de HOOKS_JEFE para imagen (uno por idea/eje)
+        const hooksImg = await seleccionarHooksJefe({
+          motivo: tipo,
+          angulo: anguloImg,
+          nivel: nivelImg,
+          avatar: avatarImg,
+          plataforma: plat
+        })
+
+        // FIX #8 + #7 — construir 3 prompts (uno por eje) con hook preseleccionado de HOOKS_JEFE
+        const buildPromptIdea = (eje, hookPreseleccionado) => `${PROMPT_IMAGEN_BASE(formatoImgSel)}${avatarImgLine}${defAnguloImg}
 
 CONTEXTO DEL PRODUCTO Y NIVEL:
 ${userMsgFinal}
-
-LISTA DE HOOKS DISPONIBLES — elige UN hook visual e impactante para imagen estática (${hooksDelTipo.length} hooks disponibles):
-- ${hooksStr}
-
-INSTRUCCIÓN DE HOOK: De la lista anterior selecciona UN solo hook visual e impactante. Adáptalo al producto real reemplazando los ___. NO inventes hooks fuera de la lista.
 
 ${reglaNivelImg}
 
@@ -473,10 +499,11 @@ REGLAS FINALES:
 INSTRUCCIÓN DE EJE PARA ESTA IDEA (sobreescribe lo demás en caso de conflicto sobre encuadre/foco):
 Esta llamada produce UNA SOLA idea (no 3). Es la idea con eje "${eje.nombre}" (${eje.id}/3 de un set paralelo).
 ${eje.instruccion}
+${RELLENO_BLOCK(hookPreseleccionado)}
 
 OUTPUT: una única "IDEA DE IMAGEN 1" con sus tres secciones obligatorias (Hook, Descripción de la imagen, Texto en imagen). NO generes 3 ideas, solo UNA. NO incluyas separadores --- entre ideas.${refuerzoImg}`
 
-        imagePrompts3 = EJES_IMAGEN.map(buildPromptIdea)
+        imagePrompts3 = EJES_IMAGEN.map((eje, i) => buildPromptIdea(eje, hooksImg[i]))
         promptFinal = imagePrompts3[0]
 
       } else {
@@ -570,6 +597,7 @@ Las 3 variaciones DEBEN terminar con palabras y CTA completamente distintos entr
 - NO repitas la frase de CTA literal entre variaciones
 - Las últimas 5-7 palabras de cada variación deben ser únicas
 - Cada variación construye su propio CTA con sus propias palabras
+${RELLENO_BLOCK_PRESERVAR}
 
 FORMATO:
 
@@ -721,6 +749,73 @@ Evidencia: [qué dato concreto del contexto se usa, o si el guion es genérico y
       }
     }
 
+    // ── FIX #7 — Selector de 3 hooks de HOOKS_JEFE (585 plantillas) ──
+    // Hace una pre-llamada barata a OpenAI gpt-4.1-mini independiente del provider del request.
+    // Si OPENAI_API_KEY no está, fallback al provider del usuario via llamarModelo.
+    // Si todo falla, devuelve 3 hooks distribuidos por la lista como fallback determinista.
+    async function seleccionarHooksJefe({ motivo, angulo, nivel, avatar, plataforma }) {
+      const lista = HOOKS_JEFE.map((h, i) => `${i}: ${h}`).join('\n')
+      const promptSel = `Tienes una lista de 585 plantillas de hooks. Cada plantilla puede tener:
+- ___ : espacio para rellenar con 1-3 palabras coherentes con el contexto.
+- # : espacio para un número específico (preferentemente 3-7).
+
+CONTEXTO:
+- Motivo: ${motivo || '(no especificado)'}
+- Ángulo: ${angulo || '(no especificado)'}
+- Nivel de consciencia: ${nivel || '(no especificado)'}
+- Avatar: ${avatar || '(no especificado)'}
+- Plataforma: ${plataforma || '(no especificado)'}
+
+LISTA DE HOOKS (índice: hook):
+${lista}
+
+Tu tarea: elige los 3 índices de hooks MÁS compatibles con el contexto (motivo + ángulo + nivel + avatar). Elige hooks DIVERSOS entre sí en estructura (no 3 que empiecen igual).
+
+Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
+
+      let raw = ''
+      // Llamada directa a OpenAI gpt-4.1-mini, independiente del provider del request
+      try {
+        if (process.env.OPENAI_API_KEY) {
+          const r = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY },
+            body: JSON.stringify({ model: 'gpt-4.1-mini', max_tokens: 80, messages: [{ role: 'user', content: promptSel }] })
+          })
+          const d = await r.json()
+          if (!d.error) raw = d.choices?.[0]?.message?.content || ''
+        }
+      } catch (e) { /* fallback abajo */ }
+
+      // Fallback al provider del usuario si OpenAI no respondió
+      if (!raw) {
+        try {
+          raw = await llamarModelo([{ role: 'user', content: promptSel }], 120)
+        } catch (e) { /* nada, usa fallback indices */ }
+      }
+
+      // Parsear JSON {"indices":[...]}
+      try {
+        const clean = String(raw || '').replace(/```json|```/g, '').trim()
+        const start = clean.indexOf('{'), end = clean.lastIndexOf('}')
+        if (start !== -1 && end !== -1) {
+          const obj = JSON.parse(clean.slice(start, end + 1))
+          const idx = (obj.indices || [])
+            .map(n => parseInt(n, 10))
+            .filter(n => !isNaN(n) && n >= 0 && n < HOOKS_JEFE.length)
+          if (idx.length >= 3) return idx.slice(0, 3).map(i => HOOKS_JEFE[i])
+        }
+      } catch (e) { /* fallback abajo */ }
+
+      // Fallback determinista: 3 hooks distribuidos por la lista
+      const fb = [
+        Math.floor(HOOKS_JEFE.length * 0.15),
+        Math.floor(HOOKS_JEFE.length * 0.5),
+        Math.floor(HOOKS_JEFE.length * 0.85)
+      ]
+      return fb.map(i => HOOKS_JEFE[i])
+    }
+
     // ── Ajustar guión neto a exactamente N palabras (post-process) ──
     function ajustarPalabras(texto, objetivo) {
       const palabras = texto.trim().split(/\s+/).filter(w => w.length > 0)
@@ -799,20 +894,18 @@ Evidencia: [qué dato concreto del contexto se usa, o si el guion es genérico y
       const ctxOriginalFinal = debeSanitizar(nivelGen) ? redactarBloquesNivel12(ctxOriginal) : ctxOriginal
       const refuerzoGen = debeSanitizar(nivelGen) ? BLOQUE_REFUERZO_NIVEL12 : ''
 
-      // Llamada previa: elegir 3 índices de hooks para este producto
-      const listaHooks = HOOKS_COMPLETOS[tipoV] || TODOS_LOS_HOOKS
-      const listaNum = listaHooks.slice(0, 40)
-      const promptSelHooks = `Eres experto en copywriting. Dado este producto, elige los 3 números de hooks más efectivos de la lista — uno por enfoque (PROBLEMA, TRANSFORMACION, CURIOSIDAD). Responde SOLO JSON: {"i1":0,"i2":0,"i3":0} con los índices numéricos. Sin texto extra.
-
-PRODUCTO: ${ctxOriginalFinal.substring(0, 400)}
-
-HOOKS NUMERADOS:
-${listaNum.map((h,i)=>i+': '+h).join('\n')}`
-
-      const fallbackIdx = [2, Math.floor(listaNum.length*0.4), Math.floor(listaNum.length*0.75)]
-      let hooksElegidos = fallbackIdx.map(i => listaHooks[i] || listaHooks[0])
-      try {
-        const rH = await llamarModelo([{role:'user',content:promptSelHooks}], 150)
+      // FIX #7 — Selección de 3 hooks de HOOKS_JEFE (585 plantillas curadas por el jefe)
+      // Pre-llamada barata a gpt-4.1-mini con todo el contexto (motivo, ángulo, nivel, avatar, plataforma)
+      const hooksElegidos = await seleccionarHooksJefe({
+        motivo: tipoV,
+        angulo: anguloV,
+        nivel: nivelGen,
+        avatar: avatarV,
+        plataforma: paisV
+      })
+      // FIX #7 — bloque legacy de selección eliminado; se conserva data/hooks-data.js en disco intacto
+      // (ver fin de bloque más abajo)
+      /* LEGACY_REMOVED_START
         const cleanH = rH.replace(/```json|```/g,'').replace(/[\u0000-\u001F]/g,' ').trim()
         const jStart = cleanH.indexOf('{'), jEnd = cleanH.lastIndexOf('}')
         if (jStart!==-1 && jEnd!==-1) {
@@ -834,7 +927,7 @@ ${listaNum.map((h,i)=>i+': '+h).join('\n')}`
             if (hooksElegidos[0]===hooksElegidos[2]) hooksElegidos[2] = listaNum[listaNum.length-1]
           }
         }
-      } catch(e) { /* usar fallback */ }
+      LEGACY_REMOVED_END */
 
       const estilosNarrativos = [
         `Narra desde la EXPERIENCIA PERSONAL del usuario — usa "yo", habla de tu vida diaria, el problema que vivías, cómo lo descubriste. Tono confesional, íntimo.`,
@@ -930,9 +1023,7 @@ EJEMPLO DE REFERENCIA: "${ANGULOS_VENTA[anguloV].ejemplo}"
 Este ángulo es la estructura narrativa principal del guión — no solo afecta el hook, define cómo se desarrolla todo el mensaje.` : ''}
 
 TAREA: Escribe UN SOLO guión de video publicitario.
-
-HOOK OBLIGATORIO — úsalo EXACTAMENTE al inicio: "${enfoque.hook}"
-(adapta los ___ al producto pero mantén la estructura del hook)
+${RELLENO_BLOCK(enfoque.hook)}
 
 ESTILO NARRATIVO OBLIGATORIO para esta versión:
 ${enfoque.estilo}
@@ -1067,7 +1158,8 @@ INSTRUCCIÓN CRÍTICA DE DIFERENCIACIÓN:
 Esta es la versión ${i+1} de 3 corregidas. Las 3 versiones DEBEN tener un cierre completamente distinto entre sí.
 - NO uses las mismas palabras finales que las otras versiones corregidas
 - Las últimas 5-7 palabras de cada versión deben ser únicas
-- Si la corrección no toca el cierre, reescribe el cierre con palabras propias para no repetir el de las otras versiones${bloqueEvitarC}${refuerzoC}`
+- Si la corrección no toca el cierre, reescribe el cierre con palabras propias para no repetir el de las otras versiones${bloqueEvitarC}${refuerzoC}
+${RELLENO_BLOCK_PRESERVAR}`
         let t = await llamarModelo([{role:'user', content: promptC}], maxTokC)
         if (t.includes("Lo siento") || t.includes("I'm sorry") || t.trim().length < 30) {
           t = await llamarModelo([{role:'user', content: promptC}], maxTokC)

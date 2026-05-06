@@ -583,12 +583,12 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
     return (
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         {/* Hook */}
-        <div style={{background:v.hookCortado?'#3a200d':D.blueDark,border:`1px solid ${v.hookCortado?'#c47a3a':D.blue}`,borderRadius:10,padding:'12px 16px'}}>
+        <div style={{background:D.accent,border:`1px solid ${v.hookCortado?'#c47a3a':D.cardBorder}`,borderRadius:10,padding:'12px 16px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
             <div style={{fontSize:9,fontWeight:700,color:v.hookCortado?'#c47a3a':D.blue,letterSpacing:'.1em',textTransform:'uppercase'}}>Hook</div>
             {v.hookCortado&&<div style={{fontSize:9,fontWeight:600,color:'#c47a3a',letterSpacing:'.05em',textTransform:'uppercase'}}>⚠ Posible corte — regenera</div>}
           </div>
-          <div style={{fontSize:16,fontWeight:700,color:'#fff',lineHeight:1.4}}>{v.hook}</div>
+          <div style={{fontSize:16,fontWeight:700,color:D.text,lineHeight:1.4}}>{v.hook}</div>
         </div>
 
         {/* Descripción */}
@@ -656,7 +656,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
   const btnMain={width:'100%',padding:13,fontSize:13,fontWeight:600,borderRadius:9,cursor:'pointer',border:'none',background:`linear-gradient(135deg,#1270a0,${D.blue})`,color:'#fff',letterSpacing:'.03em',marginTop:6}
   const crd={background:D.card,border:`1px solid ${D.cardBorder}`,borderRadius:14,padding:'18px 20px',marginBottom:10}
   const stepRow={display:'flex',alignItems:'center',gap:10,marginBottom:12}
-  const stepNum={width:24,height:24,borderRadius:'50%',border:`1px solid ${D.blue}`,background:'#071824',color:D.blue,fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}
+  const stepNum={width:28,height:28,borderRadius:'50%',background:D.blue,color:'#ffffff',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}
   const stepLbl={fontSize:12,fontWeight:500,color:D.textMid,letterSpacing:'.06em',textTransform:'uppercase'}
   const fldLbl={fontSize:10,color:D.textDim,letterSpacing:'.08em',textTransform:'uppercase',marginBottom:5,fontWeight:500}
   const chipBtn=(active)=>({fontSize:12,padding:'6px 14px',borderRadius:20,border:`1px solid ${active?D.blue:D.cardBorder}`,background:active?D.blueDark:'transparent',color:active?D.blueLight:D.textDim,cursor:'pointer',fontFamily:'inherit',fontWeight:active?500:400,transition:'all .15s'})
@@ -1235,7 +1235,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                   <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:D.greenBg,color:'#059669',border:`1px solid ${D.greenBorder}`}}>
                     {formato==='imagen'?'Imagen estática':`Video ${duracion}s`}
                   </span>
-                  <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:'#0f1a20',color:D.textDim,border:`1px solid ${D.cardBorder}`}}>{pais} · Nivel {nivelSel||analisis?.nivel_recomendado}</span>
+                  <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:D.accent,color:D.textMid,border:`1px solid ${D.cardBorder}`}}>{pais} · Nivel {nivelSel||analisis?.nivel_recomendado}</span>
                   <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:modeloSel.startsWith('claude')?'#ecfdf5':'#1a1000',color:modeloSel.startsWith('claude')?'#059669':'#92400e',border:`1px solid ${modeloSel.startsWith('claude')?'#a7f3d0':'#fde68a'}`}}>
                     {modeloSel==='gpt-4.1-mini'?'GPT 4.1 Mini':modeloSel==='gpt-4o-mini'?'GPT 4o Mini':modeloSel==='gpt-4o'?'GPT-4o':modeloSel.includes('sonnet')?'Claude Sonnet':'Claude Haiku'}
                   </span>
@@ -1296,18 +1296,21 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
               ):(
                 <div style={{display:'flex',flexDirection:'column',gap:10}}>
                   {versiones.map((v,i)=>(
-                    <div key={i} style={{border:`1px solid ${D.blue}`,borderRadius:10,background:D.blueDark,padding:16}}>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
-                        <div style={{flex:1,marginRight:10}}>
-                          <span style={{fontSize:9,fontWeight:700,color:D.textDim,letterSpacing:'.1em',textTransform:'uppercase'}}>Versión {i+1}</span>
-                          <div style={{fontSize:13,fontWeight:600,color:D.blueLight,marginTop:3,lineHeight:1.4}}>{v.hook}</div>
+                    <div key={i} style={{border:`1px solid ${D.cardBorder}`,borderRadius:10,background:D.card,padding:16}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10,gap:10}}>
+                        <div style={{display:'flex',alignItems:'flex-start',gap:10,flex:1,minWidth:0}}>
+                          <div style={{width:28,height:28,borderRadius:'50%',background:D.blue,color:'#ffffff',fontWeight:700,fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{i+1}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <span style={{fontSize:9,fontWeight:700,color:D.textDim,letterSpacing:'.1em',textTransform:'uppercase'}}>Versión {i+1}</span>
+                            <div style={{fontSize:13,fontWeight:600,color:D.blue,marginTop:3,lineHeight:1.4}}>{v.hook}</div>
+                          </div>
                         </div>
                         <div style={{display:'flex',gap:6,flexShrink:0}}>
                           <button onClick={()=>navigator.clipboard.writeText(v.guionNeto||v.guionVisual||v.guionCompleto)} style={{fontSize:11,color:D.blueLight,border:`1px solid ${D.blue}`,background:'transparent',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}>Copiar</button>
                           <button onClick={()=>{setVersionActiva(i);setTimeout(generarVariaciones,50)}} disabled={generandoVariaciones} style={{fontSize:11,color:D.green,border:`1px solid ${D.greenBorder}`,background:D.greenBg,borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',opacity:generandoVariaciones?.5:1}}>⟳ Variaciones</button>
                         </div>
                       </div>
-                      <div style={{fontSize:14,color:'#fff',lineHeight:1.9,whiteSpace:'pre-wrap'}}>{(()=>{
+                      <div style={{fontSize:14,color:D.text,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{(()=>{
                         const raw=v.guionNeto||v.guionVisual||v.guionCompleto||''
                         if(v.guionNeto) return v.guionNeto
                         // Limpiar indicaciones de producción

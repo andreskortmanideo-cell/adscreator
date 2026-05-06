@@ -919,12 +919,13 @@ Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
 
       // FIX #7 — Selección de 3 hooks de HOOKS_JEFE (585 plantillas curadas por el jefe)
       // Pre-llamada barata a gpt-4.1-mini con todo el contexto (motivo, ángulo, nivel, avatar, plataforma)
+      const plataformaV = ctxOriginal.match(/PLATAFORMA: ([^\n]+)/)?.[1]?.trim() || ''
       const hooksElegidos = await seleccionarHooksJefe({
         motivo: tipoV,
         angulo: anguloV,
         nivel: nivelGen,
         avatar: avatarV,
-        plataforma: paisV
+        plataforma: plataformaV
       })
       // FIX #7 — bloque legacy de selección eliminado; se conserva data/hooks-data.js en disco intacto
       // (ver fin de bloque más abajo)

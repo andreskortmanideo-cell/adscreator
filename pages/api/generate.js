@@ -358,6 +358,28 @@ const EJES_IMAGEN = [
   }
 ]
 
+// ── Validador post-respuesta del hook ──
+function hookTerminaMal(hook) {
+  if (!hook) return true
+  const limpio = hook.trim().replace(/[.!?¿¡,;:]+$/, '').trim()
+  const ultimo = limpio.split(/\s+/).pop()?.toLowerCase() || ''
+  const palabrasMalas = new Set([
+    'y','o','u','e','de','del','al','la','el','los','las','un','una','unos','unas',
+    'para','con','por','en','sin','a','hacia','desde','hasta','ante','bajo','contra',
+    'entre','según','sobre','tras','mientras','cuando','que','si','no',
+    'mi','tu','su','mis','tus','sus','este','esta','estos','estas','ese','esa','esos','esas',
+    'es','son','está','están','sea','solo','sólo','muy','más','menos','también','tampoco',
+    'le','les','lo','los','la','las','me','te','se','nos','os'
+  ])
+  return palabrasMalas.has(ultimo)
+}
+
+function extraerHookDeRespuesta(text) {
+  if (!text) return ''
+  const m = String(text).match(/Hook\s*:\s*([\s\S]*?)(?=\n\s*(?:Descripci[oó]n|Imagen|Bullets|Texto)\s*:|\n\s*---|$)/i)
+  return m ? m[1].trim().replace(/\n+/g, ' ') : ''
+}
+
 // ── FIX #7 — bloque de relleno para hooks preseleccionados de HOOKS_JEFE ──
 const RELLENO_BLOCK = (hookText) => `
 
@@ -519,12 +541,6 @@ ${eje.instruccion}
 ${RELLENO_BLOCK(hookPreseleccionado)}
 ${bloqueReglaTexto}${refuerzoImg}
 
-REGLAS CRÍTICAS DEL HOOK (OBLIGATORIAS):
-- El HOOK debe ser UNA frase completa y autónoma, sin truncar a media idea.
-- El HOOK debe caber en UNA SOLA LÍNEA (sin saltos internos).
-- El HOOK debe terminar en sustantivo, verbo o signo de puntuación — NUNCA en preposición, artículo o conjunción ("y", "o", "de", "la", "el", "para", "con", "por", "en", "del", "al", "que").
-- Si al rellenar los placeholders del hook preseleccionado la frase queda muy larga (>12 palabras), reformula manteniendo el sentido pero acortando — prioriza completitud sobre longitud literal del template.
-
 OUTPUT EXPECTED (DEVUELVE EXACTAMENTE ESTAS 3 SECCIONES — IGNORA cualquier formato anterior del bloque PROMPT_IMAGEN_BASE inicial, este es el formato definitivo):
 
 IDEA DE IMAGEN 1
@@ -542,7 +558,26 @@ NOTA: El header se llama "BULLETS:" por compatibilidad con el parser, PERO el co
 REGLAS DE FORMATO DE RESPUESTA:
 - UNA sola idea (no 3). NO incluyas separadores --- entre ideas.
 - Empieza directamente con la línea "IDEA DE IMAGEN 1".
-- Los 3 labels HOOK:, DESCRIPCIÓN DE LA IMAGEN:, BULLETS: deben aparecer exactamente así (case-insensitive aceptado por el parser, pero respeta los dos puntos).`
+- Los 3 labels HOOK:, DESCRIPCIÓN DE LA IMAGEN:, BULLETS: deben aparecer exactamente así (case-insensitive aceptado por el parser, pero respeta los dos puntos).
+
+ÚLTIMO RECORDATORIO ANTES DE GENERAR — REGLAS CRÍTICAS DEL HOOK:
+
+EJEMPLOS DE HOOKS MAL CONSTRUIDOS (NO HAGAS ESTO):
+❌ "Vas a necesitar esto para tus platos después de" → termina en preposición "de"
+❌ "Flamix es el único que uso para caramelizar y" → termina en conjunción "y"
+❌ "No puedo creer que este ajuste sea solo" → termina en adverbio sin completar idea
+❌ "Compré esto para mi papá y ahora la correa" → termina en sustantivo huérfano sin contexto
+
+EJEMPLOS DE HOOKS BIEN CONSTRUIDOS:
+✅ "Vas a necesitar esto para platos profesionales"
+✅ "El soplete que cambió mi cocina para siempre"
+✅ "Dorado de chef sin salir de casa"
+✅ "Esto resolvió mi problema de espalda en 7 días"
+
+CHEQUEO OBLIGATORIO ANTES DE ENVIAR:
+1. Mira la última palabra de tu HOOK.
+2. Si es: y, o, de, la, el, un, una, para, con, por, en, mi, tu, su, este, ese, es, son, sea, solo, más, menos, que, si, no, le, les, lo → REESCRÍBELO. Está incompleto.
+3. El HOOK debe poder leerse en voz alta sin sentirse cortado.`
 
         imagePrompts3 = EJES_IMAGEN.map((eje, i) => buildPromptIdea(eje, hooksImg[i]))
         promptFinal = imagePrompts3[0]
@@ -1230,8 +1265,29 @@ ${RELLENO_BLOCK_PRESERVAR}`
       // FIX #8 — si imagePrompts3 está set, hacer 3 llamadas paralelas (una por eje)
       if (imagePrompts3) {
         const maxTokIdea = 1500
+        // Función que llama al LLM, valida el hook y reintenta UNA vez si terminó mal
+        const llamarConValidacion = async (promptOriginal) => {
+          const primera = await llamarModelo([{ role:'user', content: promptOriginal }], maxTokIdea)
+          const hookExtraido = extraerHookDeRespuesta(primera)
+          if (!hookTerminaMal(hookExtraido)) return primera
+          // Reintento: prompt reforzado con el error específico
+          const promptReintento = `${promptOriginal}
+
+REINTENTO OBLIGATORIO POR HOOK MAL CONSTRUIDO:
+El hook que generaste antes terminaba mal: "${hookExtraido}". Esto es INACEPTABLE.
+Genera de nuevo. El hook DEBE terminar en sustantivo concreto, verbo conjugado o signo de puntuación.
+Genera la idea completa otra vez con un hook nuevo y completo.`
+          try {
+            const segunda = await llamarModelo([{ role:'user', content: promptReintento }], maxTokIdea)
+            const hookSegundo = extraerHookDeRespuesta(segunda)
+            // Aceptar la segunda si mejoró; si no, degradar grácil a la primera
+            return !hookTerminaMal(hookSegundo) ? segunda : primera
+          } catch (e) {
+            return primera
+          }
+        }
         const settled = await Promise.allSettled(
-          imagePrompts3.map(p => llamarModelo([{ role:'user', content: p }], maxTokIdea))
+          imagePrompts3.map(p => llamarConValidacion(p))
         )
         // Renumerar headers a 1/2/3 y normalizar separador
         const bloques = settled.map((r, i) => {

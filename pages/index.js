@@ -858,6 +858,128 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                     </div>
                   )
                 })}
+
+                {/* ── Panel "Enfoque del nivel" — muestra reglas que se aplicarán ── */}
+                {(nivelSel || analisis?.nivel_recomendado) && (() => {
+                  const NIVEL_ENFOQUE = {
+                    1: {
+                      nombre: 'INCONSCIENTE',
+                      hace: [
+                        'Hablar del problema sin mencionar el producto',
+                        'Generar curiosidad o disrupción educativa',
+                        'Cerrar invitando al enlace para "saber más"',
+                        'Educar sobre el problema desde el ángulo elegido',
+                      ],
+                      noHace: [
+                        'Mencionar el nombre del producto o marca',
+                        'Nombrar una solución específica',
+                        'Mencionar ingredientes o mecanismos',
+                        'Hacer venta directa',
+                      ],
+                    },
+                    2: {
+                      nombre: 'CONSCIENTE DEL PROBLEMA',
+                      hace: [
+                        'Validar empáticamente el dolor del avatar',
+                        'Explicar las causas reales del problema',
+                        'Cerrar invitando al enlace para entender cómo otros lo resolvieron',
+                        'Hacer sentir al avatar que no está solo',
+                      ],
+                      noHace: [
+                        'Mencionar el nombre del producto o marca',
+                        'Hacer promesas concretas de resolución',
+                        'Vender directamente',
+                        'Saltarse la validación emocional',
+                      ],
+                    },
+                    3: {
+                      nombre: 'CONSCIENTE DE LA SOLUCIÓN',
+                      hace: [
+                        'Presentar el producto como hallazgo natural',
+                        'Conectar con la búsqueda activa del avatar',
+                        'Hablar como descubrimiento personal',
+                        'CTA suave sin presión',
+                      ],
+                      noHace: [
+                        'Usar lenguaje publicitario tipo "el mejor", "único", "revolucionario"',
+                        'Usar verbos imperativos de compra como "compra" u "ordena"',
+                        'Sonar como anuncio',
+                      ],
+                    },
+                    4: {
+                      nombre: 'CONSCIENTE DEL PRODUCTO',
+                      hace: [
+                        'Reconocer las dudas comunes del avatar',
+                        'Mostrar beneficios concretos',
+                        'Usar prueba social, garantías, comparativas',
+                        'CTA con urgencia suave',
+                      ],
+                      noHace: [
+                        'Ser agresivo en el cierre',
+                        'Saltarse las dudas del avatar',
+                        'Olvidar la prueba social',
+                      ],
+                    },
+                    5: {
+                      nombre: 'TOTALMENTE CONSCIENTE',
+                      hace: [
+                        'Ir al grano sin preámbulos',
+                        'Dar razón concreta para actuar HOY',
+                        'Usar escasez o urgencia real si aplica',
+                        'CTA de acción directa',
+                      ],
+                      noHace: [
+                        'Empezar con preámbulos largos',
+                        'Repetir lo que ya sabe el avatar',
+                      ],
+                    },
+                  }
+                  const nv = nivelSel || analisis?.nivel_recomendado
+                  const enf = NIVEL_ENFOQUE[nv]
+                  if (!enf) return null
+                  const NIVEL_ACCENTS_PANEL = {1:'#4a6a8a',2:'#3a8cc4',3:'#3aa898',4:'#c4a83a',5:'#c46a3a'}
+                  const accent = NIVEL_ACCENTS_PANEL[nv] || NIVEL_ACCENTS_PANEL[3]
+                  const noColor = '#c45a5a'
+                  return (
+                    <div style={{
+                      marginTop:16,
+                      marginBottom:16,
+                      padding:16,
+                      background:D.accent,
+                      border:`1px solid ${D.cardBorder}`,
+                      borderLeft:`3px solid ${accent}`,
+                      borderRadius:12,
+                    }}>
+                      <div style={{fontSize:11,fontWeight:700,color:accent,letterSpacing:'.07em',textTransform:'uppercase',marginBottom:12}}>
+                        🎯 Enfoque del nivel {nv} — {enf.nombre}
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+                        <div>
+                          <div style={{fontSize:10,fontWeight:700,color:D.green,letterSpacing:'.05em',textTransform:'uppercase',marginBottom:8}}>✓ Lo que debe hacer</div>
+                          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                            {enf.hace.map((h,i)=>(
+                              <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8}}>
+                                <span style={{color:D.green,fontWeight:700,flexShrink:0,marginTop:1,fontSize:12}}>•</span>
+                                <span style={{fontSize:12,color:D.textMid,lineHeight:1.5}}>{h}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:10,fontWeight:700,color:noColor,letterSpacing:'.05em',textTransform:'uppercase',marginBottom:8}}>✗ Lo que no debe hacer</div>
+                          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                            {enf.noHace.map((nh,i)=>(
+                              <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8}}>
+                                <span style={{color:noColor,fontWeight:700,flexShrink:0,marginTop:1,fontSize:12}}>•</span>
+                                <span style={{fontSize:12,color:D.textMid,lineHeight:1.5}}>{nh}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* ── PASO 03 — ahora se llama MOTIVO ── */}

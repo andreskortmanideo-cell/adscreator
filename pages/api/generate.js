@@ -485,6 +485,13 @@ INSTRUCCIONES:
 - EXACTAMENTE ${palabras} palabras por variación
 - Solo texto narrado — sin etiquetas ni indicaciones
 
+INSTRUCCIÓN CRÍTICA DE DIFERENCIACIÓN DE CIERRES:
+Las 3 variaciones DEBEN terminar con palabras y CTA completamente distintos entre sí.
+- NO uses las mismas palabras finales en las 3
+- NO repitas la frase de CTA literal entre variaciones
+- Las últimas 5-7 palabras de cada variación deben ser únicas
+- Cada variación construye su propio CTA con sus propias palabras
+
 FORMATO:
 
 ═══════════════════════════════
@@ -677,6 +684,21 @@ Evidencia: [qué dato concreto del contexto se usa, o si el guion es genérico y
       )
     }
 
+    // ── Extrae las últimas N palabras del cuerpo narrado de una versión ya generada ──
+    // Limpia separadores ═══, encabezados "VERSIÓN X — Hook:", delimitadores ---, asteriscos
+    // markdown y colapsa whitespace antes de tomar el slice final.
+    function ultimasNPalabras(texto, n) {
+      const limpio = String(texto || '')
+        .replace(/═{3,}[^\n]*/g, ' ')
+        .replace(/VERSI[OÓ]N\s*\d+\s*[—\-–]\s*Hook:\s*[^\n]+/gi, ' ')
+        .replace(/^\s*---+\s*$/gm, ' ')
+        .replace(/\*+/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      const palabras = limpio.split(/\s+/).filter(w => w.length > 0)
+      return palabras.slice(-n).join(' ')
+    }
+
     if (isVideoGenerar) {
       // ── 3 llamadas paralelas, una por versión, con max_tokens ajustado ──
       const durMatch3 = body[0].content.match(/DURACI[ÓO]N: (\d+)/)
@@ -855,10 +877,37 @@ REGLAS:
 
       const resultados = []
       for (let i = 0; i < prompts.length; i++) {
-        let t = await llamarModelo([{ role: 'user', content: prompts[i] }], maxTokVersion)
+        // CAMBIO A — diferenciación de cierre obligatoria
+        const instrDif = `
+
+INSTRUCCIÓN CRÍTICA DE DIFERENCIACIÓN:
+Esta es la versión ${i+1} de 3. Las 3 versiones DEBEN tener un cierre completamente distinto.
+- NO uses las mismas palabras finales que las otras versiones
+- NO uses la misma frase de CTA literal, construye tu propio CTA con tus palabras
+- Las últimas 5-7 palabras de cada versión deben ser únicas
+- Los ejemplos de CTA del nivel son INSPIRACIÓN, no frases para copiar literalmente`
+
+        // CAMBIO B — inyectar cierres de versiones anteriores como "evitar"
+        let bloqueEvitar = ''
+        if (i === 1 && resultados[0]) {
+          bloqueEvitar = `
+
+CIERRE QUE DEBES EVITAR (versión 1 ya terminó así, no lo repitas ni parafrasees):
+"${ultimasNPalabras(resultados[0], 60)}"`
+        } else if (i === 2 && (resultados[0] || resultados[1])) {
+          bloqueEvitar = `
+
+CIERRES QUE DEBES EVITAR (no los repitas ni los parafrasees):
+Versión 1 terminó así: "${ultimasNPalabras(resultados[0] || '', 60)}"
+Versión 2 terminó así: "${ultimasNPalabras(resultados[1] || '', 60)}"`
+        }
+
+        const promptConDif = prompts[i] + instrDif + bloqueEvitar
+
+        let t = await llamarModelo([{ role: 'user', content: promptConDif }], maxTokVersion)
         // Reintentar si el modelo rechaza
         if (t.includes("Lo siento") || t.includes("I'm sorry") || t.includes("can't assist") || t.trim().length < 30) {
-          t = await llamarModelo([{ role: 'user', content: prompts[i] }], maxTokVersion)
+          t = await llamarModelo([{ role: 'user', content: promptConDif }], maxTokVersion)
         }
         const num = i + 1
         let texto = t.trim()
@@ -892,6 +941,21 @@ REGLAS:
 
       const resultadosC = []
       for (let i = 0; i < Math.min(versionesActuales.length, 3); i++) {
+        // CAMBIO D — anti-repetición de cierres entre las 3 versiones corregidas
+        let bloqueEvitarC = ''
+        if (i === 1 && resultadosC[0]) {
+          bloqueEvitarC = `
+
+CIERRE QUE DEBES EVITAR (versión 1 corregida ya terminó así, no lo repitas ni parafrasees):
+"${ultimasNPalabras(resultadosC[0], 60)}"`
+        } else if (i === 2 && (resultadosC[0] || resultadosC[1])) {
+          bloqueEvitarC = `
+
+CIERRES QUE DEBES EVITAR (no los repitas ni los parafrasees):
+Versión 1 corregida terminó así: "${ultimasNPalabras(resultadosC[0] || '', 60)}"
+Versión 2 corregida terminó así: "${ultimasNPalabras(resultadosC[1] || '', 60)}"`
+        }
+
         const promptC = `Te doy una versión de un guión de video. Aplica esta corrección manteniendo TODO lo demás (hook, estructura, mensaje, longitud, tono):
 
 CORRECCIÓN A APLICAR: "${instruccion.match(/\"([^\"]+)\"/)?.[1] || instruccion}"
@@ -909,7 +973,13 @@ INSTRUCCIONES:
 VERSIÓN ${i+1} — Hook: [hook]
 ═══════════════════════════════
 [texto corregido]
----`
+---
+
+INSTRUCCIÓN CRÍTICA DE DIFERENCIACIÓN:
+Esta es la versión ${i+1} de 3 corregidas. Las 3 versiones DEBEN tener un cierre completamente distinto entre sí.
+- NO uses las mismas palabras finales que las otras versiones corregidas
+- Las últimas 5-7 palabras de cada versión deben ser únicas
+- Si la corrección no toca el cierre, reescribe el cierre con palabras propias para no repetir el de las otras versiones${bloqueEvitarC}`
         let t = await llamarModelo([{role:'user', content: promptC}], maxTokC)
         if (t.includes("Lo siento") || t.includes("I'm sorry") || t.trim().length < 30) {
           t = await llamarModelo([{role:'user', content: promptC}], maxTokC)

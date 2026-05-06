@@ -432,22 +432,23 @@ ${txt(adv.cierreCTA)}
         const ultimaPalabra = hook.replace(/[.,;:!?]+$/,'').split(/\s+/).pop()?.toLowerCase()
         const hookCortado = palabrasCorte.includes(ultimaPalabra)
 
-        // Descripción: extraer como array de viñetas (parser tolerante a varios labels)
-        const descMatch = bloque.match(/(?:Descripci[oó]n de la imagen|Descripci[oó]n|Imagen)[\s:]*\n([\s\S]*?)(?=Texto en imagen:|Bullets:|Texto:|---|$)/i)
-        const descRaw = descMatch ? descMatch[1] : ''
+        // Descripción: parser tolerante a contenido en misma línea Y multi-línea
+        const descMatch = bloque.match(/(?:Descripci[oó]n de la imagen|Descripci[oó]n|Imagen)\s*:\s*([\s\S]*?)(?=\n\s*(?:Texto en imagen|Bullets|Texto)\s*:|\n\s*---|$)/i)
+        const descRaw = descMatch ? descMatch[1].trim() : ''
         const descBullets = descRaw
           .split('\n')
           .map(l=>cleanStr(l.replace(/^[•\-\*]+\s*/,'')))
-          .filter(l=>l.length>3 && !l.match(/^---/) && !l.match(/^Texto en imagen/i) && !l.match(/^Hook/i))
-        const descripcion = descBullets.join('\n• ')
+          .filter(l=>l.length>3 && !l.match(/^---/) && !l.match(/^Texto en imagen/i) && !l.match(/^Bullets/i) && !l.match(/^Texto\s*:/i) && !l.match(/^Hook/i))
+        const descripcion = descRaw
         const descripcionArr = descBullets
 
-        // Texto en imagen: array de bullets (acepta "Texto en imagen", "Bullets", "Texto")
-        const textoMatch = bloque.match(/(?:Texto en imagen|Bullets|Texto)[\s:]*\n([\s\S]*?)(?=---|$)/i)
-        const bullets = (textoMatch ? textoMatch[1] : '').split('\n')
+        // Texto en imagen / Bullets: parser tolerante a contenido en misma línea Y multi-línea
+        const textoMatch = bloque.match(/(?:Texto en imagen|Bullets|Texto)\s*:\s*([\s\S]*?)(?=\n\s*---|$)/i)
+        const bulletsRaw = textoMatch ? textoMatch[1].trim() : ''
+        const bullets = bulletsRaw.split('\n')
           .map(l=>cleanStr(l.replace(/^[•\-\*\d\.]+\s*/,'')))
           .filter(l=>l.length>3 && !l.match(/^---/))
-        return {hook, hookCortado, descripcion, descripcionArr, bullets, guionCompleto:bloque, guionVisual:bloque, guionNeto:''}
+        return {hook, hookCortado, descripcion, descripcionArr, bullets, bulletsRaw, guionCompleto:bloque, guionVisual:bloque, guionNeto:''}
       }
 
       // Dividir por IDEA DE IMAGEN N
@@ -580,48 +581,49 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
 
   // ── Render contenido de imagen (nuevo formato) ──────────────────
   function renderImagen(v) {
+    const descTexto = (v.descripcion && v.descripcion.trim()) || (v.descripcionArr && v.descripcionArr.length>0 ? v.descripcionArr.join('\n') : '')
+    const bulletsTrim = Array.isArray(v.bullets) ? v.bullets.filter(s=>s && s.trim()) : []
+    const bulletsRawTrim = (v.bulletsRaw && v.bulletsRaw.trim()) || ''
+    // Render adaptativo de bullets: párrafo si es texto corrido (1 ítem o ítems largos), lista si son bullets reales cortos
+    const bulletsAsParagraph = bulletsTrim.length === 0 ? false
+      : bulletsTrim.length === 1 || bulletsTrim.some(s => s.length > 80)
     return (
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         {/* Hook */}
         <div style={{background:D.accent,border:`1px solid ${v.hookCortado?'#c47a3a':D.cardBorder}`,borderRadius:10,padding:'12px 16px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-            <div style={{fontSize:9,fontWeight:700,color:v.hookCortado?'#c47a3a':D.blue,letterSpacing:'.1em',textTransform:'uppercase'}}>Hook</div>
+            <div style={{fontSize:12,fontWeight:700,color:v.hookCortado?'#c47a3a':D.blue,letterSpacing:0.5,textTransform:'uppercase'}}>Hook</div>
             {v.hookCortado&&<div style={{fontSize:9,fontWeight:600,color:'#c47a3a',letterSpacing:'.05em',textTransform:'uppercase'}}>⚠ Posible corte — regenera</div>}
           </div>
           <div style={{fontSize:16,fontWeight:700,color:D.text,lineHeight:1.4}}>{v.hook}</div>
         </div>
 
         {/* Descripción */}
-        <div style={{background:D.accent,border:`1px solid ${D.cardBorder}`,borderRadius:10,padding:'12px 16px'}}>
-          <div style={{fontSize:9,fontWeight:700,color:D.textDim,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>Descripción de la imagen</div>
-          {v.descripcionArr&&v.descripcionArr.length>0?(
-            <div style={{display:'flex',flexDirection:'column',gap:5}}>
-              {v.descripcionArr.map((b,i)=>(
-                <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8}}>
-                  <span style={{color:D.blue,fontWeight:700,flexShrink:0,marginTop:1}}>•</span>
-                  <span style={{fontSize:13,color:D.textMid,lineHeight:1.5}}>{b}</span>
-                </div>
-              ))}
-            </div>
-          ):v.descripcion?(
-            <div style={{fontSize:13,color:D.textMid,lineHeight:1.7}}>{v.descripcion}</div>
-          ):(
+        <div style={{background:D.card,border:`1px solid ${D.cardBorder}`,borderRadius:10,padding:16}}>
+          <div style={{fontSize:12,fontWeight:700,color:D.blue,letterSpacing:0.5,textTransform:'uppercase',marginBottom:6}}>Descripción de la imagen</div>
+          {descTexto ? (
+            <div style={{fontSize:14,color:D.textMid,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{descTexto}</div>
+          ) : (
             <div style={{fontSize:12,color:D.textFaint,fontStyle:'italic'}}>El modelo no entregó descripción. Usa el botón "Regenerar" para reintentar.</div>
           )}
         </div>
 
-        {/* Texto en imagen */}
-        {v.bullets&&v.bullets.length>0&&(
-          <div style={{background:D.accent,border:`1px solid ${D.cardBorder}`,borderRadius:10,padding:'12px 16px'}}>
-            <div style={{fontSize:9,fontWeight:700,color:D.textDim,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>Bullets</div>
-            <div style={{display:'flex',flexDirection:'column',gap:5}}>
-              {v.bullets.map((b,i)=>(
-                <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8}}>
-                  <span style={{color:D.blue,fontWeight:700,flexShrink:0,marginTop:1}}>•</span>
-                  <span style={{fontSize:13,color:D.text,lineHeight:1.5}}>{b}</span>
-                </div>
-              ))}
-            </div>
+        {/* Bullets (adaptativo) */}
+        {(bulletsTrim.length>0 || bulletsRawTrim) && (
+          <div style={{background:D.card,border:`1px solid ${D.cardBorder}`,borderRadius:10,padding:16}}>
+            <div style={{fontSize:12,fontWeight:700,color:D.blue,letterSpacing:0.5,textTransform:'uppercase',marginBottom:6}}>Bullets</div>
+            {bulletsAsParagraph || bulletsTrim.length===0 ? (
+              <div style={{fontSize:14,color:D.textMid,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{bulletsTrim.length>0 ? bulletsTrim.join('\n') : bulletsRawTrim}</div>
+            ) : (
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                {bulletsTrim.map((b,i)=>(
+                  <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8}}>
+                    <span style={{color:D.blue,fontWeight:700,flexShrink:0,marginTop:1}}>•</span>
+                    <span style={{fontSize:14,color:D.textMid,lineHeight:1.6}}>{b}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

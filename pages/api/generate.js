@@ -314,6 +314,49 @@ REGLAS ABSOLUTAS DE FORMATO (no negociables):
 8. Los labels Hook:, Descripción de la imagen:, Texto en imagen: deben aparecer EXACTAMENTE así escritos (con los dos puntos al final). No los cambies a "Texto:", "Imagen:", etc.`
 }
 
+// ── FIX #10 — helpers anti-fuga marca/producto en niveles 1-2 ──
+function debeSanitizar(nivel) {
+  const n = parseInt(nivel, 10)
+  return n === 1 || n === 2
+}
+
+function redactarBloquesNivel12(userMsg) {
+  if (!userMsg) return userMsg
+  let out = String(userMsg)
+  // Eliminar línea PRODUCTO: ... (hasta el siguiente salto)
+  out = out.replace(/^PRODUCTO:\s*[^\n]*\n?/gm, '')
+  // Eliminar línea URL: ... (hasta el siguiente salto)
+  out = out.replace(/^URL:\s*[^\n]*\n?/gm, '')
+  // Eliminar el bloque entero CONTEXTO_ADVERTORIAL_FUENTE
+  out = out.replace(/═══\s*CONTEXTO_ADVERTORIAL_FUENTE\s*═══[\s\S]*?(?:═══════════════════════════════|$)/g, '')
+  // Insertar marcador de información omitida
+  out = out.trimEnd() + '\n\n[INFORMACIÓN DEL PRODUCTO OMITIDA — el nivel actual prohíbe mencionar producto, marca, mecanismo o ingredientes. Solo trabaja con AVATAR, ÁNGULO, MOTIVO y NIVEL.]\n'
+  return out
+}
+
+const BLOQUE_REFUERZO_NIVEL12 = `
+
+PROHIBIDO ABSOLUTO en este nivel: mencionar nombres de productos, marcas, ingredientes, mecanismos, fórmulas o testimonios brand-specific. Solo puedes hablar del problema, el dolor y el avatar. Si quieres inventar un producto para llenar el vacío, NO lo hagas: queda implícito o referido como "esto", "una solución", "lo que descubrí".`
+
+// ── FIX #8 — ejes fijos para 3 llamadas paralelas en imagen ──
+const EJES_IMAGEN = [
+  {
+    id: 1,
+    nombre: 'Emocional / Problema',
+    instruccion: 'Esta idea debe ANCLARSE en la emoción o problema concreto del avatar ANTES de mostrar la solución. Headline empático/empuja-dolor. Foco visual en el dolor, frustración o vergüenza del avatar. La solución (producto) aparece secundaria o sugerida, no protagónica.'
+  },
+  {
+    id: 2,
+    nombre: 'Demostrativo / Evidencia',
+    instruccion: 'Esta idea debe centrarse en PRUEBA o EVIDENCIA: transformación visible, antes/después, datos concretos, números, comparación con la alternativa, demostración del producto en uso. Headline factual/demostrativo. Foco visual en el resultado o el contraste.'
+  },
+  {
+    id: 3,
+    nombre: 'Aspiracional / Social',
+    instruccion: 'Esta idea debe vender IDENTIDAD o PERTENENCIA: la vida que el avatar quiere, gente como él/ella ya disfrutándola, lifestyle, el "yo futuro" después de usar el producto. Headline aspiracional. Foco visual en la persona transformada, en el contexto deseado, en la pertenencia al grupo objetivo.'
+  }
+]
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const { messages, modo, apiProvider, modelo } = req.body
@@ -327,6 +370,7 @@ export default async function handler(req, res) {
     const isGenerar = modo === 'generar'
     const isVariaciones = modo === 'variaciones'
     let promptEjecutado = ''
+    let imagePrompts3 = null  // FIX #8 — set por la rama imagen para señalizar 3 llamadas paralelas
 
     if (isAnalisis) {
       const userMsg = body[0].content
@@ -377,8 +421,8 @@ Completa todos los campos vacios con tu analisis real del producto. CRITICO: sco
         const formatoImgSel = userMsg.match(/FORMATO_IMG: ([^\n]+)/)?.[1]?.trim() || 'Funcional'
         const avatarImg = userMsg.match(/AVATAR: ([^\n]+)/)?.[1]?.trim() || ''
         const anguloImg = userMsg.match(/ANGULO_VENTA: ([^\n]+)/)?.[1]?.trim() || ''
-        const defAnguloImg = anguloImg && ANGULOS_VENTA[anguloImg] ? `\n\nÁNGULO DE VENTA OBLIGATORIO: ${anguloImg}\nDEFINICIÓN: ${ANGULOS_VENTA[anguloImg].que_hace}\nESTRUCTURA DEL GUIÓN: ${ANGULOS_VENTA[anguloImg].estructura}\nTONO: ${ANGULOS_VENTA[anguloImg].tono}\nEJEMPLO DE REFERENCIA: "${ANGULOS_VENTA[anguloImg].ejemplo}"\nLas 3 ideas deben aplicar este ángulo en su composición y mensaje visual.` : ''
-        const avatarImgLine = avatarImg ? `\n\nAVATAR OBJETIVO: ${avatarImg}\nLas ideas deben hablarle específicamente a esta persona — su contexto, su lenguaje visual, su realidad.` : ''
+        const defAnguloImg = anguloImg && ANGULOS_VENTA[anguloImg] ? `\n\nÁNGULO DE VENTA OBLIGATORIO: ${anguloImg}\nDEFINICIÓN: ${ANGULOS_VENTA[anguloImg].que_hace}\nESTRUCTURA DEL GUIÓN: ${ANGULOS_VENTA[anguloImg].estructura}\nTONO: ${ANGULOS_VENTA[anguloImg].tono}\nEJEMPLO DE REFERENCIA: "${ANGULOS_VENTA[anguloImg].ejemplo}"\nEsta idea debe aplicar este ángulo en su composición y mensaje visual.` : ''
+        const avatarImgLine = avatarImg ? `\n\nAVATAR OBJETIVO: ${avatarImg}\nLa idea debe hablarle específicamente a esta persona — su contexto, su lenguaje visual, su realidad.` : ''
 
         // Doctrina canónica del tipo de imagen + regla anti-cruce Infográfico/Beneficios
         const docTipoImg = DOCTRINA_TIPOS_IMAGEN[formatoImgSel]
@@ -390,34 +434,50 @@ DOCTRINA OBLIGATORIA DEL TIPO DE IMAGEN: ${formatoImgSel}
 - Reglas anti-cruce (CRÍTICO): ${docTipoImg.evitar}
 
 REGLA ESPECIAL ANTI-CRUCE INFOGRÁFICO/BENEFICIOS (aplica solo si el tipo es uno de estos dos):
-- Si el tipo es "Infográfico": las 3 ideas DEBEN tener componente educativo o comparativo (SIN/CON, mitos, datos, X cosas que hace, X que detecta). PROHIBIDO entregar solo una lista de íconos con ganancias — eso es Beneficios.
-- Si el tipo es "Beneficios": las 3 ideas DEBEN ser solo enumeración positiva con íconos circulares. PROHIBIDO incluir contrastes SIN/CON, comparaciones, mitos o explicaciones didácticas — eso es Infográfico.` : ''
+- Si el tipo es "Infográfico": la idea DEBE tener componente educativo o comparativo (SIN/CON, mitos, datos, X cosas que hace, X que detecta). PROHIBIDO entregar solo una lista de íconos con ganancias — eso es Beneficios.
+- Si el tipo es "Beneficios": la idea DEBE ser solo enumeración positiva con íconos circulares. PROHIBIDO incluir contrastes SIN/CON, comparaciones, mitos o explicaciones didácticas — eso es Infográfico.` : ''
 
-        promptFinal = `${PROMPT_IMAGEN_BASE(formatoImgSel)}${avatarImgLine}${defAnguloImg}
+        // FIX #10 — sanitización del userMsg para niveles 1-2 + bloque refuerzo
+        const nivelImg = (userMsg.match(/NIVEL:\s*(\d+)/) || [])[1]
+        const userMsgFinal = debeSanitizar(nivelImg) ? redactarBloquesNivel12(userMsg) : userMsg
+        const refuerzoImg = debeSanitizar(nivelImg) ? BLOQUE_REFUERZO_NIVEL12 : ''
+
+        const reglaNivelImg = (() => {
+          const n = parseInt(nivelImg || '3', 10)
+          if (n <= 1) return 'REGLA NIVEL 1: NO menciones el producto ni la marca en ningún elemento visual ni en el texto. Activa dolor/curiosidad. CTA persuasivo: invite a descubrir, no a comprar.'
+          if (n === 2) return 'REGLA NIVEL 2: NO menciones el producto ni la marca. Valida el dolor, sugiere que hay solución sin decirla. CTA que invite a conocer más.'
+          if (n === 3) return 'REGLA NIVEL 3: El producto puede aparecer con su nombre pero de forma natural, como hallazgo. CTA persuasivo y suave: "descúbrelo", "conócelo", "míralo tú mismo".'
+          if (n === 4) return 'REGLA NIVEL 4: Producto presente con beneficios claros. CTA con urgencia suave: "pruébalo", "es tu momento", "únete a quienes ya lo usan".'
+          return 'REGLA NIVEL 5: Producto y marca visibles. CTA directo pero no agresivo: "pídelo ahora", "ya sabes lo que hace".'
+        })()
+
+        // FIX #8 — construir 3 prompts (uno por eje) en lugar de uno solo
+        const buildPromptIdea = (eje) => `${PROMPT_IMAGEN_BASE(formatoImgSel)}${avatarImgLine}${defAnguloImg}
 
 CONTEXTO DEL PRODUCTO Y NIVEL:
-${userMsg}
+${userMsgFinal}
 
-LISTA DE HOOKS DISPONIBLES — elige los 3 más poderosos y visuales para imagen estática (${hooksDelTipo.length} hooks disponibles):
+LISTA DE HOOKS DISPONIBLES — elige UN hook visual e impactante para imagen estática (${hooksDelTipo.length} hooks disponibles):
 - ${hooksStr}
 
-INSTRUCCIÓN DE HOOKS: De la lista anterior selecciona los 3 hooks más visuales e impactantes para imagen estática. Adáptalos al producto real reemplazando los ___. Los 3 deben ser diferentes en enfoque: uno puede atacar el dolor, otro la curiosidad, otro el resultado o transformación. NO inventes hooks fuera de la lista.
+INSTRUCCIÓN DE HOOK: De la lista anterior selecciona UN solo hook visual e impactante. Adáptalo al producto real reemplazando los ___. NO inventes hooks fuera de la lista.
 
-${(()=>{
-  const nivelImgNum = parseInt(userMsg.match(/NIVEL:\s*(\d+)/)?.[1] || '3')
-  if (nivelImgNum <= 1) return 'REGLA NIVEL 1: NO menciones el producto ni la marca en ningún elemento visual ni en el texto. Activa dolor/curiosidad. CTA persuasivo: invite a descubrir, no a comprar.'
-  if (nivelImgNum === 2) return 'REGLA NIVEL 2: NO menciones el producto ni la marca. Valida el dolor, sugiere que hay solución sin decirla. CTA que invite a conocer más.'
-  if (nivelImgNum === 3) return 'REGLA NIVEL 3: El producto puede aparecer con su nombre pero de forma natural, como hallazgo. CTA persuasivo y suave: "descúbrelo", "conócelo", "míralo tú mismo".'
-  if (nivelImgNum === 4) return 'REGLA NIVEL 4: Producto presente con beneficios claros. CTA con urgencia suave: "pruébalo", "es tu momento", "únete a quienes ya lo usan".'
-  return 'REGLA NIVEL 5: Producto y marca visibles. CTA directo pero no agresivo: "pídelo ahora", "ya sabes lo que hace".'
-})()}
+${reglaNivelImg}
 
 REGLAS FINALES:
-- Las 3 ideas completamente diferentes en composición y ángulo
 - Sin mencionar tiendas ni plataformas de venta
 - Pensado para tráfico frío en ${pais}
-- Cada idea ejecutable con producción realista
-- El Hook DEBE aparecer exactamente con el label "Hook:" seguido del texto${bloqueDoctrinaTipoImg}`
+- Idea ejecutable con producción realista
+- El Hook DEBE aparecer exactamente con el label "Hook:" seguido del texto${bloqueDoctrinaTipoImg}
+
+INSTRUCCIÓN DE EJE PARA ESTA IDEA (sobreescribe lo demás en caso de conflicto sobre encuadre/foco):
+Esta llamada produce UNA SOLA idea (no 3). Es la idea con eje "${eje.nombre}" (${eje.id}/3 de un set paralelo).
+${eje.instruccion}
+
+OUTPUT: una única "IDEA DE IMAGEN 1" con sus tres secciones obligatorias (Hook, Descripción de la imagen, Texto en imagen). NO generes 3 ideas, solo UNA. NO incluyas separadores --- entre ideas.${refuerzoImg}`
+
+        imagePrompts3 = EJES_IMAGEN.map(buildPromptIdea)
+        promptFinal = imagePrompts3[0]
 
       } else {
         promptFinal = `${PROMPTS_POR_TIPO[tipo] || PROMPTS_POR_TIPO['Emocional']}
@@ -482,12 +542,16 @@ REGLAS:
         : nivelNumVar === 4 ? `REGLA: Nivel 4. Menciona el producto con beneficios y diferenciadores. CTA natural con urgencia suave.`
         : `REGLA: Nivel 5. CTA directo y con convicción. Puedes usar urgencia o escasez si aplica.`
 
+      // FIX #10 — sanitización del userMsg + bloque refuerzo en niveles 1-2
+      const userMsgFinalVar = debeSanitizar(nivelNumVar) ? redactarBloquesNivel12(userMsg) : userMsg
+      const refuerzoVar = debeSanitizar(nivelNumVar) ? BLOQUE_REFUERZO_NIVEL12 : ''
+
       const promptVariaciones = `Eres experto en copywriting de respuesta directa. Te doy un guión aprobado. Genera 3 VARIACIONES — mismo hook, mismo mensaje, reescrito con otras palabras y diferente estilo narrativo.
 
 GUIÓN ORIGINAL A VARIAR:
-${userMsg}
+${userMsgFinalVar}
 
-${reglaNivelVar}${defAnguloVar}
+${reglaNivelVar}${defAnguloVar}${refuerzoVar}
 
 INSTRUCCIONES:
 - Usa EXACTAMENTE el mismo hook en las 3 variaciones
@@ -730,12 +794,17 @@ Evidencia: [qué dato concreto del contexto se usa, o si el guion es genérico y
       const hooksV = (HOOKS_COMPLETOS[tipoV] || TODOS_LOS_HOOKS).join('\n- ')
       const basePrompt = PROMPTS_POR_TIPO[tipoV] || PROMPTS_POR_TIPO['Emocional']
 
+      // FIX #10 — sanitización del ctxOriginal en niveles 1-2 (afecta también al substring inyectado abajo)
+      const nivelGen = (ctxOriginal.match(/NIVEL:\s*(\d+)/) || [])[1]
+      const ctxOriginalFinal = debeSanitizar(nivelGen) ? redactarBloquesNivel12(ctxOriginal) : ctxOriginal
+      const refuerzoGen = debeSanitizar(nivelGen) ? BLOQUE_REFUERZO_NIVEL12 : ''
+
       // Llamada previa: elegir 3 índices de hooks para este producto
       const listaHooks = HOOKS_COMPLETOS[tipoV] || TODOS_LOS_HOOKS
       const listaNum = listaHooks.slice(0, 40)
       const promptSelHooks = `Eres experto en copywriting. Dado este producto, elige los 3 números de hooks más efectivos de la lista — uno por enfoque (PROBLEMA, TRANSFORMACION, CURIOSIDAD). Responde SOLO JSON: {"i1":0,"i2":0,"i3":0} con los índices numéricos. Sin texto extra.
 
-PRODUCTO: ${ctxOriginal.substring(0, 400)}
+PRODUCTO: ${ctxOriginalFinal.substring(0, 400)}
 
 HOOKS NUMERADOS:
 ${listaNum.map((h,i)=>i+': '+h).join('\n')}`
@@ -849,7 +918,7 @@ CTA: Acción directa:
       ].map((enfoque, i) => `${basePrompt}
 
 CONTEXTO DEL PRODUCTO:
-${ctxOriginal}
+${ctxOriginalFinal}
 
 ${avatarV ? `AVATAR OBJETIVO: ${avatarV}
 Escribe el guión ESPECÍFICAMENTE para esta persona — usa su lenguaje, su contexto diario, su dolor concreto. No hables a un público genérico.` : ''}
@@ -887,7 +956,7 @@ REGLAS:
 - ${npalabras} palabras exactas
 - Tono UGC, orgánico, lenguaje de ${paisV}
 - CTA apropiado para el nivel (ver regla de nivel arriba)
-- Empieza con ═══, sin texto previo`
+- Empieza con ═══, sin texto previo${refuerzoGen}`
       )
 
       const resultados = []
@@ -954,6 +1023,10 @@ Versión 2 terminó así: "${ultimasNPalabras(resultados[1] || '', 60)}"`
       const npalabrasC = durC==='10'?30:durC==='20'?60:durC==='30'?90:durC==='40'?120:durC==='50'?150:180
       const maxTokC = durC==='10'?800:durC==='20'?900:durC==='30'?1000:durC==='40'?1200:durC==='50'?1500:2200
 
+      // FIX #10 — bloque refuerzo en niveles 1-2 (la corrección no inyecta userMsg directo, solo refuerzo)
+      const nivelC = (body[0].content.match(/NIVEL:\s*(\d+)/) || [])[1]
+      const refuerzoC = debeSanitizar(nivelC) ? BLOQUE_REFUERZO_NIVEL12 : ''
+
       const resultadosC = []
       for (let i = 0; i < Math.min(versionesActuales.length, 3); i++) {
         // CAMBIO D — anti-repetición de cierres entre las 3 versiones corregidas
@@ -994,7 +1067,7 @@ INSTRUCCIÓN CRÍTICA DE DIFERENCIACIÓN:
 Esta es la versión ${i+1} de 3 corregidas. Las 3 versiones DEBEN tener un cierre completamente distinto entre sí.
 - NO uses las mismas palabras finales que las otras versiones corregidas
 - Las últimas 5-7 palabras de cada versión deben ser únicas
-- Si la corrección no toca el cierre, reescribe el cierre con palabras propias para no repetir el de las otras versiones${bloqueEvitarC}`
+- Si la corrección no toca el cierre, reescribe el cierre con palabras propias para no repetir el de las otras versiones${bloqueEvitarC}${refuerzoC}`
         let t = await llamarModelo([{role:'user', content: promptC}], maxTokC)
         if (t.includes("Lo siento") || t.includes("I'm sorry") || t.trim().length < 30) {
           t = await llamarModelo([{role:'user', content: promptC}], maxTokC)
@@ -1014,10 +1087,35 @@ Esta es la versión ${i+1} de 3 corregidas. Las 3 versiones DEBEN tener un cierr
 
     } else {
       // ── Imagen / análisis / corrección / mapeo — llamada única ──
-      // Análisis y mapeo de advertorial necesitan más tokens (JSON estructurado largo)
-      const isAnalisisOMapeo = isAnalisis || (modo === 'mapear_advertorial') || (modo === 'auditar')
-      const maxTok = isImagenFormato ? 2500 : isAnalisisOMapeo ? 6000 : 4000
-      responseText = await llamarModelo(body, maxTok)
+      // FIX #8 — si imagePrompts3 está set, hacer 3 llamadas paralelas (una por eje)
+      if (imagePrompts3) {
+        const maxTokIdea = 1500
+        const settled = await Promise.allSettled(
+          imagePrompts3.map(p => llamarModelo([{ role:'user', content: p }], maxTokIdea))
+        )
+        // Renumerar headers a 1/2/3 y normalizar separador
+        const bloques = settled.map((r, i) => {
+          if (r.status !== 'fulfilled' || !r.value) {
+            return `IDEA DE IMAGEN ${i+1} — ${EJES_IMAGEN[i].nombre}\nHook: [Generación falló para este eje]\nDescripción de la imagen:\n• Error: la llamada para el eje "${EJES_IMAGEN[i].nombre}" no devolvió contenido\nTexto en imagen:\n• Reintenta o cambia de modelo`
+          }
+          let txt = String(r.value).trim()
+          // El LLM devuelve "IDEA DE IMAGEN 1" en cada llamada — renumerar al índice real
+          if (txt.match(/IDEA DE IMAGEN\s*\d+/i)) {
+            txt = txt.replace(/IDEA DE IMAGEN\s*\d+/i, `IDEA DE IMAGEN ${i+1}`)
+          } else {
+            txt = `IDEA DE IMAGEN ${i+1}\n\n${txt}`
+          }
+          // Quitar separador --- final si vino, lo agregamos uniforme
+          txt = txt.replace(/\n*---\s*$/g, '').trim()
+          return txt
+        })
+        responseText = bloques.join('\n\n---\n\n')
+      } else {
+        // Análisis y mapeo de advertorial necesitan más tokens (JSON estructurado largo)
+        const isAnalisisOMapeo = isAnalisis || (modo === 'mapear_advertorial') || (modo === 'auditar')
+        const maxTok = isImagenFormato ? 2500 : isAnalisisOMapeo ? 6000 : 4000
+        responseText = await llamarModelo(body, maxTok)
+      }
     }
 
     return res.status(200).json({ content: [{ text: responseText }], promptEjecutado })

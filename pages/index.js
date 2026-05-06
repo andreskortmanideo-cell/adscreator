@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
+import { DOCTRINA_TIPOS_IMAGEN } from '../data/doctrina-tipos-imagen'
 
 const D = {
   bg:'#fafafa',card:'#ffffff',cardBorder:'#e5e7eb',
@@ -102,6 +103,7 @@ export default function Home() {
   const [openPanelNivel,setOpenPanelNivel]=useState(false)
   const [openPanelMotivo,setOpenPanelMotivo]=useState(false)
   const [openPanelAngulo,setOpenPanelAngulo]=useState(false)
+  const [openPanelTipoImagen,setOpenPanelTipoImagen]=useState(false)
   const [variaciones,setVariaciones]=useState([])
   const [variacionActiva,setVariacionActiva]=useState(0)
   // ── NUEVO: selector de API ──────────────────────────────────────
@@ -1178,6 +1180,20 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                         </>
                       )
                     })()}
+
+                    {/* ── Panel doctrina del tipo de imagen seleccionado (colapsable) ── */}
+                    {formato==='imagen' && formatoImagen && DOCTRINA_TIPOS_IMAGEN[formatoImagen] && (
+                      <PanelDoctrina
+                        open={openPanelTipoImagen}
+                        setOpen={setOpenPanelTipoImagen}
+                        titulo={`Tipo ${formatoImagen} — Doctrina`}
+                        color={DOCTRINA_TIPOS_IMAGEN[formatoImagen].color}
+                      >
+                        <DLine label="Esencia" value={DOCTRINA_TIPOS_IMAGEN[formatoImagen].esencia} />
+                        <DLine label="Composición visual" value={DOCTRINA_TIPOS_IMAGEN[formatoImagen].composicion} />
+                        <DLine label="Evitar (anti-cruce)" value={DOCTRINA_TIPOS_IMAGEN[formatoImagen].evitar} />
+                      </PanelDoctrina>
+                    )}
                   </>
                 )}
 

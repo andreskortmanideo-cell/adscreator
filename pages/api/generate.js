@@ -1,4 +1,5 @@
 const { HOOKS_COMPLETOS, TODOS_LOS_HOOKS } = require('../../data/hooks-data')
+const { DOCTRINA_TIPOS_IMAGEN } = require('../../data/doctrina-tipos-imagen')
 
 const ANGULOS_VENTA = {
   'Problema/Dolor': {
@@ -378,6 +379,20 @@ Completa todos los campos vacios con tu analisis real del producto. CRITICO: sco
         const anguloImg = userMsg.match(/ANGULO_VENTA: ([^\n]+)/)?.[1]?.trim() || ''
         const defAnguloImg = anguloImg && ANGULOS_VENTA[anguloImg] ? `\n\nÁNGULO DE VENTA OBLIGATORIO: ${anguloImg}\nDEFINICIÓN: ${ANGULOS_VENTA[anguloImg].que_hace}\nESTRUCTURA DEL GUIÓN: ${ANGULOS_VENTA[anguloImg].estructura}\nTONO: ${ANGULOS_VENTA[anguloImg].tono}\nEJEMPLO DE REFERENCIA: "${ANGULOS_VENTA[anguloImg].ejemplo}"\nLas 3 ideas deben aplicar este ángulo en su composición y mensaje visual.` : ''
         const avatarImgLine = avatarImg ? `\n\nAVATAR OBJETIVO: ${avatarImg}\nLas ideas deben hablarle específicamente a esta persona — su contexto, su lenguaje visual, su realidad.` : ''
+
+        // Doctrina canónica del tipo de imagen + regla anti-cruce Infográfico/Beneficios
+        const docTipoImg = DOCTRINA_TIPOS_IMAGEN[formatoImgSel]
+        const bloqueDoctrinaTipoImg = docTipoImg ? `
+
+DOCTRINA OBLIGATORIA DEL TIPO DE IMAGEN: ${formatoImgSel}
+- Esencia: ${docTipoImg.esencia}
+- Composición visual obligatoria: ${docTipoImg.composicion}
+- Reglas anti-cruce (CRÍTICO): ${docTipoImg.evitar}
+
+REGLA ESPECIAL ANTI-CRUCE INFOGRÁFICO/BENEFICIOS (aplica solo si el tipo es uno de estos dos):
+- Si el tipo es "Infográfico": las 3 ideas DEBEN tener componente educativo o comparativo (SIN/CON, mitos, datos, X cosas que hace, X que detecta). PROHIBIDO entregar solo una lista de íconos con ganancias — eso es Beneficios.
+- Si el tipo es "Beneficios": las 3 ideas DEBEN ser solo enumeración positiva con íconos circulares. PROHIBIDO incluir contrastes SIN/CON, comparaciones, mitos o explicaciones didácticas — eso es Infográfico.` : ''
+
         promptFinal = `${PROMPT_IMAGEN_BASE(formatoImgSel)}${avatarImgLine}${defAnguloImg}
 
 CONTEXTO DEL PRODUCTO Y NIVEL:
@@ -402,7 +417,7 @@ REGLAS FINALES:
 - Sin mencionar tiendas ni plataformas de venta
 - Pensado para tráfico frío en ${pais}
 - Cada idea ejecutable con producción realista
-- El Hook DEBE aparecer exactamente con el label "Hook:" seguido del texto`
+- El Hook DEBE aparecer exactamente con el label "Hook:" seguido del texto${bloqueDoctrinaTipoImg}`
 
       } else {
         promptFinal = `${PROMPTS_POR_TIPO[tipo] || PROMPTS_POR_TIPO['Emocional']}

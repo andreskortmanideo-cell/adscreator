@@ -482,6 +482,15 @@ REGLA ESPECIAL ANTI-CRUCE INFOGRÁFICO/BENEFICIOS (aplica solo si el tipo es uno
           plataforma: plat
         })
 
+        // FIX correctivo — regla de estructura del texto en pieza por tipo (sobreescribe el "siempre 6 bullets")
+        const reglaTexto = docTipoImg?.reglaTextoEnPieza || 'Texto corto y claro.'
+        const bloqueReglaTexto = `
+
+ESTRUCTURA OBLIGATORIA DEL TEXTO EN PIEZA (CRÍTICO — NO LO ROMPAS):
+${reglaTexto}
+
+Si te equivocas en este formato (ej: pones bullets cuando la regla dice NO bullets, o pones más puntos de los pedidos, o pasas el límite de palabras), la idea queda inservible.`
+
         // FIX #8 + #7 — construir 3 prompts (uno por eje) con hook preseleccionado de HOOKS_JEFE
         const buildPromptIdea = (eje, hookPreseleccionado) => `${PROMPT_IMAGEN_BASE(formatoImgSel)}${avatarImgLine}${defAnguloImg}
 
@@ -500,8 +509,21 @@ INSTRUCCIÓN DE EJE PARA ESTA IDEA (sobreescribe lo demás en caso de conflicto 
 Esta llamada produce UNA SOLA idea (no 3). Es la idea con eje "${eje.nombre}" (${eje.id}/3 de un set paralelo).
 ${eje.instruccion}
 ${RELLENO_BLOCK(hookPreseleccionado)}
+${bloqueReglaTexto}${refuerzoImg}
 
-OUTPUT: una única "IDEA DE IMAGEN 1" con sus tres secciones obligatorias (Hook, Descripción de la imagen, Texto en imagen). NO generes 3 ideas, solo UNA. NO incluyas separadores --- entre ideas.${refuerzoImg}`
+OUTPUT EXPECTED (DEVUELVE EXACTAMENTE ESTAS 3 SECCIONES — IGNORA cualquier formato anterior del bloque PROMPT_IMAGEN_BASE inicial, este es el formato definitivo):
+
+IDEA DE IMAGEN 1
+HOOK: <una sola frase, el hook preseleccionado ya rellenado, sin viñetas>
+DESCRIPCIÓN DE LA IMAGEN: <composición visual concreta — elemento clave, ambiente y luz, plano. 3-5 líneas de texto corrido, sin viñetas>
+BULLETS: <respeta EXACTAMENTE la reglaTextoEnPieza del tipo "${formatoImgSel}". Si la regla dice "NO viñetas", devuelve texto corrido sin bullets bajo este header. Si dice "EXACTAMENTE 3 o 4 puntos", devuelve esa cantidad exacta. Si dice "máximo X palabras", NO te pases. NO siempre es una lista — adapta el contenido al tipo>
+
+NOTA: El header se llama "BULLETS:" por compatibilidad con el parser, PERO el contenido se adapta al tipo de imagen — no siempre es una lista con viñetas.
+
+REGLAS DE FORMATO DE RESPUESTA:
+- UNA sola idea (no 3). NO incluyas separadores --- entre ideas.
+- Empieza directamente con la línea "IDEA DE IMAGEN 1".
+- Los 3 labels HOOK:, DESCRIPCIÓN DE LA IMAGEN:, BULLETS: deben aparecer exactamente así (case-insensitive aceptado por el parser, pero respeta los dos puntos).`
 
         imagePrompts3 = EJES_IMAGEN.map((eje, i) => buildPromptIdea(eje, hooksImg[i]))
         promptFinal = imagePrompts3[0]

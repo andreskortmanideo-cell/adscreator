@@ -649,78 +649,57 @@ Empieza DIRECTAMENTE con ═══ de VERSIÓN 1, sin texto introductorio`
 
     } else if (modo === 'auditar') {
       const userMsg = body[0].content
-      const promptAuditoria = `Eres un auditor senior de marketing digital experto en Meta Ads. Tu trabajo NO es escribir creativos, es VALIDAR si un guion/idea de imagen cumple las decisiones estratégicas que se tomaron al crearlo en este ads creator.
+      const promptAuditoria = `Eres un auditor estricto de marketing de respuesta directa. Revisa el siguiente guión/idea contra los LINEAMIENTOS DEL CLIENTE (incluidos en el input) y reporta cumplimiento criterio por criterio.
 
-INPUT QUE RECIBES (incluye decisiones y el guion/idea generado):
+REGLAS ABSOLUTAS DE AUDITORÍA:
+- Solo evalúa contra los lineamientos explícitamente provistos en el bloque "═══ LINEAMIENTOS DEL CLIENTE A VERIFICAR ═══" del input.
+- Si una decisión es prohibida en un lineamiento (ej: "Nivel 1: NO menciones el producto"), una violación es ❌ — no negocies.
+- Si una decisión es obligatoria (ej: "ESTRUCTURA: 1) Nombrar el dolor 2)..."), evalúa pasó por paso.
+- Sé crítico y específico. Cita LÍNEAS o FRAGMENTOS exactos del contenido como evidencia.
+- Si el guión cumple en parte: ⚠️ + qué falta. Si cumple bien: ✅ + cita evidencia. Si no cumple: ❌ + cita la desviación.
+
+INPUT (decisiones + lineamientos + contenido a auditar):
 ${userMsg}
 
-ALCANCE DE LA AUDITORÍA — REGLAS ABSOLUTAS:
-- Auditas SOLO los 5 criterios del ads creator: Avatar, Nivel de Consciencia, Motivo/Tipo, Ángulo de Venta, Información de referencia.
-- NO auditas coherencia con advertoriales. El advertorial puede aparecer como "información de referencia" pero NO es criterio de cumplimiento.
-- En este sistema TODAS las decisiones son obligatorias (avatar, nivel, motivo, ángulo). Siempre las evalúas.
-- Sé crítico, no condescendiente. Si algo no cumple, dilo. Esto sirve para entrenar al equipo.
+FORMATO DE RESPUESTA EXACTO — devuelve EXACTAMENTE esta estructura, una sección por lineamiento presente en el input. Si alguno no aplica (ej: TIPO DE IMAGEN solo si es imagen), omítelo:
 
-REGLAS SAGRADAS POR NIVEL DE CONSCIENCIA (no las violes en la auditoría):
-- Nivel 1 INCONSCIENTE: prohibido mencionar producto, marca o solución específica. Si el guion las menciona = ❌ (no es coherente con el nivel).
-- Nivel 2 CONSCIENTE DEL PROBLEMA: prohibido mencionar producto, marca o nombre del mecanismo. Solo se valida el dolor y se sugiere que hay solución sin nombrarla. Si nombra producto/marca/mecanismo = ❌. NUNCA exijas que mencione el mecanismo en este nivel.
-- Nivel 3 CONSCIENTE DE LA SOLUCIÓN: el producto puede aparecer naturalmente, como hallazgo. CTA suave.
-- Nivel 4 CONSCIENTE DEL PRODUCTO: producto presente con beneficios claros. CTA con urgencia suave.
-- Nivel 5 TOTALMENTE CONSCIENTE: producto y marca visibles. CTA directo permitido.
+📊 AUDITORÍA DE LINEAMIENTOS
 
-ÁNGULOS DE VENTA — DEFINICIONES:
-- Problema/Dolor: activa el problema concreto antes de cualquier solución.
-- Beneficio/Resultado: empieza mostrando el resultado final ya logrado.
-- Curiosidad: dato/pregunta que genere "necesito saber más", misterio.
-- Urgencia/Escasez: tiempo o disponibilidad limitada como motor.
-- Autoridad/Prueba Social: evidencia externa, número de clientes, testimonios.
-- Novedad: posiciona como descubrimiento reciente, recién llegado.
-- Comparación/Contraste: confronta producto vs alternativa, antes vs ahora.
-- Enemigo en Común: villano externo (industria, mito, otra marca implícita).
-- Historia: narrativa de personaje con transformación.
-- Transformación: cambio del avatar de antes a ahora.
-- FOMO: ya hay gente disfrutándolo, quien no actúa se queda fuera.
-- Simplicidad: facilidad, "solo 3 pasos", "sin complicaciones".
-- Ironía/Provocación: tono irreverente o sarcástico, descarado.
-- Precio/Valor: relación valor/precio, justifica económicamente.
-- Exclusividad: no es para todos, selectivo, estatus.
-- Aspiracional: ideal, identidad o estilo de vida que el avatar quiere.
+NIVEL [N - nombre]:
+✅ [criterio que cumple]: explicación de 1 línea con cita
+⚠️ [criterio parcial]: explicación de 1 línea con cita
+❌ [criterio que no cumple]: explicación de 1 línea con cita
 
-PARA CADA CRITERIO EVALÚA:
-- ✓ APLICADO: la decisión se cumple claramente. Cita LÍNEA o FRAGMENTO específico del guion como evidencia.
-- ⚠ PARCIAL: se intenta pero no llega del todo. Explica qué falta y cita la línea problemática.
-- ❌ NO APLICADO: no se cumple. Explica en qué se desvió y qué debería decir/hacer en su lugar.
+MOTIVO [nombre]:
+✅ [criterio]: explicación
+⚠️ [criterio]: explicación
+❌ [criterio]: explicación
 
-FORMATO DE RESPUESTA EXACTO — solo emojis indicados, en este orden:
+ÁNGULO [nombre]:
+✅ [criterio]: explicación
+⚠️ [criterio]: explicación
+❌ [criterio]: explicación
 
-📊 AUDITORÍA DE CUMPLIMIENTO
+TIPO DE IMAGEN [nombre]:
+(solo si el formato es imagen)
+✅ [criterio]: explicación
+⚠️ [criterio]: explicación
+❌ [criterio]: explicación
 
-👤 AVATAR
-[✓/⚠/❌] [Verdict de 1 línea]
-Evidencia: [línea o fragmento del guion, o lo que falta]
+PUNTAJE GLOBAL: X/100
 
-📈 NIVEL DE CONSCIENCIA
-[✓/⚠/❌] [Verdict de 1 línea]
-Evidencia: [línea o fragmento, o lo que falta]
+(usa la siguiente rúbrica: 90-100 = todos los lineamientos cumplidos; 70-89 = mayoría con uno o dos parciales; 50-69 = mitad parciales/no cumplidos; <50 = mayoría no cumplidos. Sé estricto, no inflate.)
 
-🎭 MOTIVO/TIPO
-[✓/⚠/❌] [Verdict de 1 línea]
-Evidencia: [línea o fragmento, o lo que falta]
+RECOMENDACIONES (top 3 cambios concretos para subir el puntaje):
+1. [acción específica que respete el lineamiento del nivel — no inventes nada que viole prohibiciones]
+2. [acción específica]
+3. [acción específica]
 
-🎯 ÁNGULO DE VENTA
-[✓/⚠/❌] [Verdict de 1 línea]
-Evidencia: [línea o fragmento, o lo que falta]
-
-📚 INFORMACIÓN DE REFERENCIA
-[✓/⚠] ¿Se aprovecha el contexto provisto (descripción del producto, URL, archivos, advertorial si lo hay) para que el guion sea específico y no genérico?
-Evidencia: [qué dato concreto del contexto se usa, o si el guion es genérico y debería usar algo del contexto]
-
-🔧 RECOMENDACIONES DE MEJORA
-- [Sugerencia accionable concreta 1, respetando las reglas del nivel]
-- [Sugerencia accionable concreta 2]
-- [Sugerencia accionable concreta 3]
-
-📌 VEREDICTO GLOBAL
-[1-2 líneas: cuántos criterios cumple de los evaluados / si debe regenerarse o se puede usar tal cual]`
+REGLAS DE FORMATO DE RESPUESTA:
+- Empieza directamente con "📊 AUDITORÍA DE LINEAMIENTOS", sin preámbulo.
+- Cada criterio empieza con ✅ ⚠️ o ❌ (con espacio después del emoji).
+- "PUNTAJE GLOBAL: X/100" debe aparecer literalmente con esa cadena (el frontend la parsea).
+- "RECOMENDACIONES" igual literal.`
 
       promptEjecutado = promptAuditoria
       body[0].content = promptAuditoria

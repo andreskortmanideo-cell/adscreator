@@ -104,6 +104,7 @@ export default function Home() {
   const [openPanelMotivo,setOpenPanelMotivo]=useState(false)
   const [openPanelAngulo,setOpenPanelAngulo]=useState(false)
   const [openPanelTipoImagen,setOpenPanelTipoImagen]=useState(false)
+  const [copiadoKey,setCopiadoKey]=useState(null)
   const [variaciones,setVariaciones]=useState([])
   const [variacionActiva,setVariacionActiva]=useState(0)
   // ── NUEVO: selector de API ──────────────────────────────────────
@@ -113,6 +114,22 @@ export default function Home() {
   const [verCtxAdv,setVerCtxAdv]=useState(false)
   const [auditorias,setAuditorias]=useState({}) // {0: textoAuditoria, 1: ..., 2: ...} (video) o {imagen_0: ..., imagen_1: ...}
   const [auditando,setAuditando]=useState(null) // índice que se está auditando
+
+  // Limpia outputs al cambiar formato (video↔imagen) — preserva análisis y decisiones del Paso 02/03
+  useEffect(()=>{
+    setVersiones([])
+    setVariaciones([])
+    setVersionActiva(0)
+    setVariacionActiva(0)
+    setAuditorias({})
+    setAuditando(null)
+    setHistorial([])
+    setMsgs([])
+    setCorreccion('')
+    setPromptGen('')
+    setSesionActiva(null)
+    setCopiadoKey(null)
+  },[formato])
 
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search)
@@ -542,18 +559,49 @@ ${txt(adv.cierreCTA)}
       const advBrief = adv ? `\n\nADVERTORIAL FUENTE (resumen):\n- Mecanismo: ${(adv.nombresMecanismo||[])[0]||''}\n- Promesa: ${typeof adv.bajada==='string'?adv.bajada.slice(0,200):''}\n- Dolor del avatar (apertura): ${typeof adv.apertura==='string'?adv.apertura.slice(0,250):''}` : ''
       const guionTexto = v.guionCompleto || v.guionVisual || v.guionNeto || JSON.stringify(v)
 
+      // Construye bloques de lineamientos desde las constantes locales (single source of truth en frontend)
+      const dNivel = DOCTRINA_NIVELES[nv]
+      const dMotivo = DOCTRINA_MOTIVOS[tipo]
+      const dAngulo = anguloSel ? DOCTRINA_ANGULOS[anguloSel] : null
+      const dTipoImg = (fmt==='imagen' && formatoImagen) ? DOCTRINA_TIPOS_IMAGEN[formatoImagen] : null
+
+      const lineamientosBloque = [
+        dNivel ? `LINEAMIENTO NIVEL ${nv} (${dNivel.titulo}):
+- Regla: ${dNivel.regla}
+- Enfoque: ${dNivel.enfoque}
+- CTA permitido: ${dNivel.cta}` : '',
+        dMotivo ? `LINEAMIENTO MOTIVO ${tipo}:
+- Emoción dominante: ${dMotivo.emocion}
+- Enfoque: ${dMotivo.enfoque}
+- Estructura: ${dMotivo.estructura}
+- Pieza ideal: ${dMotivo.pieza}
+- Palabras clave esperadas: ${dMotivo.palabras}` : '',
+        dAngulo ? `LINEAMIENTO ÁNGULO ${anguloSel}:
+- Qué hace: ${dAngulo.que}
+- Estructura: ${dAngulo.estructura}
+- Tono: ${dAngulo.tono}
+- Ejemplo de referencia: "${dAngulo.ejemplo}"` : '',
+        dTipoImg ? `LINEAMIENTO TIPO DE IMAGEN ${formatoImagen}:
+- Esencia: ${dTipoImg.esencia}
+- Composición visual obligatoria: ${dTipoImg.composicion}
+- Evitar (anti-cruce): ${dTipoImg.evitar}
+- Regla del texto en pieza: ${dTipoImg.reglaTextoEnPieza || '(no especificada)'}` : ''
+      ].filter(Boolean).join('\n\n')
+
       const ctxAud = `DECISIONES TOMADAS AL CREAR ESTE CONTENIDO:
 - AVATAR: ${avatarStr}
 - NIVEL DE CONSCIENCIA: ${nv} - ${ni?.nombre||''}
 - MOTIVO/TIPO: ${tipo}
 - ÁNGULO DE VENTA: ${anguloSel || '(no se eligió ángulo específico)'}
-- FORMATO: ${fmt}
+- FORMATO: ${fmt}${fmt==='imagen' && formatoImagen ? `\n- TIPO DE IMAGEN: ${formatoImagen}` : ''}
 - MERCADO: ${pais}${advBrief}
 
-CONTENIDO GENERADO A AUDITAR:
-${guionTexto}
+═══ LINEAMIENTOS DEL CLIENTE A VERIFICAR ═══
+${lineamientosBloque}
+═══════════════════════════════════════════════
 
-Audita objetivamente si las decisiones se cumplen en el contenido.`
+CONTENIDO GENERADO A AUDITAR:
+${guionTexto}`
 
       const d = await api([{role:'user', content:ctxAud}], 'auditar')
       const text = d.content?.[0]?.text || ''
@@ -562,6 +610,110 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
       alert('Error al auditar: '+e.message)
     }
     setAuditando(null)
+  }
+
+  async function copiarAlPortapapeles(texto, key) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(texto)
+      } else {
+        const el = document.createElement('textarea')
+        el.value = texto
+        el.style.position = 'fixed'
+        el.style.opacity = '0'
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+      }
+      setCopiadoKey(key)
+      setTimeout(() => setCopiadoKey(k => k === key ? null : k), 2000)
+    } catch (e) {
+      console.error('No se pudo copiar:', e)
+      alert('No se pudo copiar al portapapeles')
+    }
+  }
+
+  function textoCompletoIdea(v) {
+    if (!v) return ''
+    const partes = []
+    if (v.hook) partes.push('HOOK: ' + v.hook)
+    const desc = (v.descripcion && v.descripcion.trim()) || (Array.isArray(v.descripcionArr) ? v.descripcionArr.join('\n') : '')
+    if (desc) partes.push('DESCRIPCIÓN DE LA IMAGEN:\n' + desc)
+    const blts = Array.isArray(v.bullets) ? v.bullets.filter(s => s && s.trim()) : []
+    if (blts.length > 0) partes.push('BULLETS:\n' + blts.join('\n'))
+    else if (v.bulletsRaw && v.bulletsRaw.trim()) partes.push('BULLETS:\n' + v.bulletsRaw.trim())
+    return partes.join('\n\n')
+  }
+
+  function textoCompletoVersion(v) {
+    if (!v) return ''
+    const partes = []
+    if (v.hook) partes.push('HOOK: ' + v.hook)
+    const guion = v.guionNeto || v.guionVisual || v.guionCompleto || ''
+    if (guion) partes.push(guion)
+    return partes.join('\n\n')
+  }
+
+  // Render estructurado de la auditoría: colorea ✅/⚠️/❌, destaca PUNTAJE y RECOMENDACIONES.
+  function renderAuditoria(textoAud) {
+    if (!textoAud) return null
+    const lineas = textoAud.split('\n')
+    const verdeOk = D.green
+    const ambar = '#f59e0b'
+    const rojo = '#dc2626'
+    const sectionHeaders = /^(NIVEL|MOTIVO|[ÁA]NGULO|TIPO DE IMAGEN|📊 AUDITOR[IÍ]A)/i
+    const puntajeRe = /^PUNTAJE GLOBAL:\s*(\d+)\s*\/\s*100/i
+    const recoRe = /^RECOMENDACIONES/i
+
+    let enRecos = false
+    const out = []
+    for (let i = 0; i < lineas.length; i++) {
+      const raw = lineas[i]
+      const trim = raw.trim()
+      if (!trim) { out.push(<div key={i} style={{height:6}}/>); continue }
+
+      const mPuntaje = trim.match(puntajeRe)
+      if (mPuntaje) {
+        const score = parseInt(mPuntaje[1], 10)
+        const colorScore = score >= 90 ? verdeOk : score >= 70 ? ambar : rojo
+        out.push(
+          <div key={i} style={{margin:'10px 0',padding:'10px 14px',background:D.accent,border:`1px solid ${colorScore}`,borderRadius:8,display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontSize:11,fontWeight:700,color:D.textDim,letterSpacing:0.5,textTransform:'uppercase'}}>Puntaje global</span>
+            <span style={{fontSize:20,fontWeight:800,color:colorScore}}>{score}/100</span>
+          </div>
+        )
+        enRecos = false
+        continue
+      }
+
+      if (recoRe.test(trim)) {
+        enRecos = true
+        out.push(
+          <div key={i} style={{marginTop:14,marginBottom:6,padding:'8px 12px',border:`1px solid ${D.blue}`,borderLeft:`3px solid ${D.blue}`,borderRadius:6,background:D.accent}}>
+            <span style={{fontSize:11,fontWeight:700,color:D.blue,letterSpacing:0.5,textTransform:'uppercase'}}>{trim}</span>
+          </div>
+        )
+        continue
+      }
+
+      if (sectionHeaders.test(trim)) {
+        out.push(
+          <div key={i} style={{marginTop:i===0?0:12,marginBottom:6,fontSize:12,fontWeight:700,color:D.text,letterSpacing:0.3,textTransform:'uppercase'}}>{trim}</div>
+        )
+        enRecos = false
+        continue
+      }
+
+      const startsOk = trim.startsWith('✅')
+      const startsWarn = trim.startsWith('⚠️') || trim.startsWith('⚠')
+      const startsBad = trim.startsWith('❌')
+      const c = startsOk ? verdeOk : startsWarn ? ambar : startsBad ? rojo : D.textMid
+      out.push(
+        <div key={i} style={{fontSize:13,color:c,lineHeight:1.55,paddingLeft:enRecos?12:0,marginBottom:3}}>{trim}</div>
+      )
+    }
+    return <div style={{display:'flex',flexDirection:'column',gap:0}}>{out}</div>
   }
 
   function cargarDeSesion(entrada) {
@@ -587,13 +739,17 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
     // Render adaptativo de bullets: párrafo si es texto corrido (1 ítem o ítems largos), lista si son bullets reales cortos
     const bulletsAsParagraph = bulletsTrim.length === 0 ? false
       : bulletsTrim.length === 1 || bulletsTrim.some(s => s.length > 80)
+    const ideaKey = 'idea_' + (v.hook ? v.hook.slice(0, 40) : Math.random())
     return (
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
-        {/* Hook */}
+        {/* Hook + Copiar */}
         <div style={{background:D.accent,border:`1px solid ${v.hookCortado?'#c47a3a':D.cardBorder}`,borderRadius:10,padding:'12px 16px'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,gap:10}}>
             <div style={{fontSize:12,fontWeight:700,color:v.hookCortado?'#c47a3a':D.blue,letterSpacing:0.5,textTransform:'uppercase'}}>Hook</div>
-            {v.hookCortado&&<div style={{fontSize:9,fontWeight:600,color:'#c47a3a',letterSpacing:'.05em',textTransform:'uppercase'}}>⚠ Posible corte — regenera</div>}
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              {v.hookCortado&&<div style={{fontSize:9,fontWeight:600,color:'#c47a3a',letterSpacing:'.05em',textTransform:'uppercase'}}>⚠ Posible corte — regenera</div>}
+              <button onClick={()=>copiarAlPortapapeles(textoCompletoIdea(v), ideaKey)} style={{fontSize:11,color:copiadoKey===ideaKey?D.green:D.blueLight,border:`1px solid ${copiadoKey===ideaKey?D.green:D.blue}`,background:'transparent',borderRadius:7,padding:'3px 10px',cursor:'pointer',fontFamily:'inherit'}}>{copiadoKey===ideaKey?'✓ Copiado':'Copiar'}</button>
+            </div>
           </div>
           <div style={{fontSize:16,fontWeight:700,color:D.text,lineHeight:1.4}}>{v.hook}</div>
         </div>
@@ -638,10 +794,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
       <div style={{border:`1px solid ${D.blue}`,borderRadius:10,background:D.blueDark,padding:16}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <span style={{fontSize:10,fontWeight:700,color:D.blueLight,letterSpacing:'.1em',textTransform:'uppercase'}}>Guión neto — para app de voz</span>
-          <button onClick={()=>{
-            if(navigator.clipboard){navigator.clipboard.writeText(neto).catch(()=>{const el=document.createElement('textarea');el.value=neto;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el)})}
-            else{const el=document.createElement('textarea');el.value=neto;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el)}
-          }} style={{fontSize:11,color:D.blueLight,border:`1px solid ${D.blue}`,background:'transparent',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}>Copiar</button>
+          <button onClick={()=>copiarAlPortapapeles(neto, 'guionNeto')} style={{fontSize:11,color:copiadoKey==='guionNeto'?D.green:D.blueLight,border:`1px solid ${copiadoKey==='guionNeto'?D.green:D.blue}`,background:'transparent',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}>{copiadoKey==='guionNeto'?'✓ Copiado':'Copiar'}</button>
         </div>
         <div style={{fontSize:14,color:D.text,lineHeight:1.9,whiteSpace:'pre-wrap'}}>{neto}</div>
       </div>
@@ -928,7 +1081,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                     <PanelDoctrina
                       open={openPanelNivel}
                       setOpen={setOpenPanelNivel}
-                      titulo={`Nivel ${nv}: ${d.titulo} — Doctrina`}
+                      titulo={`Nivel ${nv}: ${d.titulo} — Lineamientos`}
                       color={d.color}
                     >
                       <DLine label="Regla" value={d.regla} />
@@ -988,7 +1141,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                   <PanelDoctrina
                     open={openPanelMotivo}
                     setOpen={setOpenPanelMotivo}
-                    titulo={`Motivo ${tipo} — Doctrina`}
+                    titulo={`Motivo ${tipo} — Lineamientos`}
                     color={DOCTRINA_MOTIVOS[tipo].color}
                   >
                     <DLine label="Emoción dominante" value={DOCTRINA_MOTIVOS[tipo].emocion} />
@@ -1080,7 +1233,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                   <PanelDoctrina
                     open={openPanelAngulo}
                     setOpen={setOpenPanelAngulo}
-                    titulo={`Ángulo ${anguloSel} — Doctrina`}
+                    titulo={`Ángulo ${anguloSel} — Lineamientos`}
                     color={D.blue}
                   >
                     <DLine label="Qué hace" value={DOCTRINA_ANGULOS[anguloSel].que} />
@@ -1182,7 +1335,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                       <PanelDoctrina
                         open={openPanelTipoImagen}
                         setOpen={setOpenPanelTipoImagen}
-                        titulo={`Tipo ${formatoImagen} — Doctrina`}
+                        titulo={`Tipo ${formatoImagen} — Lineamientos`}
                         color={DOCTRINA_TIPOS_IMAGEN[formatoImagen].color}
                       >
                         <DLine label="Esencia" value={DOCTRINA_TIPOS_IMAGEN[formatoImagen].esencia} />
@@ -1279,17 +1432,17 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                             ✕ cerrar
                           </button>
                         </div>
-                        <pre style={{margin:0, fontSize:12, color:D.textMid, background:D.accent, padding:'10px 12px', borderRadius:6, lineHeight:1.6, fontFamily:'inherit', whiteSpace:'pre-wrap'}}>
-                          {auditorias[versionActiva]}
-                        </pre>
+                        <div style={{margin:0, padding:'10px 12px', background:D.accent, borderRadius:6, fontFamily:'inherit'}}>
+                          {renderAuditoria(auditorias[versionActiva])}
+                        </div>
                         <div style={{marginTop:10, display:'flex', gap:6}}>
                           <button onClick={()=>auditarVersion(versionActiva,'video')} disabled={auditando===String(versionActiva)}
                             style={{fontSize:10, color:D.textMid, background:'transparent', border:`1px solid ${D.cardBorder}`, borderRadius:5, padding:'4px 9px', cursor:'pointer'}}>
                             ⟳ Re-auditar
                           </button>
-                          <button onClick={()=>navigator.clipboard.writeText(auditorias[versionActiva])}
-                            style={{fontSize:10, color:D.textDim, background:'transparent', border:`1px solid ${D.cardBorder}`, borderRadius:5, padding:'4px 9px', cursor:'pointer'}}>
-                            📋 Copiar auditoría
+                          <button onClick={()=>copiarAlPortapapeles(auditorias[versionActiva], 'audit_'+versionActiva)}
+                            style={{fontSize:10, color:copiadoKey==='audit_'+versionActiva?D.green:D.textDim, background:'transparent', border:`1px solid ${copiadoKey==='audit_'+versionActiva?D.green:D.cardBorder}`, borderRadius:5, padding:'4px 9px', cursor:'pointer'}}>
+                            {copiadoKey==='audit_'+versionActiva?'✓ Copiado':'📋 Copiar auditoría'}
                           </button>
                         </div>
                       </div>
@@ -1309,7 +1462,7 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                           </div>
                         </div>
                         <div style={{display:'flex',gap:6,flexShrink:0}}>
-                          <button onClick={()=>navigator.clipboard.writeText(v.guionNeto||v.guionVisual||v.guionCompleto)} style={{fontSize:11,color:D.blueLight,border:`1px solid ${D.blue}`,background:'transparent',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}>Copiar</button>
+                          <button onClick={()=>copiarAlPortapapeles(textoCompletoVersion(v), 'version_'+i)} style={{fontSize:11,color:copiadoKey==='version_'+i?D.green:D.blueLight,border:`1px solid ${copiadoKey==='version_'+i?D.green:D.blue}`,background:'transparent',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}>{copiadoKey==='version_'+i?'✓ Copiado':'Copiar'}</button>
                           <button onClick={()=>{setVersionActiva(i);setTimeout(generarVariaciones,50)}} disabled={generandoVariaciones} style={{fontSize:11,color:D.green,border:`1px solid ${D.greenBorder}`,background:D.greenBg,borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',opacity:generandoVariaciones?.5:1}}>⟳ Variaciones</button>
                         </div>
                       </div>
@@ -1346,9 +1499,9 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                                 ✕
                               </button>
                             </div>
-                            <pre style={{margin:0, fontSize:11, color:D.textMid, background:D.accent, padding:'10px 12px', borderRadius:6, lineHeight:1.6, fontFamily:'inherit', whiteSpace:'pre-wrap'}}>
-                              {auditorias['imagen_'+i]}
-                            </pre>
+                            <div style={{margin:0, padding:'10px 12px', background:D.accent, borderRadius:6, fontFamily:'inherit'}}>
+                              {renderAuditoria(auditorias['imagen_'+i])}
+                            </div>
                           </div>
                         )}
                       </div>

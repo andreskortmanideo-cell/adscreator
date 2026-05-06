@@ -216,6 +216,15 @@ export default function AdvertorialCreator() {
   if (vista === 'form') return (
     <div style={{ background:'#ffffff', minHeight:'100vh' }}>
       <style>{globalStyle}</style>
+
+      {/* ── HEADER ── */}
+      <div style={{ background:'#ffffff', borderBottom:`1px solid ${D.cardBorder}`, padding:'0 28px', height:58, display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:10 }}>
+        <div style={{ lineHeight:1 }}>
+          <div style={{ fontSize:16, fontWeight:800, color:D.text, letterSpacing:'.1em' }}>Advertorial</div>
+          <div style={{ fontSize:9, color:D.blue, letterSpacing:'.2em', textTransform:'uppercase', marginTop:3 }}>IDEO TEAM</div>
+        </div>
+      </div>
+
       <div style={wrap}>
         <h1 style={{ color:D.text, fontSize:20, fontWeight:800, marginBottom:4 }}>Advertorial Creator</h1>
         <p style={{ color:D.textDim, fontSize:11, marginBottom:24, fontFamily:'monospace' }}>
@@ -373,7 +382,7 @@ export default function AdvertorialCreator() {
         {BLOQUES.map(b => (
           <div key={b.num} style={{
             background:D.card,
-            border:`1px solid ${b.num===11 ? D.yellow : b.producto ? '#1f4a38' : D.cardBorder}`,
+            border:`1px solid ${b.num===11 ? D.yellow : b.producto ? D.green : D.cardBorder}`,
             borderRadius:8, padding:18, marginBottom:10,
           }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>

@@ -344,6 +344,9 @@ citaExperto (LÍMITE: 50-80 palabras):
 "[Cita poderosa, 2-3 oraciones, conectando el caso con el principio biológico universal]"
 — Dr./Dra. [Nombre] · [Especialidad]
 
+REGLA DE SEVERIDAD (apertura + historiaPaciente — al menos en uno de los dos):
+Incluye al menos UNA escena de severidad visible del problema: un momento donde el problema se hace público, donde el avatar se sintió expuesto, o donde la frustración llegó al límite. Detalle sensorial concreto, no abstracción.
+
 GENERA AHORA, respetando los límites de palabras de cada bloque.`
 
   const result = await callModel([{ role: 'user', content: user }], modelo, system)
@@ -453,7 +456,7 @@ async function parte3(ctx, modelo, parte1Data, parte2Data, ejeNarrativo) {
 Genera CIERRE del advertorial. Experto: ${expertoNombre}. Mecanismo: ${mecanismo}.
 
 Devuelve SOLO JSON con estas claves:
-{"producto":"","promociones":"","garantia":"","testimonios":"","faq":"","cierreCTA":""}`
+{"producto":"","promociones":"","garantia":"","testimonios":"","faq":"","cierreCTA":"","cierreEncrucijada":"","regalo":{"nombre":"","descripcion":"","valorPercibido":""},"expectativasProximosPasos":[]}`
 
   const user = `${ctx}
 
@@ -511,9 +514,17 @@ Garantía de [N] días sin riesgo
 Si en [N] días de uso constante no notas una diferencia real en [resultado], te devolvemos el dinero completo. Sin complicaciones. [N] días porque ese es el tiempo que el [protocolo] necesita.
 *Aplican términos y condiciones
 
-testimonios (LÍMITE OBLIGATORIO: 4 testimonios, 50-70 palabras cada uno = 200-280 total):
+testimonios (LÍMITE OBLIGATORIO: 4 testimonios, 60-85 palabras cada uno = 240-340 total):
+Cada testimonio sigue una ESTRUCTURA EMOCIONAL PROGRESIVA DE 5 FASES (las 5 son obligatorias, en orden, sin saltarse ninguna):
+1) CONTEXTO PREVIO: qué vivía y cuánto tiempo (ej: "llevaba 2 años con migrañas casi diarias").
+2) QUÉ PROBÓ ANTES: 1-2 alternativas que fallaron, con nombre concreto (no genérico "probé de todo").
+3) DESCUBRIMIENTO: cómo encontró el producto (recomendación, lectura, anuncio, derivación de un profesional).
+4) RESULTADO CONCRETO: con tiempo específico ("a los 8 días", "tras 3 semanas") y dato medible.
+5) SUEÑO CUMPLIDO (OBLIGATORIA — sin esta fase 5 el testimonio queda inválido): lo que ahora puede hacer/sentir/atreverse que antes no — escena concreta, idealmente social ("volví a usar shorts en familia", "puedo cargar a mi nieto sin susto", "dormí toda la noche por primera vez en meses"). NO la omitas. NO la reemplaces por "estoy muy contenta". Tiene que ser una escena, no un adjetivo.
+
+Formato:
 ★★★★★
-"[4-6 oraciones: contexto previo, qué probó antes, descubrimiento, resultado con tiempos exactos, observación emocional]"
+"[Las 5 fases narradas naturalmente en 5-7 oraciones, sin numerarlas en el texto]"
 
 [Nombre completo], [edad] años — [Ciudad]
 [Mes Día, Año]
@@ -536,6 +547,25 @@ cierreCTA (LÍMITE OBLIGATORIO: 50-80 palabras):
 Cada día sin [acción correctora] es un día más de [consecuencia]. El sistema no se [activa solo] — necesita un [activador específico].
 
 → OBTENER DESCUENTO AHORA
+
+cierreEncrucijada (string, 1-2 frases, decisión binaria):
+Frase única de decisión binaria. Formato literal: "El único riesgo es seguir [resumen del villano]. La única salida es [resumen del mecanismo]. Tú decides: [seguir igual] o [probarlo hoy]". Específico al producto, no genérico — usa el villano y el mecanismo de este advertorial.
+
+regalo (objeto OBLIGATORIO):
+{
+  "nombre": "string — nombre del bonus, idealmente con marca propia (ej: 'Guía: Los 5 errores que sabotean tu recuperación', 'Programa Express de 7 días para Activar el Drenaje Linfático')",
+  "descripcion": "string — 1-2 frases de qué incluye y cómo complementa al producto",
+  "valorPercibido": "string — valor numérico ancla + indicación de que hoy es gratis (ej: 'Valor $19 USD. Hoy GRATIS con tu pedido.' o 'Antes $39.000 COP. Hoy incluido sin costo.')"
+}
+Específico al avatar y al eje narrativo. NO genérico, NO "ebook gratis con consejos de salud".
+
+expectativasProximosPasos (array OBLIGATORIO de 3-4 strings):
+3-4 pasos concretos que vive el avatar tras pedirlo:
+- paso inmediato (qué hace ahora — ej: "Confirmas tu pedido en el formulario en 2 minutos")
+- paso 2 (recepción/llegada — ej: "En 2-5 días hábiles tu producto llega a tu puerta con pago contra entrega")
+- paso 3 (primera semana de uso — ej: "En la primera semana sigues el protocolo simple de aplicación nocturna")
+- paso 4 OPCIONAL (resultado esperado en semana 2-3 — ej: "Hacia el día 15 ya notas el primer cambio visible")
+Cada paso 1 frase corta, accionable, visualizable. No promete resultados absolutos — solo lo razonable. NO inventes pasos administrativos genéricos.
 
 GENERA AHORA.`
 
@@ -786,6 +816,35 @@ REGLA: el TONO completo del advertorial debe seguir el estilo "${estiloNarrativo
     const p3 = await parte3(ctx + variaciones, modelo, p1, p2, ejeNarrativo)
 
     const advertorialRaw = { ...p1, ...p2, ...p3 }
+
+    // Embeber nuevos campos (Fix #3) en bloques visibles existentes — frontend no se toca
+    if (advertorialRaw.cierreEncrucijada && typeof advertorialRaw.cierreEncrucijada === 'string') {
+      const base = (advertorialRaw.cierreCTA || '').trim()
+      advertorialRaw.cierreCTA = base
+        ? `${base}\n\n${advertorialRaw.cierreEncrucijada.trim()}`
+        : advertorialRaw.cierreEncrucijada.trim()
+    }
+    if (advertorialRaw.regalo && typeof advertorialRaw.regalo === 'object') {
+      const r = advertorialRaw.regalo
+      const regaloTxt = ['🎁 REGALO INCLUIDO', r.nombre, r.descripcion, r.valorPercibido]
+        .filter(s => typeof s === 'string' && s.trim())
+        .join('\n')
+      if (regaloTxt) {
+        const basePromo = (advertorialRaw.promociones || '').trim()
+        advertorialRaw.promociones = basePromo ? `${basePromo}\n\n${regaloTxt}` : regaloTxt
+      }
+    }
+    if (Array.isArray(advertorialRaw.expectativasProximosPasos) && advertorialRaw.expectativasProximosPasos.length > 0) {
+      const pasos = advertorialRaw.expectativasProximosPasos
+        .filter(s => typeof s === 'string' && s.trim())
+        .map((s, i) => `${i + 1}. ${s.trim()}`)
+        .join('\n')
+      if (pasos) {
+        const stepsBlock = `QUÉ PASA CUANDO PIDAS HOY\n${pasos}`
+        const basePromo = (advertorialRaw.promociones || '').trim()
+        advertorialRaw.promociones = basePromo ? `${basePromo}\n\n${stepsBlock}` : stepsBlock
+      }
+    }
 
     // Convertir tokens <<<BR>>> a saltos de línea reales en todos los campos string
     const convertBR = (val) => {

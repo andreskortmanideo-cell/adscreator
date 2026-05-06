@@ -146,13 +146,6 @@ export default function AdvertorialCreator() {
     }
   }
 
-  const copiar = (tipo) => {
-    const txt = tipo === 'json'
-      ? JSON.stringify(advertorial, null, 2)
-      : BLOQUES.map(b => `[${b.titulo.toUpperCase()}]\n${getBloqueTexto(b)}`).join('\n\n---\n\n')
-    navigator.clipboard.writeText(txt).then(() => alert('✅ Copiado'))
-  }
-
   const getBloqueTexto = (b) => {
     if (b.key === 'titular') {
       const t = advertorial.titulares || (advertorial.titular ? [advertorial.titular] : [])
@@ -161,29 +154,16 @@ export default function AdvertorialCreator() {
     return toText(advertorial[b.key])
   }
 
-  const copiarBloque = (b) => {
-    const txt = getBloqueTexto(b)
-    if (!txt) { alert('Sin contenido para copiar'); return }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(txt).then(
-        () => mostrarCopiado(b.key),
-        () => fallbackCopy(txt, b.key)
-      )
-    } else {
-      fallbackCopy(txt, b.key)
-    }
-  }
-
-  const mostrarCopiado = (key) => {
+  const mostrarCopiado = (key, label='✓ Copiado') => {
     const el = document.getElementById(`copy-${key}`)
     if (el) {
       const original = el.textContent
-      el.textContent = '✓ Copiado'
+      el.textContent = label
       setTimeout(() => { el.textContent = original }, 1500)
     }
   }
 
-  const fallbackCopy = (txt, key) => {
+  const fallbackCopy = (txt, key, label='✓ Copiado') => {
     const ta = document.createElement('textarea')
     ta.value = txt
     ta.style.position = 'fixed'
@@ -192,9 +172,36 @@ export default function AdvertorialCreator() {
     ta.select()
     try {
       document.execCommand('copy')
-      mostrarCopiado(key)
-    } catch(e) { alert('No se pudo copiar') }
+      mostrarCopiado(key, label)
+    } catch(e) {}
     document.body.removeChild(ta)
+  }
+
+  const _doCopy = (text, key, label='✓ Copiado') => {
+    if (!text) return
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => mostrarCopiado(key, label),
+        () => fallbackCopy(text, key, label)
+      )
+    } else {
+      fallbackCopy(text, key, label)
+    }
+  }
+
+  const copiar = (tipo, btnKey) => {
+    const txt = tipo === 'json'
+      ? JSON.stringify(advertorial, null, 2)
+      : BLOQUES.map(b => `[${b.titulo.toUpperCase()}]\n${getBloqueTexto(b)}`).join('\n\n---\n\n')
+    _doCopy(txt, btnKey)
+  }
+
+  const copiarBloque = (b) => {
+    _doCopy(getBloqueTexto(b), b.key)
+  }
+
+  const copiarOpcion = (text, key) => {
+    _doCopy(text, key, '✓')
   }
 
   // Normaliza cualquier valor (string, array, objeto) a texto
@@ -369,11 +376,11 @@ export default function AdvertorialCreator() {
         </div>
 
         <div style={{ display:'flex', gap:8, marginBottom:20 }}>
-          <button onClick={()=>copiar('texto')}
+          <button id="copy-all-text-top" onClick={()=>copiar('texto', 'all-text-top')}
             style={{ flex:1, padding:'10px', background:D.blue, color:'#fff', border:'none', borderRadius:5, fontWeight:700, cursor:'pointer', fontSize:12 }}>
             📋 Copiar texto
           </button>
-          <button onClick={()=>copiar('json')}
+          <button id="copy-all-json" onClick={()=>copiar('json', 'all-json')}
             style={{ padding:'10px 16px', background:D.card, border:`1px solid ${D.cardBorder}`, color:D.textMid, borderRadius:5, cursor:'pointer', fontSize:12 }}>
             JSON
           </button>
@@ -407,22 +414,41 @@ export default function AdvertorialCreator() {
 
             {b.key === 'titular' && advertorial.titulares ? (
               <div>
-                {advertorial.titulares.map((t,i) => (
-                  <div key={i} style={{ padding:'10px 12px', background:D.input, borderRadius:5, marginBottom:6, border:`1px solid ${D.cardBorder}` }}>
-                    <span style={{ color:D.yellow, fontSize:10, fontFamily:'monospace', fontWeight:700, marginRight:8 }}>OPCIÓN {i+1}</span>
-                    <span style={{ color:D.text, fontSize:13, lineHeight:1.5 }}>{t}</span>
-                  </div>
-                ))}
+                {advertorial.titulares.map((t,i) => {
+                  const optKey = `titular-${i}`
+                  return (
+                    <div key={i} style={{ padding:'10px 12px', background:D.input, borderRadius:5, marginBottom:6, border:`1px solid ${D.cardBorder}`, display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <span style={{ color:D.yellow, fontSize:10, fontFamily:'monospace', fontWeight:700, marginRight:8 }}>OPCIÓN {i+1}</span>
+                        <span style={{ color:D.text, fontSize:13, lineHeight:1.5 }}>{t}</span>
+                      </div>
+                      <button id={`copy-${optKey}`} onClick={()=>copiarOpcion(t, optKey)}
+                        title="Copiar esta opción"
+                        style={{ padding:'3px 8px', background:'transparent', border:`1px solid ${D.cardBorder}`, color:D.blueLight, borderRadius:4, fontSize:10, cursor:'pointer', fontFamily:'monospace', flexShrink:0 }}>
+                        📋
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             ) : b.key === 'transicionMecanismo' && advertorial.nombresMecanismo ? (
               <div>
                 <div style={{ marginBottom:14, padding:10, background:D.blueDark, borderRadius:5, border:`1px solid ${D.blue}` }}>
                   <p style={{ color:D.blueLight, fontSize:10, fontFamily:'monospace', fontWeight:700, marginBottom:6 }}>3 NOMBRES SUGERIDOS PARA EL MECANISMO:</p>
-                  {advertorial.nombresMecanismo.map((n,i) => (
-                    <div key={i} style={{ color:D.text, fontSize:12, padding:'3px 0' }}>
-                      <span style={{ color:D.yellow, fontWeight:700, marginRight:6 }}>{i+1}.</span>{n}
-                    </div>
-                  ))}
+                  {advertorial.nombresMecanismo.map((n,i) => {
+                    const optKey = `mecanismo-${i}`
+                    return (
+                      <div key={i} style={{ color:D.text, fontSize:12, padding:'3px 0', display:'flex', alignItems:'center', gap:6 }}>
+                        <span style={{ color:D.yellow, fontWeight:700, marginRight:2, flexShrink:0 }}>{i+1}.</span>
+                        <span style={{ flex:1, minWidth:0 }}>{n}</span>
+                        <button id={`copy-${optKey}`} onClick={()=>copiarOpcion(n, optKey)}
+                          title="Copiar esta opción"
+                          style={{ padding:'2px 6px', background:'transparent', border:`1px solid ${D.cardBorder}`, color:D.blueLight, borderRadius:4, fontSize:10, cursor:'pointer', fontFamily:'monospace', flexShrink:0 }}>
+                          📋
+                        </button>
+                      </div>
+                    )
+                  })}
                 </div>
                 <p style={{ color:D.textMid, fontSize:12, lineHeight:1.85, whiteSpace:'pre-wrap', margin:0 }}>
                   {toText(advertorial[b.key]) || '(no generado)'}
@@ -437,7 +463,7 @@ export default function AdvertorialCreator() {
         ))}
 
         <div style={{ display:'flex', gap:8, marginTop:12 }}>
-          <button onClick={()=>copiar('texto')}
+          <button id="copy-all-text-bottom" onClick={()=>copiar('texto', 'all-text-bottom')}
             style={{ flex:1, padding:'10px', background:D.blue, color:'#fff', border:'none', borderRadius:5, fontWeight:700, cursor:'pointer', fontSize:12 }}>
             📋 Copiar texto
           </button>

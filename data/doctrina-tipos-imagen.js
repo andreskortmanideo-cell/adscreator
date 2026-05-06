@@ -4,7 +4,7 @@ const DOCTRINA_TIPOS_IMAGEN = {
     esencia: 'Producto en uso real, sin distracciones.',
     composicion: 'Producto como protagonista absoluto en su contexto auténtico de uso. Foto realista del producto siendo usado. Headline corto arriba. Sin íconos circulares ni listas.',
     evitar: 'NO usar 4 cuadros (eso es Collage). NO íconos circulares con beneficios (eso es Beneficios). NO comparaciones SIN/CON (eso es Infográfico).',
-    reglaTextoEnPieza: '1 frase de apoyo sobre la imagen, máximo 8 palabras. NO uses viñetas. NO listas. Texto corrido.'
+    reglaTextoEnPieza: 'EXACTAMENTE 3 o 4 bullets ultra-cortos de beneficio o funcionalidad. CADA bullet máximo 6 palabras. SIEMPRE como lista con viñetas. Cada bullet en su propia línea iniciando con \'- \'. NO escribas párrafo. Ejemplo formato:\n- Beneficio uno corto\n- Beneficio dos corto\n- Beneficio tres corto'
   },
   'Collage': {
     color: '#8b5cf6',
@@ -18,7 +18,7 @@ const DOCTRINA_TIPOS_IMAGEN = {
     esencia: 'Contraste claro entre el problema y la solución.',
     composicion: 'Split vertical o secuencial. Lado izquierdo: problema visible (la condición a resolver). Lado derecho: producto en acción resolviéndolo. Línea o flecha divisora central. Headline emocional con contraste tipográfico (palabra clave en color/itálica distinta).',
     evitar: 'NO usar 4 cuadros (eso es Collage). NO listar beneficios con íconos (eso es Beneficios).',
-    reglaTextoEnPieza: 'EXACTAMENTE 2 líneas: una para el lado "ANTES" y una para el lado "DESPUÉS". Máximo 6 palabras cada línea. NO uses viñetas. Formato:\nANTES: <frase corta>\nDESPUÉS: <frase corta>'
+    reglaTextoEnPieza: 'EXACTAMENTE 2 bullets como lista visual. Uno para el ANTES y uno para el DESPUÉS. Cada bullet máximo 6 palabras. Formato OBLIGATORIO:\n- ANTES: <frase corta del problema>\n- DESPUÉS: <frase corta del resultado>'
   },
   'Infográfico': {
     color: '#f59e0b',
@@ -32,7 +32,7 @@ const DOCTRINA_TIPOS_IMAGEN = {
     esencia: 'ENUMERAR ganancias del producto. Lista positiva sin contraste.',
     composicion: 'Producto en lifestyle o sobre fondo limpio + 3-4 íconos circulares con frases cortas de ganancia ("Hidratación profunda", "Mejora elasticidad", "Llama regulable"). Tono optimista directo, sin oposición.',
     evitar: 'CRÍTICO: NO confundir con Infográfico. Si introduces SIN/CON, mitos, datos comparativos o explicación didáctica → ES INFOGRÁFICO, no Beneficios. Beneficios SOLO lista qué obtiene el cliente.',
-    reglaTextoEnPieza: 'EXACTAMENTE 3 o 4 frases ultra-cortas tipo etiqueta de ícono. Máximo 4 palabras cada una. Tono optimista directo. AQUÍ SÍ van viñetas pero cortísimas (NO frases completas).'
+    reglaTextoEnPieza: 'EXACTAMENTE 3 o 4 bullets ultra-cortos tipo etiqueta de ícono. CADA bullet máximo 4 palabras. SIEMPRE como lista con viñetas. Cada bullet en su propia línea iniciando con \'- \'. Tono optimista directo. Formato OBLIGATORIO:\n- Frase corta uno\n- Frase corta dos\n- Frase corta tres'
   },
   'Testimonial': {
     color: '#dc2626',

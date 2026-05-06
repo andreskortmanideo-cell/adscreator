@@ -27,6 +27,11 @@ async function callModel(messages, modelo, system) {
 function parseJSON(text, label = '') {
   // Limpiar markdown code fences
   let cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*$/g, '').trim()
+  // Reemplazo de comillas curvas tipográficas por sus equivalentes ASCII rectos (Fix BUG A)
+  // Si el LLM escribe " " ' ' como delimitadores estructurales, JSON.parse falla. Las normalizamos.
+  cleaned = cleaned
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
   const start = cleaned.indexOf('{')
   const end = cleaned.lastIndexOf('}')
   if (start === -1) throw new Error(`No JSON en ${label}: ${text.substring(0, 200)}`)
@@ -127,12 +132,20 @@ function parseJSON(text, label = '') {
           for (let i=0; i<opensA-closesA; i++) extra += ']'
           for (let i=0; i<opens-closes; i++) extra += '}'
           try { return JSON.parse(extra) } catch(e5) {
-            // Logging detallado para diagnóstico
-            console.error(`[parseJSON ${label}] Error: ${e1.message}`)
+            // Logging detallado para diagnóstico (Fix BUG A — incluye contexto de la posición exacta)
+            const errMsg = e5?.message || e1?.message || 'unknown'
+            const posMatch = errMsg.match(/position\s+(\d+)/i)
+            const pos = posMatch ? parseInt(posMatch[1], 10) : -1
+            console.error(`[parseJSON ${label}] Error final tras 5 intentos: ${errMsg}`)
+            if (pos >= 0) {
+              const ctxStart = Math.max(0, pos - 40)
+              const ctxEnd = Math.min(jsonStr.length, pos + 40)
+              console.error(`[parseJSON ${label}] Contexto chars ${ctxStart}-${ctxEnd} (cursor en pos ${pos}):`)
+              console.error(jsonStr.substring(ctxStart, ctxEnd))
+              console.error(`[parseJSON ${label}] Caracter en cursor: ${JSON.stringify(jsonStr.charAt(pos))} (code ${jsonStr.charCodeAt(pos)})`)
+            }
             console.error(`[parseJSON ${label}] JSON crudo (primeros 3000 chars):`)
             console.error(jsonStr.substring(0, 3000))
-            console.error(`[parseJSON ${label}] JSON crudo (chars 2200-2500 si existen):`)
-            console.error(jsonStr.substring(2200, 2500))
             throw new Error(`JSON malformado en ${label}: ${e1.message}. Inicio: ${jsonStr.substring(0,150)}`)
           }
         }
@@ -272,7 +285,9 @@ PRINCIPIOS DE DENSIDAD:
 
 REGLA ABSOLUTA: si te excedes del límite de un bloque, REESCRIBE más conciso. NO entregues bloques más largos creyendo que "es mejor". Lo conciso convierte mejor.
 ${ejeBlock}
-Devuelve SOLO JSON válido.`
+Devuelve SOLO JSON válido.
+
+REGLA DE FORMATO JSON CRÍTICA: dentro de los valores string, escapa SIEMPRE las comillas dobles internas como \\". NUNCA uses comillas curvas tipográficas (" ") — solo comillas rectas ASCII ("). NO insertes saltos de línea literales dentro de strings — usa el token <<<BR>>> que ya está soportado por el post-proceso. Si tienes que citar a un experto o paciente, usa comillas españolas «...» o tipográficas curvas en el contenido visible y reserva la comilla doble recta SOLO como delimitador JSON.`
 }
 
 // PARTE 1: Bloques 1-6 (titular, bajada, ficha, apertura, historia, cita)

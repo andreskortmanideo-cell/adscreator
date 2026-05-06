@@ -747,6 +747,8 @@ ${guionTexto}`
     const bulletsAsParagraph = bulletsTrim.length === 0 ? false
       : bulletsTrim.length === 1 || bulletsTrim.some(s => s.length > 80)
     const ideaKey = 'idea_' + (v.hook ? v.hook.slice(0, 40) : Math.random())
+    const bulletsKey = 'bullets_' + (v.hook ? v.hook.slice(0, 40) : Math.random())
+    const bulletsTexto = bulletsTrim.length > 0 ? bulletsTrim.join('\n') : bulletsRawTrim
     return (
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         {/* Hook + Copiar */}
@@ -774,7 +776,10 @@ ${guionTexto}`
         {/* Bullets (adaptativo) */}
         {(bulletsTrim.length>0 || bulletsRawTrim) && (
           <div style={{background:D.card,border:`1px solid ${D.cardBorder}`,borderRadius:10,padding:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:D.blue,letterSpacing:0.5,textTransform:'uppercase',marginBottom:6}}>Bullets</div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,gap:10}}>
+              <div style={{fontSize:12,fontWeight:700,color:D.blue,letterSpacing:0.5,textTransform:'uppercase'}}>Bullets</div>
+              <button onClick={()=>copiarAlPortapapeles(bulletsTexto, bulletsKey)} style={{fontSize:11,color:copiadoKey===bulletsKey?D.green:D.blueLight,border:`1px solid ${copiadoKey===bulletsKey?D.green:D.blue}`,background:'transparent',borderRadius:7,padding:'3px 10px',cursor:'pointer',fontFamily:'inherit'}}>{copiadoKey===bulletsKey?'✓ Copiado':'Copiar'}</button>
+            </div>
             {bulletsAsParagraph || bulletsTrim.length===0 ? (
               <div style={{fontSize:14,color:D.textMid,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{bulletsTrim.length>0 ? bulletsTrim.join('\n') : bulletsRawTrim}</div>
             ) : (

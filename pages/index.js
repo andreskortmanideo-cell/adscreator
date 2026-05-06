@@ -9,6 +9,66 @@ const D = {
   accent:'#f9fafb',green:'#059669',greenBg:'#ecfdf5',greenBorder:'#a7f3d0'
 }
 
+const DOCTRINA_NIVELES = {
+  1: { titulo: 'Inconsciente', color: '#9ca3af', regla: 'NO menciona producto, marca, mecanismo ni ingredientes.', enfoque: 'Activar curiosidad sobre un problema que el avatar aún no identifica.', cta: '"Mira en el enlace por qué te pasa esto" / "Aprende qué hay detrás" / "Descubre lo que pocos saben"' },
+  2: { titulo: 'Consciente del problema', color: '#f59e0b', regla: 'NO menciona producto ni marca.', enfoque: 'Validar el dolor y prometer que hay respuesta sin decir cuál.', cta: '"Entra al enlace y entiende cómo otros lo resolvieron" / "Mira lo que muchos ya están haciendo"' },
+  3: { titulo: 'Consciente de la solución', color: '#1a8cc4', regla: 'Producto como hallazgo natural, no anuncio. NUNCA verbos imperativos de compra.', enfoque: 'Presentar el producto como descubrimiento personal.', cta: '"Descubrí algo que cambió todo" / "Mira esto que encontré"' },
+  4: { titulo: 'Consciente del producto', color: '#059669', regla: 'Producto con beneficios concretos y prueba social.', enfoque: 'Convencer al avatar que ya conoce el producto pero duda.', cta: 'Urgencia suave: "Pruébalo tú mismo" / "Es momento de intentarlo"' },
+  5: { titulo: 'Totalmente consciente', color: '#dc2626', regla: 'Venta directa, escasez, urgencia real.', enfoque: 'Cerrar la venta con quien ya está listo.', cta: '"Pídelo ahora" / "No lo dejes pasar"' }
+}
+
+const DOCTRINA_MOTIVOS = {
+  Emocional: { color: '#ec4899', emocion: 'Frustración → Orgullo / Vergüenza → Validación', enfoque: 'Alivio y validación', estructura: 'Frustración personal → Identificación → Alivio → Orgullo', pieza: 'Storytelling, testimonio en primera persona', palabras: '"yo sentía", "no era la única", "por fin", "alivio", "me entiende"' },
+  Funcional: { color: '#1a8cc4', emocion: 'Confianza / Control', enfoque: 'Resultado visible y demostrable', estructura: 'Problema concreto → Demostración del resultado → Evidencia visual', pieza: 'Before & After, UGC directo, demo en uso', palabras: '"mira cómo", "el resultado es", "en X días", "la diferencia se nota"' },
+  Educativo: { color: '#8b5cf6', emocion: 'Curiosidad / Claridad', enfoque: 'Descubrimiento, explicación de un porqué', estructura: 'Pregunta o dato curioso → Explicación clara → Aplicación práctica', pieza: 'Tutoriales, tips, comparativas', palabras: '"¿sabías que?", "la razón es", "esto pasa porque", "lo que muchos no saben"' },
+  Aspiracional: { color: '#f59e0b', emocion: 'Deseo / Admiración', enfoque: 'Imagen, identidad y transformación de vida', estructura: 'Vida actual del avatar → Vida deseada → Producto como puente → Invitación a convertirse', pieza: 'Lifestyle, video aspiracional, transformación', palabras: '"vive como", "sé esa persona", "tu mejor versión", "por fin tener", "convertirte en"' },
+  Racional: { color: '#059669', emocion: 'Orden / Tranquilidad', enfoque: 'Simplificación, método, sistema claro', estructura: 'Confusión común → Método organizado → Tranquilidad mental', pieza: 'Explicativos, guías cortas, paso a paso', palabras: '"el método", "los pasos son", "sin complicaciones", "claro y simple"' }
+}
+
+const DOCTRINA_ANGULOS = {
+  'Problema/Dolor': { que: 'Activa el problema concreto del avatar antes de cualquier solución.', estructura: '1) Nombrar el dolor 2) Mostrar consecuencia 3) Insinuar salida 4) CTA acorde al nivel', tono: 'Empático, directo, validador', ejemplo: 'Si llegas a la noche con la espalda destrozada, no eres tú: es tu silla.' },
+  'Beneficio/Resultado': { que: 'Empieza mostrando el resultado final ya logrado.', estructura: '1) Resultado visible 2) Cómo se siente 3) Mecanismo breve 4) CTA', tono: 'Optimista, concreto, demostrativo', ejemplo: 'Dormí 8 horas seguidas por primera vez en años.' },
+  'Curiosidad': { que: 'Genera intriga con un dato, pregunta o secreto.', estructura: '1) Gancho intrigante 2) Tensión 3) Revelación parcial 4) CTA hacia el enlace', tono: 'Conversacional, casi cómplice', ejemplo: 'El error que el 90% comete y no sabe que comete...' },
+  'Urgencia/Escasez': { que: 'El motor es el tiempo o la disponibilidad limitada.', estructura: '1) Oferta o ventana 2) Por qué se cierra 3) Qué pierde si no actúa 4) CTA con tiempo', tono: 'Firme, no agresivo', ejemplo: 'Solo quedan 12 unidades antes del próximo lote.' },
+  'Autoridad/Prueba Social': { que: 'Apoya en evidencia externa, números, testimonios o expertos.', estructura: '1) Cifra/prueba 2) Quién lo respalda 3) Qué significa para el avatar 4) CTA', tono: 'Sereno, fáctico', ejemplo: 'Más de 12.000 madres en Colombia ya lo usan a diario.' },
+  'Novedad': { que: 'Posiciona como recién llegado, descubrimiento, primero en categoría.', estructura: '1) Anuncio del descubrimiento 2) Por qué es nuevo 3) Qué cambia 4) CTA', tono: 'Fresco, revelador', ejemplo: 'La primera crema con [mecanismo] que llega al país.' },
+  'Comparación/Contraste': { que: 'Confronta con la alternativa tradicional.', estructura: '1) Lo viejo y sus defectos 2) Lo nuevo 3) Diferencia clara 4) CTA', tono: 'Claro, no peleón', ejemplo: 'Las dietas restrictivas vs. comer lo que quieras con método.' },
+  'Enemigo en Común': { que: 'Identifica un villano externo que el avatar también odia.', estructura: '1) Nombrar al enemigo 2) Cómo te afecta 3) Cómo el producto te libera 4) CTA', tono: 'Empático con un toque de rebeldía', ejemplo: 'La industria del azúcar te hizo creer que la grasa era el problema.' },
+  'Historia': { que: 'Cuenta una historia real que lleva al producto.', estructura: '1) Personaje 2) Problema 3) Hallazgo 4) Transformación + CTA', tono: 'Narrativo, humano', ejemplo: 'Hace 8 meses no podía subir las escaleras sin pausa...' },
+  'Transformación': { que: 'Antes y después claros y contrastados.', estructura: '1) Antes 2) Punto de quiebre 3) Después 4) CTA', tono: 'Esperanzador, evidencial', ejemplo: 'De 92kg a 74kg sin pasar hambre. Esto fue lo que cambié.' },
+  'FOMO': { que: 'Otros ya están avanzando sin él.', estructura: '1) Lo que otros ya logran 2) Implicancia para él 3) Camino simple 4) CTA', tono: 'Movilizador, no juzgador', ejemplo: 'Mientras tú dudas, ellas ya recuperaron su energía.' },
+  'Simplicidad': { que: 'Lo que parecía difícil con este producto es fácil.', estructura: '1) Lo complicado del enfoque viejo 2) Lo simple del nuevo 3) Demostración 4) CTA', tono: 'Tranquilo, didáctico', ejemplo: 'Sin contar calorías. Sin pesar comida. Solo seguir el método.' },
+  'Ironía/Provocación': { que: 'Va contra la creencia común.', estructura: '1) Mito popular 2) Por qué es mentira 3) Verdad incómoda 4) CTA', tono: 'Irónico, retador, nunca grosero', ejemplo: 'Hacer más cardio te está engordando.' },
+  'Precio/Valor': { que: 'Justifica el precio como inversión.', estructura: '1) Precio aparente 2) Costo real de no actuar 3) Valor entregado 4) CTA', tono: 'Racional, tranquilo', ejemplo: 'Cuesta lo mismo que dos almuerzos por mes y te quita el dolor de espalda.' },
+  'Exclusividad': { que: 'No es para todos, es para él específicamente.', estructura: '1) A quién SÍ va dirigido 2) A quién NO 3) Por qué es para él 4) CTA', tono: 'Selectivo, sin elitismo barato', ejemplo: 'Esto no es para quien busca atajos. Es para quien quiere método.' },
+  'Aspiracional': { que: 'Conecta el producto con la imagen/vida que el avatar quiere.', estructura: '1) Imagen deseada 2) Identidad 3) Producto como puente 4) CTA', tono: 'Inspirador, concreto', ejemplo: 'Conviértete en la versión de ti que siempre supiste que podías ser.' }
+}
+
+function PanelDoctrina({ open, setOpen, titulo, color, children }) {
+  return (
+    <div style={{ marginTop: 12, borderLeft: `4px solid ${color}`, background: D.accent, borderRadius: 8, overflow: 'hidden', border: `1px solid ${D.cardBorder}` }}>
+      <div onClick={() => setOpen(!open)} style={{ cursor: 'pointer', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', userSelect: 'none' }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: D.text, textTransform: 'uppercase', letterSpacing: 0.5 }}>{titulo}</span>
+        <span style={{ color: D.textDim, fontSize: 12 }}>{open ? '▲' : '▼'}</span>
+      </div>
+      {open && (
+        <div style={{ padding: '0 16px 16px 16px', fontSize: 14, color: D.textMid, lineHeight: 1.6 }}>
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DLine({ label, value }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: D.text, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 14, color: D.textMid, lineHeight: 1.5 }}>{value}</div>
+    </div>
+  )
+}
+
 export default function Home() {
   const [pais,setPais]=useState('Colombia')
   const [plat,setPlat]=useState('Meta Ads')
@@ -39,6 +99,9 @@ export default function Home() {
   const [avatarSel,setAvatarSel]=useState(null)   // índice del avatar o null
   const [avatarManual,setAvatarManual]=useState('')
   const [anguloSel,setAnguloSel]=useState(null)   // string del ángulo
+  const [openPanelNivel,setOpenPanelNivel]=useState(false)
+  const [openPanelMotivo,setOpenPanelMotivo]=useState(false)
+  const [openPanelAngulo,setOpenPanelAngulo]=useState(false)
   const [variaciones,setVariaciones]=useState([])
   const [variacionActiva,setVariacionActiva]=useState(0)
   // ── NUEVO: selector de API ──────────────────────────────────────
@@ -859,125 +922,21 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                   )
                 })}
 
-                {/* ── Panel "Enfoque del nivel" — muestra reglas que se aplicarán ── */}
-                {(nivelSel || analisis?.nivel_recomendado) && (() => {
-                  const NIVEL_ENFOQUE = {
-                    1: {
-                      nombre: 'INCONSCIENTE',
-                      hace: [
-                        'Hablar del problema sin mencionar el producto',
-                        'Generar curiosidad o disrupción educativa',
-                        'Cerrar invitando al enlace para "saber más"',
-                        'Educar sobre el problema desde el ángulo elegido',
-                      ],
-                      noHace: [
-                        'Mencionar el nombre del producto o marca',
-                        'Nombrar una solución específica',
-                        'Mencionar ingredientes o mecanismos',
-                        'Hacer venta directa',
-                      ],
-                    },
-                    2: {
-                      nombre: 'CONSCIENTE DEL PROBLEMA',
-                      hace: [
-                        'Validar empáticamente el dolor del avatar',
-                        'Explicar las causas reales del problema',
-                        'Cerrar invitando al enlace para entender cómo otros lo resolvieron',
-                        'Hacer sentir al avatar que no está solo',
-                      ],
-                      noHace: [
-                        'Mencionar el nombre del producto o marca',
-                        'Hacer promesas concretas de resolución',
-                        'Vender directamente',
-                        'Saltarse la validación emocional',
-                      ],
-                    },
-                    3: {
-                      nombre: 'CONSCIENTE DE LA SOLUCIÓN',
-                      hace: [
-                        'Presentar el producto como hallazgo natural',
-                        'Conectar con la búsqueda activa del avatar',
-                        'Hablar como descubrimiento personal',
-                        'CTA suave sin presión',
-                      ],
-                      noHace: [
-                        'Usar lenguaje publicitario tipo "el mejor", "único", "revolucionario"',
-                        'Usar verbos imperativos de compra como "compra" u "ordena"',
-                        'Sonar como anuncio',
-                      ],
-                    },
-                    4: {
-                      nombre: 'CONSCIENTE DEL PRODUCTO',
-                      hace: [
-                        'Reconocer las dudas comunes del avatar',
-                        'Mostrar beneficios concretos',
-                        'Usar prueba social, garantías, comparativas',
-                        'CTA con urgencia suave',
-                      ],
-                      noHace: [
-                        'Ser agresivo en el cierre',
-                        'Saltarse las dudas del avatar',
-                        'Olvidar la prueba social',
-                      ],
-                    },
-                    5: {
-                      nombre: 'TOTALMENTE CONSCIENTE',
-                      hace: [
-                        'Ir al grano sin preámbulos',
-                        'Dar razón concreta para actuar HOY',
-                        'Usar escasez o urgencia real si aplica',
-                        'CTA de acción directa',
-                      ],
-                      noHace: [
-                        'Empezar con preámbulos largos',
-                        'Repetir lo que ya sabe el avatar',
-                      ],
-                    },
-                  }
+                {/* ── Panel doctrina del nivel seleccionado (colapsable) ── */}
+                {(nivelSel || analisis?.nivel_recomendado) && DOCTRINA_NIVELES[nivelSel || analisis?.nivel_recomendado] && (() => {
                   const nv = nivelSel || analisis?.nivel_recomendado
-                  const enf = NIVEL_ENFOQUE[nv]
-                  if (!enf) return null
-                  const NIVEL_ACCENTS_PANEL = {1:'#4a6a8a',2:'#3a8cc4',3:'#3aa898',4:'#c4a83a',5:'#c46a3a'}
-                  const accent = NIVEL_ACCENTS_PANEL[nv] || NIVEL_ACCENTS_PANEL[3]
-                  const noColor = '#c45a5a'
+                  const d = DOCTRINA_NIVELES[nv]
                   return (
-                    <div style={{
-                      marginTop:16,
-                      marginBottom:16,
-                      padding:16,
-                      background:D.accent,
-                      border:`1px solid ${D.cardBorder}`,
-                      borderLeft:`3px solid ${accent}`,
-                      borderRadius:12,
-                    }}>
-                      <div style={{fontSize:11,fontWeight:700,color:accent,letterSpacing:'.07em',textTransform:'uppercase',marginBottom:12}}>
-                        🎯 Enfoque del nivel {nv} — {enf.nombre}
-                      </div>
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-                        <div>
-                          <div style={{fontSize:10,fontWeight:700,color:D.green,letterSpacing:'.05em',textTransform:'uppercase',marginBottom:8}}>✓ Lo que debe hacer</div>
-                          <div style={{display:'flex',flexDirection:'column',gap:5}}>
-                            {enf.hace.map((h,i)=>(
-                              <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8}}>
-                                <span style={{color:D.green,fontWeight:700,flexShrink:0,marginTop:1,fontSize:12}}>•</span>
-                                <span style={{fontSize:12,color:D.textMid,lineHeight:1.5}}>{h}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{fontSize:10,fontWeight:700,color:noColor,letterSpacing:'.05em',textTransform:'uppercase',marginBottom:8}}>✗ Lo que no debe hacer</div>
-                          <div style={{display:'flex',flexDirection:'column',gap:5}}>
-                            {enf.noHace.map((nh,i)=>(
-                              <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8}}>
-                                <span style={{color:noColor,fontWeight:700,flexShrink:0,marginTop:1,fontSize:12}}>•</span>
-                                <span style={{fontSize:12,color:D.textMid,lineHeight:1.5}}>{nh}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <PanelDoctrina
+                      open={openPanelNivel}
+                      setOpen={setOpenPanelNivel}
+                      titulo={`Nivel ${nv}: ${d.titulo} — Doctrina`}
+                      color={d.color}
+                    >
+                      <DLine label="Regla" value={d.regla} />
+                      <DLine label="Enfoque" value={d.enfoque} />
+                      <DLine label="CTA permitido" value={d.cta} />
+                    </PanelDoctrina>
                   )
                 })()}
               </div>
@@ -1025,6 +984,22 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                     </div>
                   )
                 })}
+
+                {/* ── Panel doctrina del motivo seleccionado (colapsable) ── */}
+                {tipo && DOCTRINA_MOTIVOS[tipo] && (
+                  <PanelDoctrina
+                    open={openPanelMotivo}
+                    setOpen={setOpenPanelMotivo}
+                    titulo={`Motivo ${tipo} — Doctrina`}
+                    color={DOCTRINA_MOTIVOS[tipo].color}
+                  >
+                    <DLine label="Emoción dominante" value={DOCTRINA_MOTIVOS[tipo].emocion} />
+                    <DLine label="Enfoque" value={DOCTRINA_MOTIVOS[tipo].enfoque} />
+                    <DLine label="Estructura" value={DOCTRINA_MOTIVOS[tipo].estructura} />
+                    <DLine label="Pieza ideal" value={DOCTRINA_MOTIVOS[tipo].pieza} />
+                    <DLine label="Palabras clave" value={DOCTRINA_MOTIVOS[tipo].palabras} />
+                  </PanelDoctrina>
+                )}
 
                 <div style={{borderTop:`1px solid ${D.cardBorder}`,margin:'14px 0'}}/>
                 <div style={fldLbl}>Ángulo de venta</div>
@@ -1102,191 +1077,20 @@ Audita objetivamente si las decisiones se cumplen en el contenido.`
                   })()}
                 </div>
 
-                {/* Tarjeta explicativa del ángulo seleccionado */}
-                {anguloSel && (() => {
-                  const ANGULO_DEFS = {
-                    'Problema/Dolor': {fam:'dolor',
-                      que_hace:'Activa el problema concreto del avatar antes de cualquier solución. El dolor es el motor de toda la pieza.',
-                      estructura:[
-                        'Hook: descripción vívida y reconocible del dolor',
-                        'Cuerpo: profundiza en cómo afecta el día a día',
-                        'Producto: aparece como respuesta directa a ese dolor',
-                        'Cierre: alivio, contraste con el dolor inicial',
-                      ],
-                      ej:'"Llegan las 3pm y otra vez ese latido detrás del ojo te paraliza..."'},
-                    'Enemigo en Común': {fam:'dolor',
-                      que_hace:'Identifica un villano externo (industria, mito, marca implícita) contra el que el producto pelea junto al avatar.',
-                      estructura:[
-                        'Hook: revela el villano que daña al avatar',
-                        'Cuerpo: explica cómo el sistema/industria/mito le falla',
-                        'Producto: aparece como aliado del avatar contra el villano',
-                        'Cierre: el avatar gana contra el sistema',
-                      ],
-                      ej:'"Lo que la industria farmacéutica no quiere que sepas sobre la migraña..."'},
-                    'Ironía/Provocación': {fam:'dolor',
-                      que_hace:'Tono irreverente o sarcástico. Cuestiona algo obvio, rompe la cuarta pared. Memorable por descarado.',
-                      estructura:[
-                        'Hook: frase provocadora que reta una creencia',
-                        'Cuerpo: argumenta con humor o sarcasmo',
-                        'Producto: aparece como la "obviedad" que pocos ven',
-                        'Cierre: remate punzante o anti-clímax',
-                      ],
-                      ej:'"Sí, otra solución para la migraña. Solo que esta sí funciona."'},
-                    'Beneficio/Resultado': {fam:'deseo',
-                      que_hace:'Empieza mostrando el resultado final ya logrado. El "después" es protagonista, no el "antes".',
-                      estructura:[
-                        'Hook: muestra el resultado conquistado',
-                        'Cuerpo: detalla qué cambió en la vida del avatar',
-                        'Producto: aparece como el responsable del resultado',
-                        'Cierre: invita al espectador al mismo resultado',
-                      ],
-                      ej:'"Llevo 60 días sin una sola migraña. Te cuento qué cambió."'},
-                    'Aspiracional': {fam:'deseo',
-                      que_hace:'Apela al ideal: convertirse en una mejor versión. Conecta el producto con un estilo de vida o identidad deseada.',
-                      estructura:[
-                        'Hook: pinta la versión aspirada del avatar',
-                        'Cuerpo: contrasta con quien es hoy',
-                        'Producto: aparece como puente hacia esa identidad',
-                        'Cierre: invitación a "ser" esa versión',
-                      ],
-                      ej:'"Las personas más productivas no aguantan migrañas. Las eliminan."'},
-                    'Transformación': {fam:'deseo',
-                      que_hace:'Centra en el cambio del avatar de antes a ahora. El producto es catalizador, no protagonista.',
-                      estructura:[
-                        'Hook: contraste antes/ahora claro',
-                        'Cuerpo: cuenta el proceso del cambio',
-                        'Producto: aparece como catalizador del cambio',
-                        'Cierre: el "ahora soy" del avatar',
-                      ],
-                      ej:'"De 4 migrañas por semana a cero en un mes. Esto es lo que pasó."'},
-                    'Urgencia/Escasez': {fam:'urgencia',
-                      que_hace:'El motor del guion es el tiempo o disponibilidad limitada. La acción debe ser ya.',
-                      estructura:[
-                        'Hook: marca el tiempo/escasez como amenaza',
-                        'Cuerpo: justifica por qué es ahora',
-                        'Producto: aparece como la oportunidad que se va',
-                        'Cierre: CTA con cuenta regresiva implícita',
-                      ],
-                      ej:'"Solo por hoy: 3 unidades al precio de 2. Mañana sube."'},
-                    'FOMO': {fam:'urgencia',
-                      que_hace:'Ya hay gente que lo tiene/usa/disfruta. Quien no actúa se queda fuera del grupo.',
-                      estructura:[
-                        'Hook: muestra al grupo que ya disfruta',
-                        'Cuerpo: contrasta con quien sigue sin saber',
-                        'Producto: aparece como "lo que ya tienen los otros"',
-                        'Cierre: invitación a unirse antes de quedar atrás',
-                      ],
-                      ej:'"Mientras tú dudas, ya van 8.500 personas usándolo en Colombia."'},
-                    'Exclusividad': {fam:'urgencia',
-                      que_hace:'No es para todos. Selectivo, especial, para quienes saben/merecen. Estatus por encima de masa.',
-                      estructura:[
-                        'Hook: define quién SÍ entiende esto',
-                        'Cuerpo: explica por qué la mayoría no califica',
-                        'Producto: aparece como acceso a un círculo reducido',
-                        'Cierre: invitación al "club" del avatar',
-                      ],
-                      ej:'"Solo para quienes ya entendieron que la migraña no es un dolor común."'},
-                    'Autoridad/Prueba Social': {fam:'prueba',
-                      que_hace:'Apóyate en evidencia externa: clientes, testimonios reales, datos verificables. La credibilidad la da el otro.',
-                      estructura:[
-                        'Hook: dato/cifra/figura de autoridad',
-                        'Cuerpo: testimonios o números que validan',
-                        'Producto: aparece avalado por la evidencia',
-                        'Cierre: invita a sumarse a quienes ya validaron',
-                      ],
-                      ej:'"+8.500 pacientes tratados por el Dr. Fuentes ya conocen este método."'},
-                    'Comparación/Contraste': {fam:'prueba',
-                      que_hace:'Confronta dos opciones: producto vs alternativa, antes vs ahora. El producto siempre gana.',
-                      estructura:[
-                        'Hook: plantea la comparación cara a cara',
-                        'Cuerpo: enumera diferencias punto por punto',
-                        'Producto: aparece como ganador en cada comparación',
-                        'Cierre: el espectador "ya no puede no elegir"',
-                      ],
-                      ej:'"Sumatriptán vs Migraine Stick: lo que nadie te había mostrado."'},
-                    'Precio/Valor': {fam:'prueba',
-                      que_hace:'Centra en la relación valor/precio. Justifica económicamente la compra.',
-                      estructura:[
-                        'Hook: una cifra o comparativa de gasto',
-                        'Cuerpo: desglosa qué se gasta sin el producto',
-                        'Producto: aparece como ahorro o reemplazo de gastos',
-                        'Cierre: el cálculo a favor del producto',
-                      ],
-                      ej:'"Por menos de lo que gastas en analgésicos al mes, ya no los necesitas."'},
-                    'Curiosidad': {fam:'curiosidad',
-                      que_hace:'Abre con dato/pregunta que genere "necesito saber más". Mantén el misterio durante el desarrollo.',
-                      estructura:[
-                        'Hook: dato sorprendente o pregunta intrigante',
-                        'Cuerpo: profundiza sin revelar todo',
-                        'Producto: aparece como la respuesta al misterio',
-                        'Cierre: la revelación o invitación a descubrir',
-                      ],
-                      ej:'"7 de cada 10 migrañas no son lo que crees. Te explico."'},
-                    'Novedad': {fam:'curiosidad',
-                      que_hace:'Posiciona como descubrimiento reciente, recién llegado. "Acaba de salir."',
-                      estructura:[
-                        'Hook: marca la novedad como noticia',
-                        'Cuerpo: contrasta con lo que existía antes',
-                        'Producto: aparece como la innovación reciente',
-                        'Cierre: invitación a ser de los primeros',
-                      ],
-                      ej:'"Acaba de salir en Colombia: el primer roll-on para migraña."'},
-                    'Historia': {fam:'curiosidad',
-                      que_hace:'Narrativa de personaje con transformación. Estructura: situación, conflicto, descubrimiento, resolución.',
-                      estructura:[
-                        'Hook: presenta al personaje y su situación inicial',
-                        'Cuerpo: el conflicto y el momento del descubrimiento',
-                        'Producto: aparece como hallazgo dentro del relato',
-                        'Cierre: la nueva realidad del personaje + invitación',
-                      ],
-                      ej:'"Daniela tenía 38 años y 4 migrañas por semana. Hasta que un neurólogo le dijo..."'},
-                    'Simplicidad': {fam:'curiosidad',
-                      que_hace:'El ángulo es la facilidad. "Solo 3 pasos", "sin complicaciones". El producto resuelve sin esfuerzo.',
-                      estructura:[
-                        'Hook: promesa de facilidad/rapidez',
-                        'Cuerpo: enumera lo simple del proceso',
-                        'Producto: aparece como la solución sin pasos',
-                        'Cierre: contraste con métodos complicados',
-                      ],
-                      ej:'"Aplicas, masajeas 5 min, listo. Sin pastillas, sin esperar."'},
-                  }
-                  const FAM_ACCENTS = {
-                    dolor:      '#c45a5a',
-                    deseo:      '#c4a83a',
-                    urgencia:   '#c47a3a',
-                    prueba:     '#3a8cc4',
-                    curiosidad: '#8a5cd0',
-                  }
-                  const meta = ANGULO_DEFS[anguloSel]
-                  if (!meta) return null
-                  const accent = FAM_ACCENTS[meta.fam]
-                  return (
-                    <div style={{
-                      marginBottom:14,
-                      padding:'12px 14px',
-                      background:D.input,
-                      border:`1px solid ${D.cardBorder}`,
-                      borderLeft:`3px solid ${accent}`,
-                      borderRadius:8,
-                    }}>
-                      <div style={{fontSize:10,color:D.textDim,fontWeight:600,marginBottom:6,letterSpacing:'.05em',textTransform:'uppercase'}}>
-                        Qué hace en tu guion
-                      </div>
-                      <div style={{fontSize:12,color:D.text,lineHeight:1.5,marginBottom:12}}>
-                        {meta.que_hace}
-                      </div>
-
-                      <div style={{fontSize:10,color:D.textDim,fontWeight:600,marginBottom:6,letterSpacing:'.05em',textTransform:'uppercase',paddingTop:10,borderTop:`1px solid ${D.cardBorder}`}}>
-                        Estructura que genera
-                      </div>
-                      <ul style={{margin:0,paddingLeft:18}}>
-                        {meta.estructura.map((item,i)=>(
-                          <li key={i} style={{fontSize:11,color:D.textMid,lineHeight:1.5,marginBottom:3}}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )
-                })()}
+                {/* ── Panel doctrina del ángulo seleccionado (colapsable) ── */}
+                {anguloSel && DOCTRINA_ANGULOS[anguloSel] && (
+                  <PanelDoctrina
+                    open={openPanelAngulo}
+                    setOpen={setOpenPanelAngulo}
+                    titulo={`Ángulo ${anguloSel} — Doctrina`}
+                    color={D.blue}
+                  >
+                    <DLine label="Qué hace" value={DOCTRINA_ANGULOS[anguloSel].que} />
+                    <DLine label="Estructura" value={DOCTRINA_ANGULOS[anguloSel].estructura} />
+                    <DLine label="Tono" value={DOCTRINA_ANGULOS[anguloSel].tono} />
+                    <DLine label="Ejemplo" value={`"${DOCTRINA_ANGULOS[anguloSel].ejemplo}"`} />
+                  </PanelDoctrina>
+                )}
 
                 <div style={{borderTop:`1px solid ${D.cardBorder}`,margin:'14px 0'}}/>
                 <div style={fldLbl}>Formato</div>

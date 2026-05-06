@@ -358,6 +358,107 @@ const EJES_IMAGEN = [
   }
 ]
 
+// ── Reglas del motivo aplicadas DIFERENTE a imagen (1 frame) vs video (secuencia con tiempo) ──
+const REGLA_IMAGEN_POR_MOTIVO = {
+  'Emocional': 'EMOCIÓN VIVIDA POR EL AVATAR AL USAR EL PRODUCTO. Captura el momento de alivio/orgullo/validación. NO frustración aislada sin solución a la vista.',
+  'Funcional': 'PRODUCTO EN USO RESOLVIENDO. Producto funcionando, ajustado, en acción. NO muestres el problema sin producto. NO muestres el producto fallando. NO situación previa.',
+  'Educativo': 'AHA-MOMENT visual. Descubrimiento, dato curioso visible, comparación que ilumina. Avatar comprendiendo o producto explicando con elementos visuales (íconos, comparativas).',
+  'Aspiracional': 'AVATAR VIVIENDO LA VIDA DESEADA con el producto. Identidad transformada, lifestyle aspiracional. NO la versión actual sin transformar.',
+  'Racional': 'PRODUCTO Y SU MÉTODO COMO SISTEMA CLARO. Orden, simplicidad visible, organización metódica. NO caos ni confusión.'
+}
+
+const REGLA_VIDEO_POR_MOTIVO = {
+  'Emocional': 'Estructura narrativa: frustración personal del avatar (≤20% del tiempo) → identificación → momento de alivio con el producto → orgullo final. El producto debe aparecer en la segunda mitad del guión, NO solo en los últimos 2 segundos.',
+  'Funcional': 'Estructura narrativa: problema concreto (≤15% del tiempo) → demostración del producto en uso (≥40%) → resultado/evidencia visible (≥45%). El producto FUNCIONANDO debe ocupar la mayor parte del tiempo, NO el problema.',
+  'Educativo': 'Estructura: pregunta o dato curioso al inicio → explicación clara con el producto como herramienta de demostración → aplicación práctica final. La explicación debe ser concreta y visualizable.',
+  'Aspiracional': 'Estructura: vida actual del avatar (≤15%) → contraste con vida deseada → producto como puente hacia esa vida → invitación a convertirse. La vida deseada debe ocupar más tiempo que la actual.',
+  'Racional': 'Estructura: confusión común inicial (≤15%) → método organizado paso a paso (≥60%) → tranquilidad mental final. Producto presentado como sistema simple, no como producto que se usa.'
+}
+
+// ── Reglas del HOOK por ángulo (mismas para imagen y video, los 16 ángulos aplican a ambos) ──
+const HOOK_POR_ANGULO = {
+  'Problema/Dolor': {
+    instruccion: 'El HOOK debe nombrar el dolor concreto del avatar.',
+    buenos: ['"Si llegas a la noche con la espalda destrozada"', '"El dolor que cargas todos los días"'],
+    malos: ['Hooks genéricos que no nombran el dolor']
+  },
+  'Beneficio/Resultado': {
+    instruccion: 'El HOOK debe mostrar el resultado final ya logrado.',
+    buenos: ['"Dormí 8 horas seguidas por primera vez"', '"Acabados de chef sin salir de casa"'],
+    malos: ['Hooks que describen el problema antes que el resultado']
+  },
+  'Curiosidad': {
+    instruccion: 'El HOOK debe generar intriga con dato/pregunta/secreto.',
+    buenos: ['"El error que el 90% comete sin saber"', '"Lo que ningún experto te cuenta"'],
+    malos: ['Hooks que dan la respuesta directamente']
+  },
+  'Urgencia/Escasez': {
+    instruccion: 'El HOOK debe transmitir urgencia de tiempo o disponibilidad limitada.',
+    buenos: ['"Solo 12 unidades antes del próximo lote"', '"Esta semana o esperas hasta marzo"'],
+    malos: ['Hooks sin sentido de tiempo limitado']
+  },
+  'Autoridad/Prueba Social': {
+    instruccion: 'El HOOK debe apoyarse en cifras o expertos.',
+    buenos: ['"Más de 12.000 personas ya lo usan"', '"Recomendado por 9 de cada 10 doctores"'],
+    malos: ['Hooks sin números ni respaldo']
+  },
+  'Novedad': {
+    instruccion: 'El HOOK debe posicionar como descubrimiento reciente.',
+    buenos: ['"Lo nuevo que cambió todo este año"', '"El primer X que llega al país"'],
+    malos: ['Hooks que suenan antiguos o conocidos']
+  },
+  'Comparación/Contraste': {
+    instruccion: 'El HOOK debe contrastar la alternativa vieja con la nueva.',
+    buenos: ['"X tradicional vs X con método"', '"De $200 a $20 sin perder calidad"'],
+    malos: ['Hooks que solo elogian sin contrastar']
+  },
+  'Enemigo en Común': {
+    instruccion: 'El HOOK debe nombrar al villano externo.',
+    buenos: ['"La industria del azúcar te hizo creer..."', '"Lo que las empresas no quieren que sepas"'],
+    malos: ['Hooks sin enemigo identificado']
+  },
+  'Historia': {
+    instruccion: 'El HOOK debe arrancar narrativa real con personaje.',
+    buenos: ['"Hace 8 meses no podía levantarme..."', '"Mi tía Marta probó esto y..."'],
+    malos: ['Hooks genéricos sin protagonista']
+  },
+  'Transformación': {
+    instruccion: 'El HOOK debe contrastar antes/después.',
+    buenos: ['"De 92kg a 74kg sin pasar hambre"', '"Pasé de 0 ventas a 30 al mes"'],
+    malos: ['Hooks que solo mencionan el después sin antes']
+  },
+  'FOMO': {
+    instruccion: 'CRÍTICO: el HOOK debe comunicar URGENCIA SOCIAL. Estructuras: "Mientras tú dudas...", "X cantidad ya cambiaron", "Lo que la mayoría YA está usando", "Te quedas fuera si no..."',
+    buenos: ['"Mientras tú dudas, ellas ya recuperaron su energía"', '"347 mamás ya hicieron el cambio"', '"La cocina que el resto del barrio ya tiene"'],
+    malos: ['Hooks genéricos como "Vas a necesitar esto" — eso NO es FOMO, es solo necesidad']
+  },
+  'Simplicidad': {
+    instruccion: 'El HOOK debe destacar lo fácil del enfoque.',
+    buenos: ['"Sin contar calorías ni pesar comida"', '"3 pasos y listo"'],
+    malos: ['Hooks que muestran complejidad']
+  },
+  'Ironía/Provocación': {
+    instruccion: 'El HOOK debe ir contra una creencia común.',
+    buenos: ['"Hacer más cardio te está engordando"', '"Beber agua te puede deshidratar"'],
+    malos: ['Hooks que confirman lo obvio']
+  },
+  'Precio/Valor': {
+    instruccion: 'El HOOK debe enmarcar el precio como inversión.',
+    buenos: ['"Cuesta lo mismo que dos almuerzos al mes"', '"Por menos de un café diario"'],
+    malos: ['Hooks sin contexto de valor']
+  },
+  'Exclusividad': {
+    instruccion: 'El HOOK debe filtrar a quién va dirigido.',
+    buenos: ['"Esto NO es para quien busca atajos"', '"Solo para quien quiere método"'],
+    malos: ['Hooks genéricos abiertos a todos']
+  },
+  'Aspiracional': {
+    instruccion: 'El HOOK debe conectar con la identidad/vida deseada.',
+    buenos: ['"Conviértete en la versión que siempre supiste que podías ser"', '"Vive como tu yo de los próximos 10 años"'],
+    malos: ['Hooks centrados en el problema, no en la aspiración']
+  }
+}
+
 // ── Validador post-respuesta del hook ──
 function hookTerminaMal(hook) {
   if (!hook) return true
@@ -521,6 +622,30 @@ ${reglaTexto}
 
 Si te equivocas en este formato (ej: pones bullets cuando la regla dice NO bullets, o pones más puntos de los pedidos, o pasas el límite de palabras), la idea queda inservible.`
 
+        // Regla del motivo INTERPRETADA para imagen estática (1 frame, no secuencia)
+        const reglaImg = REGLA_IMAGEN_POR_MOTIVO[tipo] || ''
+        const bloqueReglaMotivoImg = reglaImg ? `
+
+REGLA VISUAL OBLIGATORIA SEGÚN EL MOTIVO "${tipo}" (CRÍTICO PARA IMAGEN ESTÁTICA):
+${reglaImg}
+
+NOTA CRÍTICA: Imagen estática es UN solo frame. La estructura narrativa del motivo NO aplica como secuencia visual. Captura UN momento que comunique el motivo SIN la fase del problema. El producto debe verse VICTORIOSO o el avatar TRANSFORMADO, no en la fase previa.` : ''
+
+        // Regla del HOOK por ángulo (misma para imagen y video)
+        const angRuleImg = HOOK_POR_ANGULO[anguloImg] || null
+        const bloqueAngHookImg = angRuleImg ? `
+
+REGLA OBLIGATORIA DEL HOOK SEGÚN EL ÁNGULO "${anguloImg}":
+${angRuleImg.instruccion}
+
+EJEMPLOS DE HOOKS BUENOS PARA ESTE ÁNGULO:
+${angRuleImg.buenos.map(b => '✅ ' + b).join('\n')}
+
+EJEMPLOS DE HOOKS QUE NO SON ESTE ÁNGULO:
+${angRuleImg.malos.map(m => '❌ ' + m).join('\n')}
+
+Si tu hook no comunica claramente "${anguloImg}" — REESCRÍBELO antes de cerrar la respuesta.` : ''
+
         // FIX #8 + #7 — construir 3 prompts (uno por eje) con hook preseleccionado de HOOKS_JEFE
         const buildPromptIdea = (eje, hookPreseleccionado) => `${PROMPT_IMAGEN_BASE(formatoImgSel)}${avatarImgLine}${defAnguloImg}
 
@@ -539,7 +664,7 @@ INSTRUCCIÓN DE EJE PARA ESTA IDEA (sobreescribe lo demás en caso de conflicto 
 Esta llamada produce UNA SOLA idea (no 3). Es la idea con eje "${eje.nombre}" (${eje.id}/3 de un set paralelo).
 ${eje.instruccion}
 ${RELLENO_BLOCK(hookPreseleccionado)}
-${bloqueReglaTexto}${refuerzoImg}
+${bloqueReglaTexto}${bloqueReglaMotivoImg}${refuerzoImg}
 
 OUTPUT EXPECTED (DEVUELVE EXACTAMENTE ESTAS 3 SECCIONES — IGNORA cualquier formato anterior del bloque PROMPT_IMAGEN_BASE inicial, este es el formato definitivo):
 
@@ -577,7 +702,7 @@ EJEMPLOS DE HOOKS BIEN CONSTRUIDOS:
 CHEQUEO OBLIGATORIO ANTES DE ENVIAR:
 1. Mira la última palabra de tu HOOK.
 2. Si es: y, o, de, la, el, un, una, para, con, por, en, mi, tu, su, este, ese, es, son, sea, solo, más, menos, que, si, no, le, les, lo → REESCRÍBELO. Está incompleto.
-3. El HOOK debe poder leerse en voz alta sin sentirse cortado.`
+3. El HOOK debe poder leerse en voz alta sin sentirse cortado.${bloqueAngHookImg}`
 
         imagePrompts3 = EJES_IMAGEN.map((eje, i) => buildPromptIdea(eje, hooksImg[i]))
         promptFinal = imagePrompts3[0]
@@ -1087,6 +1212,30 @@ CTA: Acción directa:
 - Ya sabes lo que hace, es tu momento
 - Última oportunidad antes de que se acabe`
 
+      // Regla del motivo INTERPRETADA para video (secuencia con tiempo, no 1 frame)
+      const reglaVid = REGLA_VIDEO_POR_MOTIVO[tipoV] || ''
+      const bloqueReglaMotivoVid = reglaVid ? `
+
+REGLA NARRATIVA OBLIGATORIA SEGÚN EL MOTIVO "${tipoV}" (CRÍTICO PARA VIDEO):
+${reglaVid}
+
+El producto y la solución deben dominar el tiempo del video. El problema solo se introduce brevemente al inicio para crear contexto.` : ''
+
+      // Regla del HOOK por ángulo (misma lógica que imagen, los 16 ángulos aplican a ambos)
+      const angRuleVid = HOOK_POR_ANGULO[anguloV] || null
+      const bloqueAngHookVid = angRuleVid ? `
+
+REGLA OBLIGATORIA DEL HOOK SEGÚN EL ÁNGULO "${anguloV}":
+${angRuleVid.instruccion}
+
+EJEMPLOS DE HOOKS BUENOS PARA ESTE ÁNGULO:
+${angRuleVid.buenos.map(b => '✅ ' + b).join('\n')}
+
+EJEMPLOS DE HOOKS QUE NO SON ESTE ÁNGULO:
+${angRuleVid.malos.map(m => '❌ ' + m).join('\n')}
+
+Si tu hook no comunica claramente "${anguloV}" — REESCRÍBELO antes de cerrar la respuesta.` : ''
+
       const prompts = [
         { hook: hooksElegidos[0], enfoque: 'PROBLEMA/DOLOR', estilo: estilosNarrativos[0] },
         { hook: hooksElegidos[1], enfoque: 'TRANSFORMACIÓN/RESULTADO', estilo: estilosNarrativos[1] },
@@ -1112,7 +1261,7 @@ ESTILO NARRATIVO OBLIGATORIO para esta versión:
 ${enfoque.estilo}
 Este estilo debe dominar TODO el guión, no solo el inicio.
 
-${reglaNivel}
+${reglaNivel}${bloqueReglaMotivoVid}
 
 PALABRAS: exactamente ${npalabras} palabras (= ${dur3} segundos).
 
@@ -1130,7 +1279,7 @@ REGLAS:
 - ${npalabras} palabras exactas
 - Tono UGC, orgánico, lenguaje de ${paisV}
 - CTA apropiado para el nivel (ver regla de nivel arriba)
-- Empieza con ═══, sin texto previo${refuerzoGen}`
+- Empieza con ═══, sin texto previo${refuerzoGen}${bloqueAngHookVid}`
       )
 
       const resultados = []

@@ -580,6 +580,161 @@ const POR_QUE_FALLAN_VARIANTES = [
 
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)] }
 
+async function callModelMini(modelo, system, userPrompt) {
+  const isGPT = modelo?.startsWith('gpt')
+  if (isGPT) {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model: modelo,
+        max_tokens: 200,
+        temperature: 0.6,
+        messages: [{ role: 'system', content: system }, { role: 'user', content: userPrompt }]
+      }),
+    })
+    const d = await r.json()
+    if (d.error) throw new Error(d.error.message)
+    return d.choices[0].message.content
+  }
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: modelo,
+      max_tokens: 200,
+      temperature: 0.6,
+      system,
+      messages: [{ role: 'user', content: userPrompt }]
+    }),
+  })
+  const d = await r.json()
+  if (d.error) throw new Error(d.error.message)
+  return d.content[0].text
+}
+
+async function seleccionarVariacionNarrativa(nombre, avatar, contexto, ejeNarrativo, modelo) {
+  const NL = ESTILOS_NARRATIVOS.length
+  const NA = APERTURAS_VARIANTES.length
+  const NH = HISTORIAS_VARIANTES.length
+  const NF = POR_QUE_FALLAN_VARIANTES.length
+
+  const truncate = (s, n) => (s || '').toString().slice(0, n)
+  const eje = ejeNarrativo || {}
+
+  const system = 'Eres un selector de variantes narrativas para un advertorial. Recibes producto, avatar, categoría, eje narrativo y 4 listas indexadas. Devuelves 4 índices (uno por lista) que mejor se ajusten al producto y eje. Tu objetivo es que la voz narrativa se sienta pensada para ESTE producto, no genérica.'
+
+  const listEstilos = ESTILOS_NARRATIVOS.map((e, i) => `${i}. ${e.nombre} — ${truncate(e.descripcion, 80)}`).join('\n')
+  const listAperturas = APERTURAS_VARIANTES.map((s, i) => `${i}. ${truncate(s, 80)}`).join('\n')
+  const listHistorias = HISTORIAS_VARIANTES.map((s, i) => `${i}. ${truncate(s, 80)}`).join('\n')
+  const listPorQueFallan = POR_QUE_FALLAN_VARIANTES.map((s, i) => `${i}. ${truncate(s, 80)}`).join('\n')
+
+  const userPrompt = `PRODUCTO: ${nombre || ''}
+AVATAR: ${avatar || ''}
+DOLOR/CONTEXTO: ${truncate(contexto, 600)}
+
+EJE NARRATIVO:
+- Villano: ${eje.villano || ''}
+- Metáfora del mecanismo: ${eje.metaforaMecanismo || ''}
+- Verdad oculta: ${eje.verdadOculta || ''}
+- Momento de descubrimiento: ${eje.momentoDescubrimiento || ''}
+- Mecanismo de solución: ${eje.mecanismoSolucion || ''}
+
+LISTA ESTILOS (índices 0..${NL - 1}):
+${listEstilos}
+
+LISTA APERTURAS (índices 0..${NA - 1}):
+${listAperturas}
+
+LISTA HISTORIAS (índices 0..${NH - 1}):
+${listHistorias}
+
+LISTA PORQUEFALLAN (índices 0..${NF - 1}):
+${listPorQueFallan}
+
+INSTRUCCIÓN: Devuelve SOLO un JSON válido con esta forma exacta: {"estilo": N, "apertura": N, "historia": N, "porQueFallan": N, "razon": "1 frase explicando por qué esta combo encaja con el producto y eje"}. Los índices son enteros dentro del rango válido de cada lista. NO devuelvas markdown, NO comentes fuera del JSON.`
+
+  const tryParse = (text) => {
+    let cleaned = (text || '').replace(/```json\s*/gi, '').replace(/```\s*$/g, '').trim()
+    const start = cleaned.indexOf('{')
+    const end = cleaned.lastIndexOf('}')
+    if (start === -1 || end === -1) return null
+    try { return JSON.parse(cleaned.substring(start, end + 1)) } catch { return null }
+  }
+
+  const validate = (parsed) => {
+    if (!parsed || typeof parsed !== 'object') return null
+    const inRange = (v, n) => Number.isInteger(v) && v >= 0 && v < n
+    return {
+      estilo: inRange(parsed.estilo, NL) ? parsed.estilo : null,
+      apertura: inRange(parsed.apertura, NA) ? parsed.apertura : null,
+      historia: inRange(parsed.historia, NH) ? parsed.historia : null,
+      porQueFallan: inRange(parsed.porQueFallan, NF) ? parsed.porQueFallan : null,
+      razon: typeof parsed.razon === 'string' ? parsed.razon : '',
+    }
+  }
+
+  const fillRandom = (sel) => ({
+    estilo: sel.estilo == null ? Math.floor(Math.random() * NL) : sel.estilo,
+    apertura: sel.apertura == null ? Math.floor(Math.random() * NA) : sel.apertura,
+    historia: sel.historia == null ? Math.floor(Math.random() * NH) : sel.historia,
+    porQueFallan: sel.porQueFallan == null ? Math.floor(Math.random() * NF) : sel.porQueFallan,
+    razon: sel.razon || '',
+  })
+
+  const randomIndices = () => ({
+    estilo: Math.floor(Math.random() * NL),
+    apertura: Math.floor(Math.random() * NA),
+    historia: Math.floor(Math.random() * NH),
+    porQueFallan: Math.floor(Math.random() * NF),
+  })
+
+  const buildResult = (idx, fuente, razon) => ({
+    estilo: ESTILOS_NARRATIVOS[idx.estilo],
+    apertura: APERTURAS_VARIANTES[idx.apertura],
+    historia: HISTORIAS_VARIANTES[idx.historia],
+    porQueFallan: POR_QUE_FALLAN_VARIANTES[idx.porQueFallan],
+    indices: { estilo: idx.estilo, apertura: idx.apertura, historia: idx.historia, porQueFallan: idx.porQueFallan },
+    razonSeleccion: razon || '',
+    fuenteSeleccion: fuente,
+  })
+
+  const algunValido = (v) => v && (v.estilo != null || v.apertura != null || v.historia != null || v.porQueFallan != null)
+
+  // Intento 1: pre-llamada a gpt-4.1-mini
+  try {
+    const text = await callModelMini('gpt-4.1-mini', system, userPrompt)
+    const validated = validate(tryParse(text))
+    if (algunValido(validated)) {
+      const filled = fillRandom(validated)
+      return buildResult(filled, 'llm-pre', filled.razon)
+    }
+    console.error('[seleccionarVariacionNarrativa] gpt-4.1-mini devolvió JSON inválido o sin índices válidos')
+  } catch (e) {
+    console.error('[seleccionarVariacionNarrativa] gpt-4.1-mini falló:', e?.message || e)
+  }
+
+  // Intento 2: fallback con el provider del modelo del usuario (solo si NO es gpt-4.1-mini, evita repetir mismo intento)
+  const userProviderDistinto = modelo && !modelo.startsWith('gpt-4.1-mini')
+  if (userProviderDistinto) {
+    try {
+      const text = await callModelMini(modelo, system, userPrompt)
+      const validated = validate(tryParse(text))
+      if (algunValido(validated)) {
+        const filled = fillRandom(validated)
+        return buildResult(filled, 'llm-fallback', filled.razon)
+      }
+      console.error(`[seleccionarVariacionNarrativa] fallback con ${modelo} devolvió JSON inválido`)
+    } catch (e) {
+      console.error(`[seleccionarVariacionNarrativa] fallback con ${modelo} falló:`, e?.message || e)
+    }
+  }
+
+  // Intento 3: random puro (legacy)
+  console.error('[seleccionarVariacionNarrativa] cayendo a pickRandom')
+  return buildResult(randomIndices(), 'random', '')
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -588,10 +743,31 @@ export default async function handler(req, res) {
     const ctx = buildContext({ nombre, contexto, avatar, lineamiento, mercado, documento, briefing })
     const ejeNarrativo = briefing?.ejeNarrativo || null
 
-    const estiloNarrativo = pickRandom(ESTILOS_NARRATIVOS)
-    const aperturaElegida = pickRandom(APERTURAS_VARIANTES)
-    const historiaElegida = pickRandom(HISTORIAS_VARIANTES)
-    const porQueFallanElegida = pickRandom(POR_QUE_FALLAN_VARIANTES)
+    let estiloNarrativo, aperturaElegida, historiaElegida, porQueFallanElegida
+    let variacionSeleccionada, variacionFuente
+
+    if (ejeNarrativo) {
+      const seleccion = await seleccionarVariacionNarrativa(nombre, avatar, contexto, ejeNarrativo, modelo)
+      estiloNarrativo = seleccion.estilo
+      aperturaElegida = seleccion.apertura
+      historiaElegida = seleccion.historia
+      porQueFallanElegida = seleccion.porQueFallan
+      variacionSeleccionada = seleccion.indices
+      variacionFuente = seleccion.fuenteSeleccion
+    } else {
+      // Compat legacy: sin eje narrativo, picks aleatorios directos
+      estiloNarrativo = pickRandom(ESTILOS_NARRATIVOS)
+      aperturaElegida = pickRandom(APERTURAS_VARIANTES)
+      historiaElegida = pickRandom(HISTORIAS_VARIANTES)
+      porQueFallanElegida = pickRandom(POR_QUE_FALLAN_VARIANTES)
+      variacionSeleccionada = {
+        estilo: ESTILOS_NARRATIVOS.indexOf(estiloNarrativo),
+        apertura: APERTURAS_VARIANTES.indexOf(aperturaElegida),
+        historia: HISTORIAS_VARIANTES.indexOf(historiaElegida),
+        porQueFallan: POR_QUE_FALLAN_VARIANTES.indexOf(porQueFallanElegida),
+      }
+      variacionFuente = 'random'
+    }
 
     const variaciones = `
 ━━━ ESTILO NARRATIVO PARA ESTA GENERACIÓN ━━━
@@ -624,7 +800,7 @@ REGLA: el TONO completo del advertorial debe seguir el estilo "${estiloNarrativo
     }
     const advertorial = convertBR(advertorialRaw)
 
-    return res.status(200).json({ success: true, advertorial })
+    return res.status(200).json({ success: true, advertorial, variacionSeleccionada, variacionFuente })
   } catch (error) {
     console.error('Error generar:', error)
     return res.status(500).json({ error: error.message })

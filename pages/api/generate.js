@@ -337,7 +337,48 @@ function redactarBloquesNivel12(userMsg) {
 
 const BLOQUE_REFUERZO_NIVEL12 = `
 
-PROHIBIDO ABSOLUTO en este nivel: mencionar nombres de productos, marcas, ingredientes, mecanismos, fórmulas o testimonios brand-specific. Solo puedes hablar del problema, el dolor y el avatar. Si quieres inventar un producto para llenar el vacío, NO lo hagas: queda implícito o referido como "esto", "una solución", "lo que descubrí".`
+PROHIBICIÓN ABSOLUTA EN ESTE NIVEL DE CONSCIENCIA (CRÍTICO):
+
+QUÉ NO PUEDES HACER:
+- NO uses narrativas de logro: "Compré esto...", "Descubrí que...", "Resulta que...", "Cuando entendí...", "Ahora ya no...", "En X días noté...", "La diferencia se nota", "El resultado es", "Cambió todo", "Mi vida cambió".
+- NO menciones que existe solución, método, mecanismo, producto o fórmula. NI vagamente. NI con eufemismos tipo "esto", "algo", "lo que descubrí", "lo que están haciendo", "lo que ya cambió todo".
+- NO uses CTA del estilo "encuentra la solución", "descubre cómo lo resolvieron", "lo que ya están haciendo". Eso insinúa que hay respuesta esperando.
+- NO uses estas palabras: solución, método, producto, fórmula, secreto, descubrimiento, resultado, alivio (si va en contexto de "encontré alivio"), cambió, transformó.
+- NO digas "no eres el único" combinado con "miles ya lo resolvieron". El "ya lo resolvieron" insinúa solución.
+- NO uses verbos de logro en pasado: compré, descubrí, encontré, probé, conseguí.
+
+QUÉ SÍ PUEDES HACER:
+- Describir el dolor o problema concreto del avatar con detalle vivido.
+- Validar la frustración: "si te pasa esto, no eres el único en sentirlo".
+- Generar curiosidad sobre el problema: "¿sabías que tu cuerpo te avisa de X?", "hay una razón concreta detrás de esto".
+- Educar sobre el problema en sí (qué pasa, por qué pasa) SIN decir cómo se resuelve.
+
+CTA PERMITIDO (lleva a ENTENDER el problema, NO a la solución):
+✅ "Mira en el enlace por qué te pasa esto"
+✅ "Aprende qué está pasando realmente"
+✅ "Entra al enlace y entiende qué hay detrás de esto"
+❌ NO: "Mira cómo otros ya lo resolvieron"
+❌ NO: "Descubre la solución"
+❌ NO: "Lo que ya está cambiando vidas"
+
+EJEMPLOS DE GUIONES NIVEL 1-2 BIEN CONSTRUIDOS:
+✅ "Si llegas al final del día con la cintura marcada y bolsillos pesados, no es coincidencia. Hay una razón concreta detrás de eso. Te lo explico en el enlace."
+✅ "Tu pantalón cayéndose cada vez que te agachas no es 'parte del oficio'. Es una señal. Mira por qué te pasa."
+✅ "¿Sabías que el dolor en las rodillas al subir escaleras tiene una causa concreta? Aprende qué pasa en tu cuerpo."
+
+EJEMPLOS DE GUIONES NIVEL 1-2 MAL CONSTRUIDOS (NO HAGAS ESTO):
+❌ "Compré esto para mi cintura y ahora ya no se afloja" → menciona "esto" (insinúa producto)
+❌ "Descubrí que había una razón científica y todo cambió" → "todo cambió" insinúa solución
+❌ "Mira cómo otros ya cambiaron y resolvieron" → insinúa que existe solución y otros la encontraron
+❌ "Cuando entendí qué pasaba, mi vida cambió" → insinúa transformación con producto
+❌ "El resultado es que termino el turno sin ese cansancio" → "el resultado" implica que hay algo que da resultado
+
+CHEQUEO OBLIGATORIO ANTES DE ENVIAR:
+1. Lee tu guión completo. ¿Insinúa que existe una solución? Si sí, REESCRÍBELO.
+2. ¿Hay verbos de logro en pasado (compré, descubrí, encontré, probé)? Si sí, ELIMÍNALOS.
+3. ¿El CTA invita a CONOCER el problema o a CONOCER la solución? Si invita a la solución, REESCRÍBELO.
+4. ¿Una persona que no sabe que existe ningún producto podría leer esto sin sentirse vendida? Si no, REESCRÍBELO.
+`
 
 // ── FIX #8 — ejes fijos para 3 llamadas paralelas en imagen ──
 const EJES_IMAGEN = [
@@ -624,12 +665,23 @@ Si te equivocas en este formato (ej: pones bullets cuando la regla dice NO bulle
 
         // Regla del motivo INTERPRETADA para imagen estática (1 frame, no secuencia)
         const reglaImg = REGLA_IMAGEN_POR_MOTIVO[tipo] || ''
-        const bloqueReglaMotivoImg = reglaImg ? `
+        const esNivelBajoImg = parseInt(nivelImg, 10) <= 2
+        const notaMotivoNivelBajoImg = esNivelBajoImg ? `
+
+NOTA CRÍTICA SOBRE EL MOTIVO EN ESTE NIVEL:
+Como el nivel es ${nivelImg}, la doctrina del motivo "${tipo}" se aplica SOLO al TONO/EMOCIÓN, NO al contenido visual o narrativo. Es decir:
+- El TONO del motivo se mantiene (ej: si Funcional → tono confiable y demostrativo, PERO sobre el PROBLEMA, no sobre la solución).
+- El CONTENIDO NO debe mostrar producto, beneficio, ni resultado.
+- Foco total en el dolor/problema/curiosidad sobre el problema.
+- Para imagen: si motivo es Funcional pero nivel ≤ 2, NO muestres el producto en uso. Muestra la situación de dolor/problema del avatar SIN producto a la vista.
+- Para video: si motivo es Funcional pero nivel ≤ 2, NO muestres "producto en uso (40-45%)". Toda la narrativa se queda en el problema y la curiosidad.
+` : ''
+        const bloqueReglaMotivoImg = esNivelBajoImg ? notaMotivoNivelBajoImg : (reglaImg ? `
 
 REGLA VISUAL OBLIGATORIA SEGÚN EL MOTIVO "${tipo}" (CRÍTICO PARA IMAGEN ESTÁTICA):
 ${reglaImg}
 
-NOTA CRÍTICA: Imagen estática es UN solo frame. La estructura narrativa del motivo NO aplica como secuencia visual. Captura UN momento que comunique el motivo SIN la fase del problema. El producto debe verse VICTORIOSO o el avatar TRANSFORMADO, no en la fase previa.` : ''
+NOTA CRÍTICA: Imagen estática es UN solo frame. La estructura narrativa del motivo NO aplica como secuencia visual. Captura UN momento que comunique el motivo SIN la fase del problema. El producto debe verse VICTORIOSO o el avatar TRANSFORMADO, no en la fase previa.` : '')
 
         // Regla del HOOK por ángulo (misma para imagen y video)
         const angRuleImg = HOOK_POR_ANGULO[anguloImg] || null
@@ -1214,12 +1266,23 @@ CTA: Acción directa:
 
       // Regla del motivo INTERPRETADA para video (secuencia con tiempo, no 1 frame)
       const reglaVid = REGLA_VIDEO_POR_MOTIVO[tipoV] || ''
-      const bloqueReglaMotivoVid = reglaVid ? `
+      const esNivelBajoVid = parseInt(nivelGen, 10) <= 2
+      const notaMotivoNivelBajoVid = esNivelBajoVid ? `
+
+NOTA CRÍTICA SOBRE EL MOTIVO EN ESTE NIVEL:
+Como el nivel es ${nivelGen}, la doctrina del motivo "${tipoV}" se aplica SOLO al TONO/EMOCIÓN, NO al contenido visual o narrativo. Es decir:
+- El TONO del motivo se mantiene (ej: si Funcional → tono confiable y demostrativo, PERO sobre el PROBLEMA, no sobre la solución).
+- El CONTENIDO NO debe mostrar producto, beneficio, ni resultado.
+- Foco total en el dolor/problema/curiosidad sobre el problema.
+- Para imagen: si motivo es Funcional pero nivel ≤ 2, NO muestres el producto en uso. Muestra la situación de dolor/problema del avatar SIN producto a la vista.
+- Para video: si motivo es Funcional pero nivel ≤ 2, NO muestres "producto en uso (40-45%)". Toda la narrativa se queda en el problema y la curiosidad.
+` : ''
+      const bloqueReglaMotivoVid = esNivelBajoVid ? notaMotivoNivelBajoVid : (reglaVid ? `
 
 REGLA NARRATIVA OBLIGATORIA SEGÚN EL MOTIVO "${tipoV}" (CRÍTICO PARA VIDEO):
 ${reglaVid}
 
-El producto y la solución deben dominar el tiempo del video. El problema solo se introduce brevemente al inicio para crear contexto.` : ''
+El producto y la solución deben dominar el tiempo del video. El problema solo se introduce brevemente al inicio para crear contexto.` : '')
 
       // Regla del HOOK por ángulo (misma lógica que imagen, los 16 ángulos aplican a ambos)
       const angRuleVid = HOOK_POR_ANGULO[anguloV] || null

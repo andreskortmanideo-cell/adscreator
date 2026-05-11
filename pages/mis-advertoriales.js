@@ -63,7 +63,7 @@ export default function HistorialCompartido() {
           <div style={{ fontSize:16, fontWeight:800, color:D.text, letterSpacing:'.1em' }}>IDEO TEAM</div>
           <div style={{ fontSize:9, color:D.blue, letterSpacing:'.2em', textTransform:'uppercase', marginTop:3 }}>Historial Compartido</div>
         </div>
-        <a href="/advertorial" style={{ fontSize:11, color:D.text, border:`1px solid ${D.cardBorder}`, borderRadius:20, padding:'5px 14px', background:'transparent', cursor:'pointer', textDecoration:'none' }}>
+        <a href="/ads/advertorial" style={{ fontSize:11, color:D.text, border:`1px solid ${D.cardBorder}`, borderRadius:20, padding:'5px 14px', background:'transparent', cursor:'pointer', textDecoration:'none' }}>
           ← Volver
         </a>
       </div>
@@ -118,7 +118,7 @@ export default function HistorialCompartido() {
                     )}
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                    <a href={`/advertorial?id=${it.id}`}
+                    <a href={`/ads/advertorial?id=${it.id}`}
                       style={{ fontSize:11, color:D.blue, border:`1px solid ${D.cardBorder}`, borderRadius:6, padding:'5px 10px', background:'transparent', textDecoration:'none' }}>
                       Abrir
                     </a>

@@ -413,7 +413,7 @@ export default function AdvertorialCreator() {
           <div style={{ fontSize:9, color:D.blue, letterSpacing:'.2em', textTransform:'uppercase', marginTop:3 }}>Advertorial</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <a href="/mis-advertoriales" style={{ fontSize:11, color:D.text, border:`1px solid ${D.cardBorder}`, borderRadius:20, padding:'5px 12px', background:'transparent', textDecoration:'none' }}>
+          <a href="/ads/mis-advertoriales" style={{ fontSize:11, color:D.text, border:`1px solid ${D.cardBorder}`, borderRadius:20, padding:'5px 12px', background:'transparent', textDecoration:'none' }}>
             📂 Historial
           </a>
           <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', background:D.blueDark, border:`1px solid ${D.cardBorder}`, borderRadius:20 }}>

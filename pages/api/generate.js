@@ -2,6 +2,25 @@ const { HOOKS_COMPLETOS, TODOS_LOS_HOOKS } = require('../../data/hooks-data')
 const { HOOKS_JEFE } = require('../../data/hooks-jefe')
 const { DOCTRINA_TIPOS_IMAGEN } = require('../../data/doctrina-tipos-imagen')
 
+const PRECIOS_MODELO = {
+  'gpt-4.1-mini': { input: 0.40, output: 1.60 },
+  'gpt-4o-mini': { input: 0.15, output: 0.60 },
+  'gpt-4o': { input: 2.50, output: 10.00 },
+  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
+  'claude-sonnet-4-5': { input: 3.00, output: 15.00 },
+  'claude-haiku-4-5': { input: 1.00, output: 5.00 },
+  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+  'claude-sonnet-4-20250514': { input: 3.00, output: 15.00 }
+}
+const TASA_USD_COP = 4000
+
+function calcularCosto(modelo, inputTokens, outputTokens) {
+  const p = PRECIOS_MODELO[modelo] || { input: 0, output: 0 }
+  const usd = (inputTokens / 1_000_000) * p.input + (outputTokens / 1_000_000) * p.output
+  const cop = usd * TASA_USD_COP
+  return { usd, cop }
+}
+
 const ANGULOS_VENTA = {
   'Problema/Dolor': {
     que_hace: 'Activa el problema concreto que vive el avatar antes de cualquier solución',
@@ -278,7 +297,7 @@ const PROMPT_IMAGEN_BASE = (formatoImg) => {
   const fmt = FORMATOS_IMAGEN[formatoImg] || FORMATOS_IMAGEN['Funcional']
   return `Quiero que actúes como un experto senior en marketing digital especializado en Meta Ads y respuesta directa con más de 5 años creando creativos de alta conversión.
 
-Tu misión es crear 3 IDEAS DE IMAGEN en formato ${formatoImg.toUpperCase()} para un anuncio estático de alta conversión en tráfico frío. Las 3 ideas deben seguir el mismo formato pero con enfoques, ángulos y mensajes completamente diferentes.
+Tu misión es crear 2 IDEAS DE IMAGEN en formato ${formatoImg.toUpperCase()} para un anuncio estático de alta conversión en tráfico frío. Las 2 ideas deben seguir el mismo formato pero con enfoques, ángulos y mensajes completamente diferentes.
 
 ${fmt.parametros}
 
@@ -380,7 +399,7 @@ CHEQUEO OBLIGATORIO ANTES DE ENVIAR:
 4. ¿Una persona que no sabe que existe ningún producto podría leer esto sin sentirse vendida? Si no, REESCRÍBELO.
 `
 
-// ── FIX #8 — ejes fijos para 3 llamadas paralelas en imagen ──
+// ── FIX #8 — ejes fijos para 2 llamadas paralelas en imagen ──
 const EJES_IMAGEN = [
   {
     id: 1,
@@ -391,11 +410,6 @@ const EJES_IMAGEN = [
     id: 2,
     nombre: 'Demostrativo / Evidencia',
     instruccion: 'Esta idea debe centrarse en PRUEBA o EVIDENCIA: transformación visible, antes/después, datos concretos, números, comparación con la alternativa, demostración del producto en uso. Headline factual/demostrativo. Foco visual en el resultado o el contraste.'
-  },
-  {
-    id: 3,
-    nombre: 'Aspiracional / Social',
-    instruccion: 'Esta idea debe vender IDENTIDAD o PERTENENCIA: la vida que el avatar quiere, gente como él/ella ya disfrutándola, lifestyle, el "yo futuro" después de usar el producto. Headline aspiracional. Foco visual en la persona transformada, en el contexto deseado, en la pertenencia al grupo objetivo.'
   }
 ]
 
@@ -501,10 +515,11 @@ const HOOK_POR_ANGULO = {
 }
 
 // ── Validador post-respuesta del hook ──
-function hookTerminaMal(hook) {
+function hookTerminaMal(hook, esImagen = false) {
   if (!hook) return true
   const limpio = hook.trim().replace(/[.!?¿¡,;:]+$/, '').trim()
-  const ultimo = limpio.split(/\s+/).pop()?.toLowerCase() || ''
+  const palabras = limpio.split(/\s+/).filter(Boolean)
+  const ultimo = palabras[palabras.length - 1]?.toLowerCase() || ''
   const palabrasMalas = new Set([
     'y','o','u','e','de','del','al','la','el','los','las','un','una','unos','unas',
     'para','con','por','en','sin','a','hacia','desde','hasta','ante','bajo','contra',
@@ -513,7 +528,9 @@ function hookTerminaMal(hook) {
     'es','son','está','están','sea','solo','sólo','muy','más','menos','también','tampoco',
     'le','les','lo','los','la','las','me','te','se','nos','os'
   ])
-  return palabrasMalas.has(ultimo)
+  if (palabrasMalas.has(ultimo)) return true
+  if (esImagen && palabras.length > 7) return true
+  return false
 }
 
 function extraerHookDeRespuesta(text) {
@@ -549,6 +566,23 @@ export default async function handler(req, res) {
   const provider = apiProvider || 'openai'
   const modeloGPT = (modelo && modelo.startsWith('gpt')) ? modelo : 'gpt-4o-mini'
   const modeloClaude = (modelo && modelo.startsWith('claude')) ? modelo : 'claude-sonnet-4-6'
+  const modeloUsado = provider === 'claude' ? modeloClaude : modeloGPT
+
+  let costoOperacion = {
+    modelo: modeloUsado,
+    llamadas: [],
+    totales: { inputTokens: 0, outputTokens: 0, usd: 0, cop: 0 }
+  }
+  function registrarLlamada(tipo, modeloLlamada, inputTokens, outputTokens) {
+    const inT = inputTokens || 0
+    const outT = outputTokens || 0
+    const c = calcularCosto(modeloLlamada, inT, outT)
+    costoOperacion.llamadas.push({ tipo, modelo: modeloLlamada, inputTokens: inT, outputTokens: outT, usd: c.usd, cop: c.cop })
+    costoOperacion.totales.inputTokens += inT
+    costoOperacion.totales.outputTokens += outT
+    costoOperacion.totales.usd += c.usd
+    costoOperacion.totales.cop += c.cop
+  }
 
   try {
     const body = JSON.parse(JSON.stringify(messages))
@@ -556,7 +590,7 @@ export default async function handler(req, res) {
     const isGenerar = modo === 'generar'
     const isVariaciones = modo === 'variaciones'
     let promptEjecutado = ''
-    let imagePrompts3 = null  // FIX #8 — set por la rama imagen para señalizar 3 llamadas paralelas
+    let imagePrompts3 = null  // FIX #8 — set por la rama imagen para señalizar 2 llamadas paralelas
     let hooksIndicesUsados = []  // anti-repetición: índices de HOOKS_JEFE escogidos en este request, devueltos al frontend
 
     if (isAnalisis) {
@@ -739,6 +773,33 @@ REGLAS DE FORMATO DE RESPUESTA:
 
 ÚLTIMO RECORDATORIO ANTES DE GENERAR — REGLAS CRÍTICAS DEL HOOK:
 
+REGLA CRÍTICA DE LONGITUD DEL HOOK (SOLO IMAGEN):
+- Filosofía: MENOS PALABRAS = MEJOR. Lo más corto que comunique el mensaje.
+- LÍMITE SUPERIOR: 7 palabras. Nunca superar.
+- IDEAL: 3-5 palabras. Si puedes decirlo en 3, mejor que en 5. Si en 5, mejor que en 6.
+- Si la plantilla del hook elegida de la lista del jefe es larga, REDUCE A LO ESENCIAL conservando el sentido — pero NUNCA cortes en preposición/conjunción/artículo.
+- Prefieres una frase completa de 8 palabras antes que cortada en 7.
+
+EJEMPLOS DE EXCELENTES (3-5 palabras):
+✅ "Dolor de espalda" (3 palabras)
+✅ "Acabados de chef en casa" (5 palabras)
+✅ "Espalda sin dolor" (3 palabras)
+✅ "Cocina como restaurante" (3 palabras)
+
+EJEMPLOS DE ACEPTABLES (6-7 palabras):
+✅ "Espalda sin dolor en 7 días" (6 palabras)
+✅ "El soplete que cambió mi cocina" (6 palabras)
+
+EJEMPLOS DE INACEPTABLES POR LONGITUD:
+❌ "Vas a necesitar esto para tu cintura adolorida después" (9 palabras, excede)
+❌ "Lo que descubrí cuando entendí cómo funcionaba esto y" (cortado además de largo)
+❌ "El soplete que cambió mi cocina para siempre y mi" (cortado además de largo)
+
+CHEQUEO DE LONGITUD ANTES DE ENVIAR:
+1. ¿Cuántas palabras tiene tu hook? Cuenta. Si >7 → reescribe más corto.
+2. ¿Podrías decir lo mismo con MENOS palabras? Si sí → hazlo.
+3. ¿Termina en palabra fuerte (sustantivo/verbo/signo)? Si no → reformula.
+
 EJEMPLOS DE HOOKS MAL CONSTRUIDOS (NO HAGAS ESTO):
 ❌ "Vas a necesitar esto para tus platos después de" → termina en preposición "de"
 ❌ "Flamix es el único que uso para caramelizar y" → termina en conjunción "y"
@@ -765,12 +826,12 @@ CHEQUEO OBLIGATORIO ANTES DE ENVIAR:
 CONTEXTO:
 ${userMsg}
 
-PALABRAS: ${duracion==='10'?30:duracion==='20'?60:duracion==='30'?90:duracion==='40'?120:duracion==='50'?150:180} palabras por versión (equivale a ${duracion} segundos). Las 3 versiones deben tener el mismo conteo.
+PALABRAS: ${duracion==='10'?30:duracion==='20'?60:duracion==='30'?90:duracion==='40'?120:duracion==='50'?150:180} palabras por versión (equivale a ${duracion} segundos). Las 2 versiones deben tener el mismo conteo.
 
-HOOKS DISPONIBLES — tipo ${tipo.toUpperCase()} (elige los 3 mejores y adáptalos al producto):
+HOOKS DISPONIBLES — tipo ${tipo.toUpperCase()} (elige los 2 mejores y adáptalos al producto):
 - ${hooksStr}
 
-FORMATO — genera exactamente 3 versiones:
+FORMATO — genera exactamente 2 versiones:
 
 ═══════════════════════════════
 VERSIÓN 1 — Hook: [primer hook adaptado]
@@ -784,19 +845,13 @@ VERSIÓN 2 — Hook: [segundo hook adaptado]
 [texto narrado completo, listo para voz, sin etiquetas]
 ---
 
-═══════════════════════════════
-VERSIÓN 3 — Hook: [tercer hook adaptado]
-═══════════════════════════════
-[texto narrado completo, listo para voz, sin etiquetas]
----
-
 REGLAS:
 - Solo texto narrado — sin escenas, sin indicaciones de producción, sin etiquetas
 - Tono UGC, orgánico, que no suene a publicidad
 - Genera dopamina: ritmo, curiosidad, ganchos que retengan
 - CTA natural al final, sin mencionar tiendas ni plataformas
 - Lenguaje natural de ${pais}
-- Las 3 versiones completamente diferentes entre sí
+- Las 2 versiones completamente diferentes entre sí
 - Empieza DIRECTAMENTE con la línea ═══ de VERSIÓN 1, sin texto introductorio`
       }
 
@@ -804,7 +859,7 @@ REGLAS:
       body[0].content = promptFinal
 
     } else if (isVariaciones) {
-      // Tomar el guión base y generar 3 variaciones con mismo conteo de palabras
+      // Tomar el guión base y generar 2 variaciones con mismo conteo de palabras
       const userMsg = body[0].content
       const durMatch = userMsg.match(/DURACI[OÓ]N: ([^\n]+)/)
       const duracion = durMatch ? durMatch[1].replace(' segundos','').trim() : '30'
@@ -826,7 +881,7 @@ REGLAS:
       const userMsgFinalVar = debeSanitizar(nivelNumVar) ? redactarBloquesNivel12(userMsg) : userMsg
       const refuerzoVar = debeSanitizar(nivelNumVar) ? BLOQUE_REFUERZO_NIVEL12 : ''
 
-      const promptVariaciones = `Eres experto en copywriting de respuesta directa. Te doy un guión aprobado. Genera 3 VARIACIONES — mismo hook, mismo mensaje, reescrito con otras palabras y diferente estilo narrativo.
+      const promptVariaciones = `Eres experto en copywriting de respuesta directa. Te doy un guión aprobado. Genera 2 VARIACIONES — mismo hook, mismo mensaje, reescrito con otras palabras y diferente estilo narrativo.
 
 GUIÓN ORIGINAL A VARIAR:
 ${userMsgFinalVar}
@@ -834,19 +889,18 @@ ${userMsgFinalVar}
 ${reglaNivelVar}${defAnguloVar}${refuerzoVar}
 
 INSTRUCCIONES:
-- Usa EXACTAMENTE el mismo hook en las 3 variaciones
+- Usa EXACTAMENTE el mismo hook en las 2 variaciones
 - Cada variación con estilo narrativo diferente:
   VARIACIÓN 1: Desde experiencia personal ("yo...", "mi problema era...", "desde que...")
   VARIACIÓN 2: Desde demostración y evidencia ("esto funciona porque...", "lo que hace es...", "el resultado...")
-  VARIACIÓN 3: Desde pregunta o revelación ("¿sabías que...", "la mayoría no sabe...", "el problema real es...")
-- Las 3 deben sonar completamente diferentes entre sí y al original
+- Las 2 deben sonar completamente diferentes entre sí y al original
 - MISMO mensaje central, mismo hook
 - EXACTAMENTE ${palabras} palabras por variación
 - Solo texto narrado — sin etiquetas ni indicaciones
 
 INSTRUCCIÓN CRÍTICA DE DIFERENCIACIÓN DE CIERRES:
-Las 3 variaciones DEBEN terminar con palabras y CTA completamente distintos entre sí.
-- NO uses las mismas palabras finales en las 3
+Las 2 variaciones DEBEN terminar con palabras y CTA completamente distintos entre sí.
+- NO uses las mismas palabras finales en las 2
 - NO repitas la frase de CTA literal entre variaciones
 - Las últimas 5-7 palabras de cada variación deben ser únicas
 - Cada variación construye su propio CTA con sus propias palabras
@@ -862,12 +916,6 @@ VERSIÓN 1 — Hook: [mismo hook del original]
 
 ═══════════════════════════════
 VERSIÓN 2 — Hook: [mismo hook del original]
-═══════════════════════════════
-[texto narrado completo, reescrito con otras palabras]
----
-
-═══════════════════════════════
-VERSIÓN 3 — Hook: [mismo hook del original]
 ═══════════════════════════════
 [texto narrado completo, reescrito con otras palabras]
 ---
@@ -947,6 +995,7 @@ REGLAS DE FORMATO DE RESPUESTA:
       if (provider === 'claude') {
         if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY no configurada')
         let textC = ''
+        let inputTokens = 0, outputTokens = 0
         let intentosC = 0
         while (intentosC < 3) {
           const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -957,13 +1006,16 @@ REGLAS DE FORMATO DE RESPUESTA:
           const d = await r.json()
           if (d.error) throw new Error(d.error.message || JSON.stringify(d.error))
           textC = d.content?.[0]?.text || ''
+          inputTokens += d.usage?.input_tokens || 0
+          outputTokens += d.usage?.output_tokens || 0
           if (!textC.includes("Lo siento") && !textC.includes("I'm sorry") && !textC.includes("can't assist")) break
           intentosC++
         }
-        return textC
+        return { texto: textC, inputTokens, outputTokens }
       } else {
         if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY no configurada')
         let text = ''
+        let inputTokens = 0, outputTokens = 0
         let intentos = 0
         while (intentos < 3) {
           const r = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -974,10 +1026,12 @@ REGLAS DE FORMATO DE RESPUESTA:
           const d = await r.json()
           if (d.error) throw new Error(d.error.message)
           text = d.choices?.[0]?.message?.content || ''
+          inputTokens += d.usage?.prompt_tokens || 0
+          outputTokens += d.usage?.completion_tokens || 0
           if (!text.includes("I'm sorry") && !text.includes("can't assist")) break
           intentos++
         }
-        return text
+        return { texto: text, inputTokens, outputTokens }
       }
     }
 
@@ -1021,14 +1075,19 @@ Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
             body: JSON.stringify({ model: 'gpt-4.1-mini', max_tokens: 80, temperature: 0.9, messages: [{ role: 'user', content: promptSel }] })
           })
           const d = await r.json()
-          if (!d.error) raw = d.choices?.[0]?.message?.content || ''
+          if (!d.error) {
+            raw = d.choices?.[0]?.message?.content || ''
+            registrarLlamada('Fix #7 hooks-jefe (pre-llamada)', 'gpt-4.1-mini', d.usage?.prompt_tokens || 0, d.usage?.completion_tokens || 0)
+          }
         }
       } catch (e) { /* fallback abajo */ }
 
       // Fallback al provider del usuario si OpenAI no respondió
       if (!raw) {
         try {
-          raw = await llamarModelo([{ role: 'user', content: promptSel }], 120)
+          const rFb = await llamarModelo([{ role: 'user', content: promptSel }], 120)
+          raw = rFb.texto
+          registrarLlamada('Fix #7 hooks-jefe (fallback)', modeloUsado, rFb.inputTokens, rFb.outputTokens)
         } catch (e) { /* nada, usa fallback indices */ }
       }
 
@@ -1128,7 +1187,7 @@ Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
     }
 
     if (isVideoGenerar) {
-      // ── 3 llamadas paralelas, una por versión, con max_tokens ajustado ──
+      // ── 2 llamadas paralelas, una por versión, con max_tokens ajustado ──
       const durMatch3 = body[0].content.match(/DURACI[ÓO]N: (\d+)/)
       const dur3 = durMatch3 ? durMatch3[1] : '30'
       const maxTokVersion = dur3==='10'?800:dur3==='20'?900:dur3==='30'?1000:dur3==='40'?1200:dur3==='50'?1500:2200
@@ -1148,7 +1207,7 @@ Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
       const ctxOriginalFinal = debeSanitizar(nivelGen) ? redactarBloquesNivel12(ctxOriginal) : ctxOriginal
       const refuerzoGen = debeSanitizar(nivelGen) ? BLOQUE_REFUERZO_NIVEL12 : ''
 
-      // FIX #7 — Selección de 3 hooks de HOOKS_JEFE (585 plantillas curadas por el jefe)
+      // FIX #7 — Selección de 2 hooks de HOOKS_JEFE (585 plantillas curadas por el jefe)
       // Pre-llamada barata a gpt-4.1-mini con todo el contexto (motivo, ángulo, nivel, avatar, plataforma)
       const plataformaV = ctxOriginal.match(/PLATAFORMA: ([^\n]+)/)?.[1]?.trim() || ''
       const excluidosVRaw = ctxOriginal.match(/HOOKS_YA_USADOS:\s*([^\n]+)/)?.[1]?.trim() || ''
@@ -1191,8 +1250,7 @@ Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
 
       const estilosNarrativos = [
         `Narra desde la EXPERIENCIA PERSONAL del usuario — usa "yo", habla de tu vida diaria, el problema que vivías, cómo lo descubriste. Tono confesional, íntimo.`,
-        `Narra desde la EVIDENCIA Y DEMOSTRACIÓN — describe qué hace el producto, cómo funciona, qué resultado produce. Tono demostrativo, directo, concreto.`,
-        `Narra desde una PREGUNTA O DATO SORPRENDENTE — abre con algo que el espectador no sabía, genera curiosidad, explica el porqué. Tono revelador, educativo.`
+        `Narra desde la EVIDENCIA Y DEMOSTRACIÓN — describe qué hace el producto, cómo funciona, qué resultado produce. Tono demostrativo, directo, concreto.`
       ]
 
       const nivelNumGen = parseInt(ctxOriginal.match(/NIVEL:\s*(\d+)/)?.[1] || '3')
@@ -1301,8 +1359,7 @@ Si tu hook no comunica claramente "${anguloV}" — REESCRÍBELO antes de cerrar 
 
       const prompts = [
         { hook: hooksElegidos[0], enfoque: 'PROBLEMA/DOLOR', estilo: estilosNarrativos[0] },
-        { hook: hooksElegidos[1], enfoque: 'TRANSFORMACIÓN/RESULTADO', estilo: estilosNarrativos[1] },
-        { hook: hooksElegidos[2], enfoque: 'CURIOSIDAD', estilo: estilosNarrativos[2] }
+        { hook: hooksElegidos[1], enfoque: 'TRANSFORMACIÓN/RESULTADO', estilo: estilosNarrativos[1] }
       ].map((enfoque, i) => `${basePrompt}
 
 CONTEXTO DEL PRODUCTO:
@@ -1351,7 +1408,7 @@ REGLAS:
         const instrDif = `
 
 INSTRUCCIÓN CRÍTICA DE DIFERENCIACIÓN:
-Esta es la versión ${i+1} de 3. Las 3 versiones DEBEN tener un cierre completamente distinto.
+Esta es la versión ${i+1} de 2. Las 2 versiones DEBEN tener un cierre completamente distinto.
 - NO uses las mismas palabras finales que las otras versiones
 - NO uses la misma frase de CTA literal, construye tu propio CTA con tus palabras
 - Las últimas 5-7 palabras de cada versión deben ser únicas
@@ -1364,20 +1421,18 @@ Esta es la versión ${i+1} de 3. Las 3 versiones DEBEN tener un cierre completam
 
 CIERRE QUE DEBES EVITAR (versión 1 ya terminó así, no lo repitas ni parafrasees):
 "${ultimasNPalabras(resultados[0], 60)}"`
-        } else if (i === 2 && (resultados[0] || resultados[1])) {
-          bloqueEvitar = `
-
-CIERRES QUE DEBES EVITAR (no los repitas ni los parafrasees):
-Versión 1 terminó así: "${ultimasNPalabras(resultados[0] || '', 60)}"
-Versión 2 terminó así: "${ultimasNPalabras(resultados[1] || '', 60)}"`
         }
 
         const promptConDif = prompts[i] + instrDif + bloqueEvitar
 
-        let t = await llamarModelo([{ role: 'user', content: promptConDif }], maxTokVersion)
+        let rVid = await llamarModelo([{ role: 'user', content: promptConDif }], maxTokVersion)
+        let t = rVid.texto
+        registrarLlamada(`Video versión ${i+1}`, modeloUsado, rVid.inputTokens, rVid.outputTokens)
         // Reintentar si el modelo rechaza
         if (t.includes("Lo siento") || t.includes("I'm sorry") || t.includes("can't assist") || t.trim().length < 30) {
-          t = await llamarModelo([{ role: 'user', content: promptConDif }], maxTokVersion)
+          rVid = await llamarModelo([{ role: 'user', content: promptConDif }], maxTokVersion)
+          t = rVid.texto
+          registrarLlamada(`Video versión ${i+1} (reintento)`, modeloUsado, rVid.inputTokens, rVid.outputTokens)
         }
         const num = i + 1
         let texto = t.trim()
@@ -1396,12 +1451,12 @@ Versión 2 terminó así: "${ultimasNPalabras(resultados[1] || '', 60)}"`
       responseText = ajustarNetosEnTexto(responseText, objetivo)
 
     } else if (modo === 'correccion' && !isImagenFormato) {
-      // ── Corrección de video: aplicar corrección a cada una de las 3 versiones por separado ──
-      // El body[1] (assistant) tiene el texto con las 3 versiones, body[2] (user) tiene la instrucción
+      // ── Corrección de video: aplicar corrección a cada una de las 2 versiones por separado ──
+      // El body[1] (assistant) tiene el texto con las 2 versiones, body[2] (user) tiene la instrucción
       const textoActual = body.find(m => m.role === 'assistant')?.content || ''
       const instruccion = body[body.length-1].content
 
-      // Extraer las 3 versiones del texto actual
+      // Extraer las 2 versiones del texto actual
       const versionesActuales = textoActual.split(/\n\n---\n\n/).filter(v => v.trim().length > 20)
 
       const durMatchC = body[0].content.match(/DURACI[ÓO]N: (\d+)/)
@@ -1414,20 +1469,14 @@ Versión 2 terminó así: "${ultimasNPalabras(resultados[1] || '', 60)}"`
       const refuerzoC = debeSanitizar(nivelC) ? BLOQUE_REFUERZO_NIVEL12 : ''
 
       const resultadosC = []
-      for (let i = 0; i < Math.min(versionesActuales.length, 3); i++) {
-        // CAMBIO D — anti-repetición de cierres entre las 3 versiones corregidas
+      for (let i = 0; i < Math.min(versionesActuales.length, 2); i++) {
+        // CAMBIO D — anti-repetición de cierres entre las 2 versiones corregidas
         let bloqueEvitarC = ''
         if (i === 1 && resultadosC[0]) {
           bloqueEvitarC = `
 
 CIERRE QUE DEBES EVITAR (versión 1 corregida ya terminó así, no lo repitas ni parafrasees):
 "${ultimasNPalabras(resultadosC[0], 60)}"`
-        } else if (i === 2 && (resultadosC[0] || resultadosC[1])) {
-          bloqueEvitarC = `
-
-CIERRES QUE DEBES EVITAR (no los repitas ni los parafrasees):
-Versión 1 corregida terminó así: "${ultimasNPalabras(resultadosC[0] || '', 60)}"
-Versión 2 corregida terminó así: "${ultimasNPalabras(resultadosC[1] || '', 60)}"`
         }
 
         const promptC = `Te doy una versión de un guión de video. Aplica esta corrección manteniendo TODO lo demás (hook, estructura, mensaje, longitud, tono):
@@ -1450,14 +1499,18 @@ VERSIÓN ${i+1} — Hook: [hook]
 ---
 
 INSTRUCCIÓN CRÍTICA DE DIFERENCIACIÓN:
-Esta es la versión ${i+1} de 3 corregidas. Las 3 versiones DEBEN tener un cierre completamente distinto entre sí.
+Esta es la versión ${i+1} de 2 corregidas. Las 2 versiones DEBEN tener un cierre completamente distinto entre sí.
 - NO uses las mismas palabras finales que las otras versiones corregidas
 - Las últimas 5-7 palabras de cada versión deben ser únicas
 - Si la corrección no toca el cierre, reescribe el cierre con palabras propias para no repetir el de las otras versiones${bloqueEvitarC}${refuerzoC}
 ${RELLENO_BLOCK_PRESERVAR}`
-        let t = await llamarModelo([{role:'user', content: promptC}], maxTokC)
+        let rCorr = await llamarModelo([{role:'user', content: promptC}], maxTokC)
+        let t = rCorr.texto
+        registrarLlamada(`Corrección video versión ${i+1}`, modeloUsado, rCorr.inputTokens, rCorr.outputTokens)
         if (t.includes("Lo siento") || t.includes("I'm sorry") || t.trim().length < 30) {
-          t = await llamarModelo([{role:'user', content: promptC}], maxTokC)
+          rCorr = await llamarModelo([{role:'user', content: promptC}], maxTokC)
+          t = rCorr.texto
+          registrarLlamada(`Corrección video versión ${i+1} (reintento)`, modeloUsado, rCorr.inputTokens, rCorr.outputTokens)
         }
         let texto = t.trim()
         if (!texto.match(/^═{3,}/)) {
@@ -1474,34 +1527,46 @@ ${RELLENO_BLOCK_PRESERVAR}`
 
     } else {
       // ── Imagen / análisis / corrección / mapeo — llamada única ──
-      // FIX #8 — si imagePrompts3 está set, hacer 3 llamadas paralelas (una por eje)
+      // FIX #8 — si imagePrompts3 está set, hacer 2 llamadas paralelas (una por eje)
       if (imagePrompts3) {
         const maxTokIdea = 1500
         // Función que llama al LLM, valida el hook y reintenta UNA vez si terminó mal
-        const llamarConValidacion = async (promptOriginal) => {
-          const primera = await llamarModelo([{ role:'user', content: promptOriginal }], maxTokIdea)
+        const llamarConValidacion = async (promptOriginal, idxEje) => {
+          const rPrim = await llamarModelo([{ role:'user', content: promptOriginal }], maxTokIdea)
+          registrarLlamada(`Imagen idea ${idxEje+1}`, modeloUsado, rPrim.inputTokens, rPrim.outputTokens)
+          const primera = rPrim.texto
           const hookExtraido = extraerHookDeRespuesta(primera)
-          if (!hookTerminaMal(hookExtraido)) return primera
+          if (!hookTerminaMal(hookExtraido, true)) return primera
+          // Diagnóstico: ¿el problema es longitud, palabra final, o ambos?
+          const nPalabrasPrev = hookExtraido.trim().replace(/[.!?¿¡,;:]+$/, '').trim().split(/\s+/).filter(Boolean).length
+          const excedeLongitud = nPalabrasPrev > 7
+          const bloqueLongitud = excedeLongitud
+            ? `El hook anterior tenía ${nPalabrasPrev} palabras. ACÓRTALO. El ideal es 3-5 palabras, el máximo absoluto es 7. Si tu hook actual dice "Vas a necesitar esto para tu cintura" (7 palabras), podrías decir "Tu cintura merece esto" (4 palabras) o "Cintura sin dolor" (3 palabras). Manten la frase autónoma y completa.`
+            : ''
           // Reintento: prompt reforzado con el error específico
           const promptReintento = `${promptOriginal}
 
 REINTENTO OBLIGATORIO POR HOOK MAL CONSTRUIDO:
-El hook que generaste antes terminaba mal: "${hookExtraido}". Esto es INACEPTABLE.
+El hook que generaste antes era: "${hookExtraido}". Esto es INACEPTABLE.
+${bloqueLongitud}
 Genera de nuevo. El hook DEBE terminar en sustantivo concreto, verbo conjugado o signo de puntuación.
-Genera la idea completa otra vez con un hook nuevo y completo.`
+El hook DEBE tener máximo 7 palabras (ideal 3-5).
+Genera la idea completa otra vez con un hook nuevo, corto y completo.`
           try {
-            const segunda = await llamarModelo([{ role:'user', content: promptReintento }], maxTokIdea)
+            const rSeg = await llamarModelo([{ role:'user', content: promptReintento }], maxTokIdea)
+            registrarLlamada(`Imagen idea ${idxEje+1} (reintento validador)`, modeloUsado, rSeg.inputTokens, rSeg.outputTokens)
+            const segunda = rSeg.texto
             const hookSegundo = extraerHookDeRespuesta(segunda)
             // Aceptar la segunda si mejoró; si no, degradar grácil a la primera
-            return !hookTerminaMal(hookSegundo) ? segunda : primera
+            return !hookTerminaMal(hookSegundo, true) ? segunda : primera
           } catch (e) {
             return primera
           }
         }
         const settled = await Promise.allSettled(
-          imagePrompts3.map(p => llamarConValidacion(p))
+          imagePrompts3.map((p, idx) => llamarConValidacion(p, idx))
         )
-        // Renumerar headers a 1/2/3 y normalizar separador
+        // Renumerar headers a 1/2 y normalizar separador
         const bloques = settled.map((r, i) => {
           if (r.status !== 'fulfilled' || !r.value) {
             return `IDEA DE IMAGEN ${i+1} — ${EJES_IMAGEN[i].nombre}\nHook: [Generación falló para este eje]\nDescripción de la imagen:\n• Error: la llamada para el eje "${EJES_IMAGEN[i].nombre}" no devolvió contenido\nTexto en imagen:\n• Reintenta o cambia de modelo`
@@ -1522,11 +1587,14 @@ Genera la idea completa otra vez con un hook nuevo y completo.`
         // Análisis y mapeo de advertorial necesitan más tokens (JSON estructurado largo)
         const isAnalisisOMapeo = isAnalisis || (modo === 'mapear_advertorial') || (modo === 'auditar')
         const maxTok = isImagenFormato ? 2500 : isAnalisisOMapeo ? 6000 : 4000
-        responseText = await llamarModelo(body, maxTok)
+        const tipoLlamada = isAnalisis ? 'Análisis' : (modo === 'auditar') ? 'Auditoría' : (modo === 'mapear_advertorial') ? 'Mapeo advertorial' : (isVariaciones) ? 'Variaciones' : (modo === 'correccion') ? 'Corrección' : 'Llamada principal'
+        const rMain = await llamarModelo(body, maxTok)
+        responseText = rMain.texto
+        registrarLlamada(tipoLlamada, modeloUsado, rMain.inputTokens, rMain.outputTokens)
       }
     }
 
-    return res.status(200).json({ content: [{ text: responseText }], promptEjecutado, hooksIndicesUsados })
+    return res.status(200).json({ content: [{ text: responseText }], promptEjecutado, hooksIndicesUsados, costoOperacion })
 
   } catch(e) {
     res.status(500).json({ error: e.message })

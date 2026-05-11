@@ -106,6 +106,8 @@ export default function Home() {
   const [openPanelTipoImagen,setOpenPanelTipoImagen]=useState(false)
   const [copiadoKey,setCopiadoKey]=useState(null)
   const [hooksUsadosImg,setHooksUsadosImg]=useState([])
+  const [ultimoCosto,setUltimoCosto]=useState(null)
+  const [costoSesion,setCostoSesion]=useState({usd:0,cop:0,operaciones:0})
   const [variaciones,setVariaciones]=useState([])
   const [variacionActiva,setVariacionActiva]=useState(0)
   // ── NUEVO: selector de API ──────────────────────────────────────
@@ -213,6 +215,14 @@ export default function Home() {
     })
     const d=await r.json()
     if(d.error) throw new Error(d.error)
+    if(d.costoOperacion) {
+      setUltimoCosto(d.costoOperacion)
+      setCostoSesion(prev=>({
+        usd: prev.usd + d.costoOperacion.totales.usd,
+        cop: prev.cop + d.costoOperacion.totales.cop,
+        operaciones: prev.operaciones + 1
+      }))
+    }
     return d
   }
 
@@ -403,7 +413,7 @@ ${txt(adv.cierreCTA)}
       const textoActual=versiones.map((v,i)=>`VERSIÓN ${i+1} — Hook: ${v.hook}\n${v.guionCompleto}`).join('\n\n---\n\n')
       newMsgs=[...msgs,
         {role:'assistant',content:textoActual},
-        {role:'user',content:`Aplica esta corrección a las 3 versiones manteniendo estructura, producto, tono y mercado. Solo cambia lo indicado:\n"${corr}"\nDevuelve las 3 versiones completas con el mismo formato exacto, empezando directo con VERSIÓN 1 sin texto introductorio.`}
+        {role:'user',content:`Aplica esta corrección a las 2 versiones manteniendo estructura, producto, tono y mercado. Solo cambia lo indicado:\n"${corr}"\nDevuelve las 2 versiones completas con el mismo formato exacto, empezando directo con VERSIÓN 1 sin texto introductorio.`}
       ]
       setHistorial(h=>[...h,corr]);setCorreccion('');setMsgs(newMsgs)
     }
@@ -478,7 +488,7 @@ ${txt(adv.cierreCTA)}
       // Dividir por IDEA DE IMAGEN N
       const matches=[...text2.matchAll(/IDEA DE IMAGEN\s*\d+[^\n]*/gi)]
       if(matches.length>=1) {
-        for(let i=0;i<Math.min(matches.length,3);i++) {
+        for(let i=0;i<Math.min(matches.length,2);i++) {
           const start=matches[i].index
           const end=i+1<matches.length?matches[i+1].index:text2.length
           const bloque=text2.substring(start,end).trim()
@@ -489,7 +499,7 @@ ${txt(adv.cierreCTA)}
       // Fallback: dividir por ---
       if(vers.length===0) {
         const bloques=text2.split(/\n---+\n/).map(b=>b.trim()).filter(b=>b.length>20)
-        for(let i=0;i<Math.min(bloques.length,3);i++) {
+        for(let i=0;i<Math.min(bloques.length,2);i++) {
           vers.push(parseBloque(bloques[i],i))
         }
       }
@@ -504,7 +514,7 @@ ${txt(adv.cierreCTA)}
       const hooks=hookMatches.map(m=>m[1].trim())
       // Split por separador ═══, filtro solo que tenga contenido real
       const bloques=text.split(/═{3,}[^\n]*\n/g).map(p=>p.trim()).filter(p=>p.length>20&&!p.match(/^VERSI[OÓ]N\s*\d+\s*[—\-–]/i))
-      for(let i=0;i<Math.min(bloques.length,3);i++) {
+      for(let i=0;i<Math.min(bloques.length,2);i++) {
         // Limpiar --- del final
         const neto=bloques[i].replace(/^---\s*|\s*---$/g,'').trim()
         vers.push({hook:hooks[i]||`Versión ${i+1}`,guionCompleto:neto,guionVisual:neto,guionNeto:neto,descripcion:'',bullets:[]})
@@ -540,7 +550,7 @@ ${txt(adv.cierreCTA)}
       const hooksVar=hookMatchesVar.map(m=>m[1].trim())
       const bloquesVar=text.split(/═{3,}[^\n]*\n/g).map(p=>p.trim()).filter(p=>p.length>20&&!p.match(/^VERSI[OÓ]N\s*\d+\s*[—\-–]/i))
       const parsedVar=[]
-      for(let i=0;i<Math.min(bloquesVar.length,3);i++){
+      for(let i=0;i<Math.min(bloquesVar.length,2);i++){
         const neto=bloquesVar[i].replace(/^---\s*|\s*---$/g,'').trim()
         parsedVar.push({hook:hooksVar[i]||('Variación '+(i+1)),guionCompleto:neto,guionVisual:neto,guionNeto:neto,descripcion:'',bullets:[]})
       }
@@ -1259,7 +1269,7 @@ ${guionTexto}`
                 <div style={fldLbl}>Formato</div>
                 <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
                   {[['video','Video'],['imagen','Ideas de imagen']].map(([v,l])=>(
-                    <button key={v} onClick={()=>setFormato(v)} style={chipBtn(formato===v)}>{l}</button>
+                    <button key={v} onClick={()=>{setFormato(v);setUltimoCosto(null)}} style={chipBtn(formato===v)}>{l}</button>
                   ))}
                 </div>
 
@@ -1383,9 +1393,9 @@ ${guionTexto}`
                   return (
                     <button onClick={()=>generar(false)} disabled={!ok||generando} style={{...btnMain,marginTop:0,opacity:(!ok||generando)?.4:1}}>
                       {generando
-                        ?formato==='imagen'?'Generando 3 ideas...':'Generando 3 versiones...'
+                        ?formato==='imagen'?'Generando 2 ideas...':'Generando 2 versiones...'
                         :ok
-                          ?formato==='imagen'?'Generar 3 ideas de imagen':`Generar 3 versiones (${duracion}s)`
+                          ?formato==='imagen'?'Generar 2 ideas de imagen':`Generar 2 versiones (${duracion}s)`
                           :`Falta seleccionar: ${faltantes.join(', ')}`}
                     </button>
                   )
@@ -1411,6 +1421,16 @@ ${guionTexto}`
                   <InfoBtn prompt={promptGen} label={`Generación ${tipo}`}/>
                 </div>
               </div>
+
+              {ultimoCosto && (
+                <div style={{background:D.accent,border:'1px solid '+D.cardBorder,borderRadius:8,padding:'8px 12px',fontSize:12,color:D.textMid,display:'flex',alignItems:'center',gap:12,marginBottom:12,flexWrap:'wrap'}}>
+                  <span>Última operación:</span>
+                  <span><strong>{ultimoCosto.totales.inputTokens.toLocaleString()}</strong> in + <strong>{ultimoCosto.totales.outputTokens.toLocaleString()}</strong> out tokens</span>
+                  <span>≈ <strong>${ultimoCosto.totales.usd.toFixed(4)}</strong> USD</span>
+                  <span>(<strong>${ultimoCosto.totales.cop.toFixed(0)}</strong> COP)</span>
+                  <span style={{marginLeft:'auto',color:D.textDim}}>Sesión: ${costoSesion.usd.toFixed(4)} USD · {costoSesion.operaciones} ops</span>
+                </div>
+              )}
 
               {formato==='imagen'?(
                 <>

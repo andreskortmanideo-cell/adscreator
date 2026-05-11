@@ -189,7 +189,7 @@ INSTRUCCIÓN: el ad debe llevar al usuario al advertorial; usa mismo lenguaje y 
       }
       const matches = [...text.matchAll(/IDEA DE IMAGEN\s*\d+[^\n]*/gi)]
       if (matches.length >= 1) {
-        for (let i = 0; i < Math.min(matches.length, 3); i++) {
+        for (let i = 0; i < Math.min(matches.length, 2); i++) {
           const start = matches[i].index
           const end = i+1 < matches.length ? matches[i+1].index : text.length
           const bloque = text.substring(start, end).trim()
@@ -198,14 +198,14 @@ INSTRUCCIÓN: el ad debe llevar al usuario al advertorial; usa mismo lenguaje y 
       }
       if (vers.length === 0) {
         const bloques = text.split(/\n---+\n/).map(b => b.trim()).filter(b => b.length > 20)
-        for (let i = 0; i < Math.min(bloques.length, 3); i++) vers.push(parseBloque(bloques[i], i))
+        for (let i = 0; i < Math.min(bloques.length, 2); i++) vers.push(parseBloque(bloques[i], i))
       }
       if (vers.length === 0) vers = [{hook:'Idea generada', descripcion: text, bullets: [], guionCompleto: text, guionVisual: text, guionNeto: ''}]
     } else {
       const hookMatches = [...text.matchAll(/VERSI[OÓ]N\s*\d+\s*[—\-–]\s*Hook:\s*([^\n]+)/gi)]
       const hooks = hookMatches.map(m => m[1].trim())
       const bloques = text.split(/═{3,}[^\n]*\n/g).map(p => p.trim()).filter(p => p.length > 20 && !p.match(/^VERSI[OÓ]N\s*\d+\s*[—\-–]/i))
-      for (let i = 0; i < Math.min(bloques.length, 3); i++) {
+      for (let i = 0; i < Math.min(bloques.length, 2); i++) {
         const neto = bloques[i].replace(/^---\s*|\s*---$/g, '').trim()
         vers.push({hook: hooks[i] || `Versión ${i+1}`, guionCompleto: neto, guionVisual: neto, guionNeto: neto, descripcion: '', bullets: []})
       }
@@ -229,7 +229,7 @@ INSTRUCCIÓN: el ad debe llevar al usuario al advertorial; usa mismo lenguaje y 
       const textoActual = versiones.map((v,i) => `VERSIÓN ${i+1} — Hook: ${v.hook}\n${v.guionCompleto}`).join('\n\n---\n\n')
       newMsgs = [...msgs,
         {role:'assistant', content: textoActual},
-        {role:'user', content: `Aplica esta corrección a las 3 versiones manteniendo estructura, producto, tono y mercado. Solo cambia lo indicado:\n"${corr}"\nDevuelve las 3 versiones completas con el mismo formato exacto, empezando directo con VERSIÓN 1 sin texto introductorio.`}
+        {role:'user', content: `Aplica esta corrección a las 2 versiones manteniendo estructura, producto, tono y mercado. Solo cambia lo indicado:\n"${corr}"\nDevuelve las 2 versiones completas con el mismo formato exacto, empezando directo con VERSIÓN 1 sin texto introductorio.`}
       ]
       setHistorial(h => [...h, corr]); setCorreccion(''); setMsgs(newMsgs)
     }
@@ -450,7 +450,7 @@ INSTRUCCIÓN: el ad debe llevar al usuario al advertorial; usa mismo lenguaje y 
           {/* Botón generar */}
           <button onClick={()=>generar(false)} disabled={generando || !tipo}
             style={{width:'100%', padding:'12px', background:tipo?D.blue:D.cardBorder, color:'#fff', border:'none', borderRadius:6, fontSize:13, fontWeight:700, cursor:tipo?'pointer':'not-allowed', marginTop:6}}>
-            {generando ? 'Generando 3 versiones…' : '🎬 Generar 3 versiones'}
+            {generando ? 'Generando 2 versiones…' : '🎬 Generar 2 versiones'}
           </button>
         </div>
 

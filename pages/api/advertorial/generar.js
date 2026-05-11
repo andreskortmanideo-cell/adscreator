@@ -554,6 +554,8 @@ Las 4 reseñas DEBEN tener extensiones diferentes para parecer reales. Distribuc
 - 1 reseña MEDIA: 5-6 oraciones, 90-120 palabras. La escéptica de 4 estrellas.
 Diversifica también edades (rango 30-70), ciudades colombianas distintas, géneros, profesiones. NUNCA dos reseñas con la misma estructura ('Probé X, probé Y, pero...' repetido es inválido).
 
+El ORDEN de las 4 reseñas debe ser ALEATORIO. NO presentes siempre corta → media-corta → larga → media. Mezcla el orden cada vez. Posibles secuencias válidas: larga → corta → media → media-corta; media-corta → larga → corta → media; corta → larga → media-corta → media; etc. Mezcla deliberadamente. La 4-estrellas escéptica puede estar en cualquier posición, no siempre al final.
+
 Cada testimonio sigue una ESTRUCTURA EMOCIONAL PROGRESIVA DE 5 FASES (las 5 son obligatorias, en orden, sin saltarse ninguna):
 1) CONTEXTO PREVIO: qué vivía y cuánto tiempo (ej: "llevaba 2 años con migrañas casi diarias").
 2) QUÉ PROBÓ ANTES: 1-2 alternativas que fallaron, con nombre concreto (no genérico "probé de todo").
@@ -578,6 +580,8 @@ Las 4 preguntas DEBEN tener extensiones MUY diferentes para parecer reales:
 - 1 pregunta LARGA y detallada: 3-4 oraciones, 45-70 palabras. Con condición médica específica, medicamentos, edad, contexto.
 - 1 pregunta MEDIA-LARGA: 2-3 oraciones, 30-50 palabras.
 Las RESPUESTAS también deben variar: corta (2-3 frases, 50-80 palabras) para preguntas simples, media (4-5 frases, 100-150 palabras) para preguntas con matiz, larga (6-8 frases, 180-250 palabras) para preguntas complejas con condiciones médicas. Nunca 4 respuestas del mismo tamaño.
+
+El ORDEN de las 4 preguntas debe ser ALEATORIO. NO siempre corta → media → larga → media-larga. Mezcla deliberadamente cada vez.
 
 "Preguntas y respuestas"
 

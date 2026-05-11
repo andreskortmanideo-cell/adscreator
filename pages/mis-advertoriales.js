@@ -118,7 +118,7 @@ export default function HistorialCompartido() {
                     )}
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                    <a href={`/ads/advertorial?id=${it.id}`}
+                    <a href={`/ads/advertorial/${it.id}`}
                       style={{ fontSize:11, color:D.blue, border:`1px solid ${D.cardBorder}`, borderRadius:6, padding:'5px 10px', background:'transparent', textDecoration:'none' }}>
                       Abrir
                     </a>

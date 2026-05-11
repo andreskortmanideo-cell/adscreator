@@ -1,29 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
+import { BLOQUES, toText, parseTestimonios, parseFaq } from '../lib/advertorial-format'
 
 const MODELOS = [
   { id: 'gpt-4.1-mini', label: 'GPT 4.1 Mini', desc: 'Rápido · recomendado' },
   { id: 'gpt-4o',       label: 'GPT-4o',       desc: 'Mayor calidad' },
   { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', desc: 'Mejor razonamiento' },
   { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5',  desc: 'Rápido · económico' },
-]
-
-const BLOQUES = [
-  { num:1,  key:'titular',           titulo:'Titular',                    producto:false },
-  { num:2,  key:'bajada',            titulo:'Sumario',                    producto:false },
-  { num:3,  key:'fichaExperto',      titulo:'Ficha del Experto',          producto:false },
-  { num:4,  key:'apertura',          titulo:'Apertura — La Pregunta',     producto:false },
-  { num:5,  key:'historiaPaciente',  titulo:'Historia del Paciente',      producto:false },
-  { num:6,  key:'citaExperto',       titulo:'Cita del Experto (pullquote)',producto:false },
-  { num:7,  key:'desarrolloEducativo',titulo:'Desarrollo Educativo + Stat Visual', producto:false },
-  { num:8,  key:'comparativaEstados', titulo:'Comparativa ❌ vs ✓',       producto:false },
-  { num:9,  key:'porQueOtrosFallan', titulo:'Por Qué Otros Fallan + Cita', producto:false },
-  { num:10, key:'transicionMecanismo',titulo:'Transición + Mecanismo Único (con Fases)', producto:false },
-  { num:11, key:'producto',          titulo:'Producto · Ingredientes · Formato', producto:true },
-  { num:12, key:'promociones',       titulo:'Promociones + Modo de Uso',  producto:true },
-  { num:13, key:'garantia',          titulo:'Garantía',                   producto:true },
-  { num:14, key:'testimonios',       titulo:'Testimonios Detallados',     producto:true },
-  { num:15, key:'faq',               titulo:'Preguntas y Respuestas',     producto:true },
-  { num:16, key:'cierreCTA',         titulo:'Cierre Final + CTA',         producto:true },
 ]
 
 const D = {
@@ -105,7 +87,7 @@ export default function AdvertorialCreator() {
         costoUsd: costo?.usd || 0,
         costoCop: costo?.cop || 0,
         operaciones: costo?.operaciones || 0,
-        payload: { advertorial: advData, nombre, contexto, avatar, lineamiento, mercado, modelo }
+        payload: { advertorial: advData, briefing: briefingActual || null, nombre, contexto, avatar, lineamiento, mercado, modelo }
       }
       const r = await fetch('/api/advertoriales/save', {
         method: 'POST',
@@ -357,17 +339,6 @@ export default function AdvertorialCreator() {
 
   const copiarOpcion = (text, key) => {
     _doCopy(text, key, '✓')
-  }
-
-  // Normaliza cualquier valor (string, array, objeto) a texto
-  const toText = (v) => {
-    if (v == null) return ''
-    if (typeof v === 'string') return v.replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t')
-    if (Array.isArray(v)) return v.map(toText).join('\n')
-    if (typeof v === 'object') {
-      return Object.entries(v).map(([k,val]) => `${k}\n${toText(val)}`).join('\n\n')
-    }
-    return String(v)
   }
 
   const lbl = { color:D.textMid, fontSize:11, fontWeight:700, letterSpacing:'0.4px', display:'block', marginBottom:4 }
@@ -669,6 +640,31 @@ export default function AdvertorialCreator() {
                 <p style={{ color:D.textMid, fontSize:12, lineHeight:1.85, whiteSpace:'pre-wrap', margin:0 }}>
                   {toText(advertorial[b.key]) || '(no generado)'}
                 </p>
+              </div>
+            ) : b.key === 'testimonios' && parseTestimonios(toText(advertorial[b.key])) ? (
+              <div>
+                {parseTestimonios(toText(advertorial[b.key])).map((t,i) => (
+                  <div key={i} style={{ background:D.input, border:`1px solid ${D.cardBorder}`, borderRadius:12, padding:16, marginBottom:14 }}>
+                    <div style={{ color:D.yellow, fontSize:14, letterSpacing:'.05em', marginBottom:10 }}>{t.estrellas}</div>
+                    <p style={{ color:D.text, fontSize:14, lineHeight:1.7, margin:'0 0 12px', whiteSpace:'pre-wrap' }}>“{t.review}”</p>
+                    {t.footer.length > 0 && (
+                      <div style={{ color:D.textMid, fontSize:12, lineHeight:1.5, borderTop:`1px solid ${D.cardBorder}`, paddingTop:10 }}>
+                        {t.footer.map((l,j) => <div key={j}>{l}</div>)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : b.key === 'faq' && parseFaq(toText(advertorial[b.key])) ? (
+              <div>
+                {parseFaq(toText(advertorial[b.key])).map((q,i) => (
+                  <div key={i} style={{ background:D.input, border:`1px solid ${D.cardBorder}`, borderRadius:12, padding:16, marginBottom:14 }}>
+                    {q.autor && <div style={{ color:D.textDim, fontSize:11, marginBottom:6 }}>{q.autor}</div>}
+                    <p style={{ color:D.text, fontSize:14, fontWeight:700, lineHeight:1.5, margin:'0 0 10px' }}>{q.pregunta}</p>
+                    {q.experto && <div style={{ color:D.blue, fontSize:11, fontWeight:600, marginBottom:6 }}>{q.experto}</div>}
+                    <p style={{ color:D.textMid, fontSize:14, lineHeight:1.7, margin:0, whiteSpace:'pre-wrap' }}>{q.respuesta}</p>
+                  </div>
+                ))}
               </div>
             ) : (
               <p style={{ color:D.textMid, fontSize:12, lineHeight:1.85, whiteSpace:'pre-wrap', margin:0 }}>

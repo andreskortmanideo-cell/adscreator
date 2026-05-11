@@ -6,9 +6,9 @@ export default function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const row = obtenerAnuncio(id)
-      if (!row) return res.status(404).json({ error: 'No encontrado' })
-      return res.status(200).json(row)
+      const anuncio = obtenerAnuncio(id)
+      if (!anuncio) return res.status(404).json({ error: 'No encontrado' })
+      return res.status(200).json(anuncio)
     }
     if (req.method === 'DELETE') {
       const ok = eliminarAnuncio(id)

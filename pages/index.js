@@ -70,6 +70,52 @@ function DLine({ label, value }) {
   )
 }
 
+function VersionesExpandidas({ id, onCargar, D }) {
+  const [cargando, setCargando] = useState(true)
+  const [versiones, setVersiones] = useState([])
+  const [error, setError] = useState(null)
+  useEffect(() => {
+    let cancelado = false
+    ;(async () => {
+      try {
+        const r = await fetch('/api/historial/' + id)
+        const d = await r.json()
+        if (cancelado) return
+        if (!r.ok || d.error) throw new Error(d.error || 'No se pudo cargar')
+        setVersiones(Array.isArray(d.versiones) ? d.versiones : [])
+      } catch (e) {
+        if (!cancelado) setError(e.message)
+      } finally {
+        if (!cancelado) setCargando(false)
+      }
+    })()
+    return () => { cancelado = true }
+  }, [id])
+  if (cargando) return <div style={{padding:'8px 14px 12px 40px',fontSize:11,color:D.textDim}}>Cargando versiones…</div>
+  if (error) return <div style={{padding:'8px 14px 12px 40px',fontSize:11,color:'#dc2626'}}>Error: {error}</div>
+  if (versiones.length === 0) return <div style={{padding:'8px 14px 12px 40px',fontSize:11,color:D.textFaint,fontStyle:'italic'}}>Sin versiones aún.</div>
+  return (
+    <div style={{padding:'4px 14px 12px 40px',background:D.bg,display:'flex',flexDirection:'column',gap:4}}>
+      {versiones.map(v => (
+        <div key={v.id} style={{display:'flex',alignItems:'center',gap:10,padding:'6px 10px',background:'#fff',border:`1px solid ${D.cardBorder}`,borderRadius:6}}>
+          <div style={{flex:1,minWidth:0,fontSize:11,color:D.textMid,display:'flex',gap:8,flexWrap:'wrap'}}>
+            <span style={{fontWeight:600,color:D.text,textTransform:'uppercase',letterSpacing:'.05em',fontSize:10}}>{v.tipo}</span>
+            <span>·</span>
+            <span>{new Date(v.creado_en).toLocaleString('es-CO',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+            {v.modelo && <><span>·</span><span style={{color:D.textDim}}>{v.modelo}</span></>}
+            <span>·</span>
+            <span>${Number(v.costo_usd||0).toFixed(4)} USD</span>
+          </div>
+          <button onClick={() => onCargar(id, v.id)}
+            style={{fontSize:10,padding:'3px 10px',background:'transparent',color:D.blueLight,border:`1px solid ${D.blue}`,borderRadius:4,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+            Cargar
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function Home() {
   const [pais,setPais]=useState('Colombia')
   const [plat,setPlat]=useState('Meta Ads')
@@ -114,8 +160,9 @@ export default function Home() {
   const [historialItems,setHistorialItems]=useState([])
   const [historialCargando,setHistorialCargando]=useState(false)
   const [busquedaHist,setBusquedaHist]=useState('')
-  const [guardando,setGuardando]=useState(false)
-  const [guardadoOk,setGuardadoOk]=useState(false)
+  const [anuncioIdActual,setAnuncioIdActual]=useState(null)
+  const [bannerSesion,setBannerSesion]=useState(null) // {id} si se recuperó sesión
+  const [historialExpandido,setHistorialExpandido]=useState({}) // {id:true}
   const [variaciones,setVariaciones]=useState([])
   const [variacionActiva,setVariacionActiva]=useState(0)
   // ── NUEVO: selector de API ──────────────────────────────────────
@@ -149,6 +196,29 @@ export default function Home() {
       const stored = localStorage.getItem('autor')
       if (stored) setNombreAutor(stored)
     } catch {}
+  },[])
+
+  // Recuperación de sesión: si hay anuncioIdActual en localStorage, carga la última versión
+  useEffect(()=>{
+    let cancelado = false
+    ;(async ()=>{
+      try {
+        const raw = localStorage.getItem('anuncioIdActual')
+        const idGuardado = raw ? parseInt(raw, 10) : NaN
+        if (!idGuardado || isNaN(idGuardado)) return
+        const r = await fetch('/api/historial/' + idGuardado)
+        if (!r.ok) { try { localStorage.removeItem('anuncioIdActual') } catch {}; return }
+        const d = await r.json()
+        if (cancelado) return
+        if (d?.error || !Array.isArray(d?.versiones) || d.versiones.length===0) return
+        restaurarDesdeVersion(d, d.versiones[0])
+        setAnuncioIdActual(idGuardado)
+        setBannerSesion({ id: idGuardado })
+      } catch (e) {
+        console.error('Recuperación de sesión falló:', e)
+      }
+    })()
+    return ()=>{ cancelado = true }
   },[])
 
   useEffect(()=>{
@@ -260,98 +330,170 @@ export default function Home() {
     return ''
   }
 
-  async function guardarAnuncioActual() {
-    if (versiones.length === 0) return
-    setGuardando(true)
-    setGuardadoOk(false)
-    try {
-      const nv = nivelSel || analisis?.nivel_recomendado || ''
-      const payload = {
+  function briefingActual(extra={}) {
+    const nv = nivelSel ?? analisis?.nivel_recomendado ?? ''
+    return {
+      autor: nombreAutor.trim() || 'Anónimo',
+      producto: (nombre || prod || '').toString().slice(0,200),
+      avatar: avatarTextoActual().slice(0,300),
+      formato,
+      duracion: formato==='video' ? String(duracion||'') : '',
+      tipoImagen: formato==='imagen' ? (formatoImagen||'') : '',
+      nivel: nv===null||nv===undefined ? '' : String(nv),
+      motivo: tipo || '',
+      angulo: anguloSel || '',
+      modelo: modeloSel,
+      briefingJson: {
         nombre, prod, url, pais, plat, formato, duracion, formatoImagen,
-        nivelSel, tipo, avatarSel, avatarManual, anguloSel,
-        modeloSel, analisis,
-        versiones, versionActiva, variaciones, variacionActiva,
-        historial, msgs, auditorias,
-        promptGen, promptAnalisis,
-        hooksUsadosImg,
-        costoAnuncio
+        nivelSel, tipo, avatarSel, avatarManual, anguloSel, modeloSel,
+        ...extra
       }
-      const body = {
-        autor: nombreAutor.trim() || 'Anónimo',
-        producto: (nombre || prod || '').toString().slice(0,200),
-        avatar: avatarTextoActual().slice(0,200),
-        formato,
-        nivel: String(nv),
-        motivo: tipo || '',
-        angulo: anguloSel || '',
-        modelo: modeloSel,
-        costoUsd: costoAnuncio.usd,
-        costoCop: costoAnuncio.cop,
-        operaciones: costoAnuncio.operaciones,
-        payload
-      }
-      const r = await fetch('/api/historial/guardar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+    }
+  }
+
+  function snapshotState(over={}) {
+    return {
+      nombre, prod, url, pais, plat,
+      formato, duracion, formatoImagen,
+      nivelSel, tipo, avatarSel, avatarManual, anguloSel,
+      modeloSel, analisis,
+      versiones, versionActiva, variaciones, variacionActiva,
+      historial, msgs, auditorias,
+      promptGen, promptAnalisis,
+      hooksUsadosImg,
+      ...over
+    }
+  }
+
+  async function crearAnuncioServer(briefingExtra={}) {
+    try {
+      const body = { briefing: briefingActual(briefingExtra) }
+      const r = await fetch('/api/historial/anuncio', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
       })
       const d = await r.json()
-      if (!r.ok || d.error) throw new Error(d.error || 'Error al guardar')
-      setGuardadoOk(true)
-      setTimeout(() => setGuardadoOk(false), 2000)
+      if (!r.ok || d.error) throw new Error(d.error || 'Error creando anuncio')
+      return d.id
     } catch (e) {
-      alert('Error al guardar: ' + e.message)
+      console.error('Auto-save (crear) falló:', e)
+      return null
     }
-    setGuardando(false)
+  }
+
+  async function actualizarBriefingServer(id, briefingExtra={}) {
+    if (!id) return
+    try {
+      const body = { id, briefing: briefingActual(briefingExtra) }
+      const r = await fetch('/api/historial/anuncio', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+      })
+      if (!r.ok) {
+        const d = await r.json().catch(()=>({}))
+        console.error('Auto-save (briefing) falló:', d.error || r.statusText)
+      }
+    } catch (e) {
+      console.error('Auto-save (briefing) falló:', e)
+    }
+  }
+
+  async function guardarVersionServer(idAnuncio, modo, contenido, costoOp, modeloUsado) {
+    if (!idAnuncio) return
+    try {
+      const body = {
+        anuncioId: idAnuncio,
+        tipo: modo,
+        modelo: modeloUsado || modeloSel,
+        costoUsd: costoOp?.totales?.usd || 0,
+        costoCop: costoOp?.totales?.cop || 0,
+        inputTokens: costoOp?.totales?.inputTokens || 0,
+        outputTokens: costoOp?.totales?.outputTokens || 0,
+        contenido
+      }
+      const r = await fetch('/api/historial/version', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+      })
+      if (!r.ok) {
+        const d = await r.json().catch(()=>({}))
+        console.error('Auto-save (version) falló:', d.error || r.statusText)
+      }
+    } catch (e) {
+      console.error('Auto-save (version) falló:', e)
+    }
+  }
+
+  function restaurarDesdeVersion(anuncio, version) {
+    const p = version?.contenido || {}
+    if (p.nombre !== undefined) setNombre(p.nombre || '')
+    if (p.prod !== undefined) setProd(p.prod || '')
+    if (p.url !== undefined) setUrl(p.url || '')
+    if (p.pais !== undefined) setPais(p.pais || 'Colombia')
+    if (p.plat !== undefined) setPlat(p.plat || 'Meta Ads')
+    if (p.formato !== undefined) setFormato(p.formato || 'video')
+    if (p.duracion !== undefined) setDuracion(p.duracion || '30')
+    if (p.formatoImagen !== undefined) setFormatoImagen(p.formatoImagen || 'Funcional')
+    if (p.nivelSel !== undefined) setNivelSel(p.nivelSel)
+    if (p.tipo !== undefined) setTipo(p.tipo)
+    if (p.avatarSel !== undefined) setAvatarSel(p.avatarSel)
+    if (p.avatarManual !== undefined) setAvatarManual(p.avatarManual || '')
+    if (p.anguloSel !== undefined) setAnguloSel(p.anguloSel)
+    if (p.modeloSel !== undefined) setModeloSel(p.modeloSel)
+    if (p.analisis !== undefined) setAnalisis(p.analisis)
+    if (Array.isArray(p.versiones)) setVersiones(p.versiones)
+    if (p.versionActiva !== undefined) setVersionActiva(p.versionActiva || 0)
+    if (Array.isArray(p.variaciones)) setVariaciones(p.variaciones)
+    if (p.variacionActiva !== undefined) setVariacionActiva(p.variacionActiva || 0)
+    if (Array.isArray(p.historial)) setHistorial(p.historial)
+    if (Array.isArray(p.msgs)) setMsgs(p.msgs)
+    if (p.auditorias && typeof p.auditorias === 'object') setAuditorias(p.auditorias)
+    if (p.promptGen !== undefined) setPromptGen(p.promptGen || '')
+    if (p.promptAnalisis !== undefined) setPromptAnalisis(p.promptAnalisis || '')
+    if (Array.isArray(p.hooksUsadosImg)) setHooksUsadosImg(p.hooksUsadosImg)
+    // Reset costoAnuncio al costo acumulado del anuncio
+    if (anuncio) {
+      setCostoAnuncio({
+        usd: Number(anuncio.costo_usd_total||0),
+        cop: Number(anuncio.costo_cop_total||0),
+        operaciones: Number(anuncio.versiones_count||0)
+      })
+    }
   }
 
   async function cargarHistorial(producto='') {
     setHistorialCargando(true)
     try {
-      const q = producto ? '?producto=' + encodeURIComponent(producto) : ''
-      const r = await fetch('/api/historial/listar' + q)
+      const r = await fetch('/api/historial/listar')
       const d = await r.json()
       if (!r.ok || d.error) throw new Error(d.error || 'Error al listar')
-      setHistorialItems(d.items || [])
+      const items = (d.items || []).filter(it=>{
+        if (!producto || !producto.trim()) return true
+        const q = producto.trim().toLowerCase()
+        return (it.producto||'').toLowerCase().includes(q)
+      })
+      setHistorialItems(items)
     } catch (e) {
       alert('Error al cargar historial: ' + e.message)
     }
     setHistorialCargando(false)
   }
 
-  async function cargarAnuncioHist(id) {
+  async function cargarAnuncioHist(id, versionId=null) {
     try {
       const r = await fetch('/api/historial/' + id)
       const d = await r.json()
       if (!r.ok || d.error) throw new Error(d.error || 'No encontrado')
-      const p = d.datos || {}
-      if (p.nombre !== undefined) setNombre(p.nombre || '')
-      if (p.prod !== undefined) setProd(p.prod || '')
-      if (p.url !== undefined) setUrl(p.url || '')
-      if (p.pais !== undefined) setPais(p.pais || 'Colombia')
-      if (p.plat !== undefined) setPlat(p.plat || 'Meta Ads')
-      if (p.formato !== undefined) setFormato(p.formato || 'video')
-      if (p.duracion !== undefined) setDuracion(p.duracion || '30')
-      if (p.formatoImagen !== undefined) setFormatoImagen(p.formatoImagen || 'Funcional')
-      if (p.nivelSel !== undefined) setNivelSel(p.nivelSel)
-      if (p.tipo !== undefined) setTipo(p.tipo)
-      if (p.avatarSel !== undefined) setAvatarSel(p.avatarSel)
-      if (p.avatarManual !== undefined) setAvatarManual(p.avatarManual || '')
-      if (p.anguloSel !== undefined) setAnguloSel(p.anguloSel)
-      if (p.modeloSel !== undefined) setModeloSel(p.modeloSel)
-      if (p.analisis !== undefined) setAnalisis(p.analisis)
-      if (Array.isArray(p.versiones)) setVersiones(p.versiones)
-      if (p.versionActiva !== undefined) setVersionActiva(p.versionActiva || 0)
-      if (Array.isArray(p.variaciones)) setVariaciones(p.variaciones)
-      if (p.variacionActiva !== undefined) setVariacionActiva(p.variacionActiva || 0)
-      if (Array.isArray(p.historial)) setHistorial(p.historial)
-      if (Array.isArray(p.msgs)) setMsgs(p.msgs)
-      if (p.auditorias && typeof p.auditorias === 'object') setAuditorias(p.auditorias)
-      if (p.promptGen !== undefined) setPromptGen(p.promptGen || '')
-      if (p.promptAnalisis !== undefined) setPromptAnalisis(p.promptAnalisis || '')
-      if (Array.isArray(p.hooksUsadosImg)) setHooksUsadosImg(p.hooksUsadosImg)
-      if (p.costoAnuncio !== undefined) setCostoAnuncio(p.costoAnuncio || {usd:0,cop:0,operaciones:0})
+      const versiones = Array.isArray(d.versiones) ? d.versiones : []
+      const target = versionId
+        ? versiones.find(v => v.id === versionId)
+        : versiones[0]
+      if (!target) {
+        alert('Este anuncio aún no tiene versiones guardadas.')
+        return
+      }
+      restaurarDesdeVersion(d, target)
+      setAnuncioIdActual(id)
+      try { localStorage.setItem('anuncioIdActual', String(id)) } catch {}
       setMostrarHistorial(false)
+      setBannerSesion(null)
       setTimeout(() => document.getElementById('resultado-section')?.scrollIntoView({behavior:'smooth',block:'start'}), 150)
     } catch (e) {
       alert('Error al cargar: ' + e.message)
@@ -359,15 +501,41 @@ export default function Home() {
   }
 
   async function eliminarAnuncioHist(id) {
-    if (!confirm('¿Eliminar este anuncio del historial? Esta acción no se puede deshacer.')) return
+    if (!confirm('¿Eliminar este anuncio y todas sus versiones del historial? Esta acción no se puede deshacer.')) return
     try {
       const r = await fetch('/api/historial/' + id, { method: 'DELETE' })
       const d = await r.json()
       if (!r.ok || d.error) throw new Error(d.error || 'Error al eliminar')
       setHistorialItems(items => items.filter(it => it.id !== id))
+      setHistorialExpandido(prev => { const n={...prev}; delete n[id]; return n })
+      if (anuncioIdActual === id) {
+        setAnuncioIdActual(null)
+        try { localStorage.removeItem('anuncioIdActual') } catch {}
+      }
     } catch (e) {
       alert('Error al eliminar: ' + e.message)
     }
+  }
+
+  function nuevoAnuncioReset() {
+    if (versiones.length > 0 && !confirm('Iniciar un anuncio nuevo? Lo actual ya está guardado y podrás recuperarlo desde el historial.')) return
+    setAnuncioIdActual(null)
+    try { localStorage.removeItem('anuncioIdActual') } catch {}
+    setNombre(''); setProd(''); setUrl('')
+    setArchivos([])
+    setAnalisis(null); setPromptAnalisis('')
+    setNivelSel(null); setTipo(null)
+    setAvatarSel(null); setAvatarManual('')
+    setAnguloSel(null)
+    setVersiones([]); setVariaciones([])
+    setVersionActiva(0); setVariacionActiva(0)
+    setHistorial([]); setMsgs([])
+    setCorreccion(''); setPromptGen('')
+    setAuditorias({}); setAuditando(null)
+    setHooksUsadosImg([])
+    setCostoAnuncio({usd:0,cop:0,operaciones:0})
+    setUltimoCosto(null)
+    setBannerSesion(null)
   }
 
   async function subirArchivo(file) {
@@ -388,7 +556,15 @@ export default function Home() {
 
   async function analizar() {
     if(!nombre.trim()&&!prod.trim()&&!url.trim()&&archivos.length===0) return alert('Necesito al menos: nombre, descripción, URL, o un archivo')
-    setAnalizando(true);setAnalisis(null);setTipo(null);setVersiones([]);setNivelSel(null);setAvatarSel(null);setAvatarManual('');setAnguloSel(null)
+    setAnalizando(true);setAnalisis(null);setTipo(null);setVersiones([]);setVariaciones([]);setNivelSel(null);setAvatarSel(null);setAvatarManual('');setAnguloSel(null);setAuditorias({});setHistorial([]);setMsgs([]);setHooksUsadosImg([])
+    setBannerSesion(null)
+    // Crea un nuevo anuncio (auto-save resiliente) y resetea costo del anuncio
+    const nuevoId = await crearAnuncioServer()
+    if (nuevoId) {
+      setAnuncioIdActual(nuevoId)
+      try { localStorage.setItem('anuncioIdActual', String(nuevoId)) } catch {}
+    }
+    setCostoAnuncio({usd:0,cop:0,operaciones:0})
     const archivosTexto = archivos.filter(a=>a.kind==='text').map(a=>`\n\n--- ARCHIVO: ${a.nombre} ---\n${a.text}`).join('')
     const archivosImg = archivos.filter(a=>a.kind==='image')
     const ctxBase = `${nombre.trim()?'NOMBRE: '+nombre+'\n':''}${prod.trim()?'PRODUCTO: '+prod:''}${url.trim()?'\nURL: '+url:''}\nMERCADO: ${pais}\nPLATAFORMA: ${plat}${archivosTexto}`
@@ -446,6 +622,18 @@ export default function Home() {
       // Avatar OBLIGATORIO: preselecciona el recomendado
       if (parsed.avatar_recomendado !== undefined) setAvatarSel(parsed.avatar_recomendado)
       if(d.promptEjecutado) setPromptAnalisis(d.promptEjecutado)
+      // Auto-save de la versión 'analisis' (no suma al costoAnuncio porque el modo analizar es gratuito por convención)
+      if (nuevoId) {
+        const contenido = snapshotState({
+          analisis: sorted,
+          nivelSel: parsed.nivel_recomendado,
+          tipo: parsed.tipo_recomendado,
+          anguloSel: anguloRec || null,
+          avatarSel: parsed.avatar_recomendado ?? null,
+          promptAnalisis: d.promptEjecutado || ''
+        })
+        guardarVersionServer(nuevoId, 'analisis', contenido, d.costoOperacion, modeloSel)
+      }
     } catch(e){alert('Error al analizar: '+e.message)}
     setAnalizando(false)
   }
@@ -582,6 +770,24 @@ ${txt(adv.cierreCTA)}
         setSesionHistorial(h=>[entrada,...h].slice(0,10))
         setSesionActiva(entrada.id)
       }
+      // Auto-save de la versión (resiliente)
+      if (anuncioIdActual) {
+        const nuevosHooks = (formato==='imagen' && Array.isArray(d.hooksIndicesUsados))
+          ? Array.from(new Set([...hooksUsadosImg, ...d.hooksIndicesUsados.map(n=>parseInt(n,10)).filter(n=>!isNaN(n))]))
+          : hooksUsadosImg
+        actualizarBriefingServer(anuncioIdActual)
+        const contenido = snapshotState({
+          versiones: parsed,
+          versionActiva: 0,
+          variaciones: esCorr ? variaciones : [],
+          variacionActiva: 0,
+          historial: esCorr ? [...historial, correccion.trim()] : [],
+          msgs: newMsgs,
+          promptGen: d.promptEjecutado || promptGen,
+          hooksUsadosImg: nuevosHooks
+        })
+        guardarVersionServer(anuncioIdActual, esCorr ? 'correccion' : 'generar', contenido, d.costoOperacion, modeloSel)
+      }
     } catch(e){alert('Error: '+e.message)}
     setGenerando(false)
   }
@@ -703,6 +909,15 @@ ${txt(adv.cierreCTA)}
         setVariacionActiva(0)
         setTimeout(()=>document.getElementById('variaciones-section')?.scrollIntoView({behavior:'smooth',block:'start'}),200)
       }
+      if (anuncioIdActual) {
+        actualizarBriefingServer(anuncioIdActual)
+        const contenido = snapshotState({
+          variaciones: parsedVar,
+          variacionActiva: 0,
+          promptGen: d.promptEjecutado || promptGen
+        })
+        guardarVersionServer(anuncioIdActual, 'variaciones', contenido, d.costoOperacion, modeloSel)
+      }
     } catch(e){alert('Error: '+e.message)}
     setGenerandoVariaciones(false)
   }
@@ -766,7 +981,13 @@ ${guionTexto}`
 
       const d = await api([{role:'user', content:ctxAud}], 'auditar')
       const text = d.content?.[0]?.text || ''
-      setAuditorias(a=>({...a, [key]: text}))
+      const nuevasAud = { ...auditorias, [key]: text }
+      setAuditorias(nuevasAud)
+      if (anuncioIdActual) {
+        actualizarBriefingServer(anuncioIdActual)
+        const contenido = snapshotState({ auditorias: nuevasAud })
+        guardarVersionServer(anuncioIdActual, 'auditar', contenido, d.costoOperacion, modeloSel)
+      }
     } catch(e) {
       alert('Error al auditar: '+e.message)
     }
@@ -1038,32 +1259,47 @@ ${guionTexto}`
                   <div style={{padding:24,textAlign:'center',color:D.textDim,fontSize:13}}>Cargando…</div>
                 ) : historialItems.length===0 ? (
                   <div style={{padding:24,textAlign:'center',color:D.textDim,fontSize:13}}>Sin anuncios guardados todavía.</div>
-                ) : historialItems.map(it=>(
-                  <div key={it.id} style={{padding:'10px 12px',borderBottom:`1px solid ${D.cardBorder}`,display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:600,color:D.text,marginBottom:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{it.producto || '(sin producto)'}</div>
-                      <div style={{fontSize:11,color:D.textDim,display:'flex',gap:8,flexWrap:'wrap'}}>
-                        <span>{new Date(it.creado_en).toLocaleString('es-CO',{year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
-                        <span>·</span>
-                        <span>{it.autor || 'Anónimo'}</span>
-                        <span>·</span>
-                        <span style={{color:it.formato==='imagen'?'#059669':D.blue}}>{it.formato==='imagen'?'Imagen':'Video'}</span>
-                        {it.nivel && <><span>·</span><span>Nivel {it.nivel}</span></>}
-                        {it.motivo && <><span>·</span><span>{it.motivo}</span></>}
-                        <span>·</span>
-                        <span>${Number(it.costo_usd||0).toFixed(4)} USD</span>
+                ) : historialItems.map(it=>{
+                  const expandido = !!historialExpandido[it.id]
+                  return (
+                  <div key={it.id} style={{borderBottom:`1px solid ${D.cardBorder}`}}>
+                    <div style={{padding:'10px 12px',display:'flex',alignItems:'center',gap:10}}>
+                      <button onClick={()=>setHistorialExpandido(prev=>({...prev,[it.id]:!prev[it.id]}))}
+                        style={{fontSize:11,width:22,height:22,border:`1px solid ${D.cardBorder}`,background:expandido?D.blueDark:'transparent',color:D.textDim,borderRadius:4,cursor:'pointer',fontFamily:'inherit',padding:0}}>
+                        {expandido?'▾':'▸'}
+                      </button>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:600,color:D.text,marginBottom:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                          #{it.id} · {it.producto || '(sin producto)'}
+                        </div>
+                        <div style={{fontSize:11,color:D.textDim,display:'flex',gap:8,flexWrap:'wrap'}}>
+                          <span>{new Date(it.actualizado_en||it.creado_en).toLocaleString('es-CO',{year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+                          <span>·</span>
+                          <span>{it.autor || 'Anónimo'}</span>
+                          {it.formato && <><span>·</span><span style={{color:it.formato==='imagen'?'#059669':D.blue}}>{it.formato==='imagen'?'Imagen':'Video'}</span></>}
+                          {it.nivel && <><span>·</span><span>Nivel {it.nivel}</span></>}
+                          {it.motivo && <><span>·</span><span>{it.motivo}</span></>}
+                          <span>·</span>
+                          <span>{it.versiones_count||0} versión{(it.versiones_count||0)===1?'':'es'}</span>
+                          <span>·</span>
+                          <span>${Number(it.costo_usd_total||0).toFixed(4)} USD</span>
+                        </div>
                       </div>
+                      <button onClick={()=>cargarAnuncioHist(it.id)}
+                        style={{fontSize:11,padding:'5px 12px',background:D.blue,color:'#fff',border:'none',borderRadius:5,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+                        Cargar última
+                      </button>
+                      <button onClick={()=>eliminarAnuncioHist(it.id)}
+                        style={{fontSize:11,padding:'5px 10px',background:'transparent',color:'#dc2626',border:`1px solid #fecaca`,borderRadius:5,cursor:'pointer',fontFamily:'inherit'}}>
+                        Eliminar
+                      </button>
                     </div>
-                    <button onClick={()=>cargarAnuncioHist(it.id)}
-                      style={{fontSize:11,padding:'5px 12px',background:D.blue,color:'#fff',border:'none',borderRadius:5,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
-                      Cargar
-                    </button>
-                    <button onClick={()=>eliminarAnuncioHist(it.id)}
-                      style={{fontSize:11,padding:'5px 10px',background:'transparent',color:'#dc2626',border:`1px solid #fecaca`,borderRadius:5,cursor:'pointer',fontFamily:'inherit'}}>
-                      Eliminar
-                    </button>
+                    {expandido && (
+                      <VersionesExpandidas id={it.id} onCargar={cargarAnuncioHist} D={D} />
+                    )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
               <div style={{marginTop:10,fontSize:11,color:D.textDim,textAlign:'right'}}>
                 {historialItems.length} anuncio{historialItems.length===1?'':'s'}
@@ -1087,6 +1323,11 @@ ${guionTexto}`
               placeholder="Tu nombre (opcional)"
               style={{background:D.input,border:`1px solid ${D.inputBorder}`,color:D.text,padding:'6px 10px',borderRadius:6,fontSize:12,outline:'none',fontFamily:'inherit',width:150}}
             />
+
+            <button onClick={nuevoAnuncioReset}
+              style={{fontSize:11,color:D.blue,border:`1px solid ${D.blueDim}`,borderRadius:20,padding:'5px 14px',background:D.blueDark,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+              + Nuevo anuncio
+            </button>
 
             <button onClick={()=>{ setMostrarHistorial(true); cargarHistorial(busquedaHist) }}
               style={{fontSize:11,color:D.text,border:`1px solid ${D.cardBorder}`,borderRadius:20,padding:'5px 14px',background:'transparent',cursor:'pointer',fontFamily:'inherit'}}>
@@ -1114,6 +1355,17 @@ ${guionTexto}`
             )}
           </div>
         </div>
+
+        {bannerSesion && (
+          <div style={{background:D.blueDark,borderBottom:`1px solid ${D.blueDim}`,padding:'8px 16px',display:'flex',justifyContent:'center'}}>
+            <div style={{maxWidth:700,width:'100%',display:'flex',alignItems:'center',gap:10,fontSize:12,color:D.blueLight}}>
+              <span style={{fontSize:14}}>↺</span>
+              <span style={{flex:1}}>Continuando última sesión <strong>#{bannerSesion.id}</strong></span>
+              <button onClick={()=>setBannerSesion(null)}
+                style={{fontSize:14,border:'none',background:'transparent',color:D.blueLight,cursor:'pointer',padding:'0 4px',lineHeight:1}}>✕</button>
+            </div>
+          </div>
+        )}
 
         {mostrarSesion&&(
           <div style={{background:'#f9fafb',borderBottom:`1px solid ${D.cardBorder}`,padding:'12px 16px'}}>
@@ -1642,17 +1894,19 @@ ${guionTexto}`
                   {historial.length>0&&<span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:'#fef3c7',color:'#ba7517',border:'1px solid #fde68a'}}>{historial.length} corrección{historial.length>1?'es':''}</span>}
                   <InfoBtn prompt={promptGen} label={`Generación ${tipo}`}/>
                 </div>
-                <button onClick={guardarAnuncioActual} disabled={guardando}
-                  style={{fontSize:11,fontWeight:600,padding:'6px 12px',borderRadius:6,border:`1px solid ${guardadoOk?D.green:D.cardBorder}`,background:guardadoOk?D.greenBg:'transparent',color:guardadoOk?'#059669':D.textMid,cursor:guardando?'wait':'pointer',fontFamily:'inherit',opacity:guardando?.6:1}}>
-                  {guardadoOk?'✓ Guardado':guardando?'Guardando…':'💾 Guardar anuncio'}
-                </button>
               </div>
 
               {ultimoCosto && (
-                <div style={{background:D.accent,border:'1px solid '+D.cardBorder,borderRadius:8,padding:'8px 12px',fontSize:12,color:D.textMid,display:'flex',alignItems:'center',gap:12,marginBottom:12,flexWrap:'wrap'}}>
+                <div style={{background:D.accent,border:'1px solid '+D.cardBorder,borderRadius:8,padding:'8px 12px',fontSize:12,color:D.textMid,display:'flex',alignItems:'center',gap:12,marginBottom:6,flexWrap:'wrap'}}>
                   <span>Última: <strong>${ultimoCosto.totales.usd.toFixed(4)}</strong> USD (${ultimoCosto.totales.cop.toFixed(0)} COP)</span>
                   <span style={{color:D.blue}}>· Anuncio actual: <strong>${costoAnuncio.usd.toFixed(4)}</strong> USD (${costoAnuncio.cop.toFixed(0)} COP) · {costoAnuncio.operaciones} ops</span>
                   <span style={{marginLeft:'auto',color:D.textDim}}>Sesión: ${costoSesion.usd.toFixed(4)} USD · {costoSesion.operaciones} ops</span>
+                </div>
+              )}
+
+              {anuncioIdActual && (
+                <div style={{ fontSize: 11, color: D.textDim, marginBottom: 12 }}>
+                  Auto-guardado en anuncio #{anuncioIdActual}
                 </div>
               )}
 

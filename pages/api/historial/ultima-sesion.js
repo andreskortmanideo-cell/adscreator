@@ -1,12 +1,12 @@
-import { listarAnuncios } from '../../../lib/historial-db'
+import { obtenerUltimaSesion } from '../../../lib/historial-db'
 
 export default function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
   try {
-    const limit = Math.min(parseInt(req.query.limit || '50', 10) || 50, 200)
     const autor = req.query.autor ? String(req.query.autor) : null
-    const items = listarAnuncios(limit, autor)
-    return res.status(200).json({ items })
+    const sesion = obtenerUltimaSesion(autor)
+    if (!sesion) return res.status(200).json({ sesion: null })
+    return res.status(200).json({ sesion })
   } catch (e) {
     return res.status(500).json({ error: e.message })
   }

@@ -309,13 +309,11 @@ export default function Home() {
         cop: prev.cop + d.costoOperacion.totales.cop,
         operaciones: prev.operaciones + 1
       }))
-      if(modo!=='analizar') {
-        setCostoAnuncio(prev=>({
-          usd: prev.usd + d.costoOperacion.totales.usd,
-          cop: prev.cop + d.costoOperacion.totales.cop,
-          operaciones: prev.operaciones + 1
-        }))
-      }
+      setCostoAnuncio(prev=>({
+        usd: prev.usd + d.costoOperacion.totales.usd,
+        cop: prev.cop + d.costoOperacion.totales.cop,
+        operaciones: prev.operaciones + 1
+      }))
     }
     return d
   }

@@ -294,6 +294,7 @@ export default function Home() {
   },[])
 
   async function api(messages,modo) {
+    if (!(nombreAutor || '').trim()) { alert('Escribe tu nombre antes de continuar'); return }
     if(modo==='analizar') setCostoAnuncio({usd:0,cop:0,operaciones:0})
     const r=await fetch('/api/generate',{
       method:'POST',
@@ -1191,6 +1192,7 @@ ${guionTexto}`
       style={{fontSize:10,padding:'2px 8px',borderRadius:10,border:`1px solid ${D.cardBorder}`,background:'transparent',color:D.textDim,cursor:'pointer',marginLeft:8,fontFamily:'inherit'}}>{'{ }'}</button>
   )
 
+  const nombreValido = (nombreAutor || '').trim().length > 0
   const inp={width:'100%',background:D.input,border:`1px solid ${D.inputBorder}`,borderRadius:8,padding:'10px 12px',color:D.text,fontSize:13,fontFamily:'inherit',resize:'vertical'}
   const sel={width:'100%',background:D.input,border:`1px solid ${D.inputBorder}`,borderRadius:8,padding:'9px 11px',color:D.text,fontSize:13,fontFamily:'inherit',appearance:'none'}
   const btnMain={width:'100%',padding:13,fontSize:13,fontWeight:600,borderRadius:9,cursor:'pointer',border:'none',background:`linear-gradient(135deg,#1270a0,${D.blue})`,color:'#fff',letterSpacing:'.03em',marginTop:6}
@@ -1314,13 +1316,20 @@ ${guionTexto}`
           </div>
 
           <div style={{display:'flex',alignItems:'center',gap:12}}>
-            {/* ── Input nombre autor (opcional) ── */}
-            <input
-              value={nombreAutor}
-              onChange={e=>{ setNombreAutor(e.target.value); try { localStorage.setItem('autor', e.target.value) } catch {} }}
-              placeholder="Tu nombre (opcional)"
-              style={{background:D.input,border:`1px solid ${D.inputBorder}`,color:D.text,padding:'6px 10px',borderRadius:6,fontSize:12,outline:'none',fontFamily:'inherit',width:150}}
-            />
+            {/* ── Input nombre autor (obligatorio) ── */}
+            <div style={{display:'flex',flexDirection:'column',gap:2}}>
+              <input
+                value={nombreAutor}
+                onChange={e=>{ setNombreAutor(e.target.value); try { localStorage.setItem('autor', e.target.value) } catch {} }}
+                placeholder={nombreValido ? 'Tu nombre' : '⚠️ Escribe tu nombre para empezar'}
+                style={{background:nombreValido?D.input:'#fef2f2',border:'1px solid '+(nombreValido?D.inputBorder:'#dc2626'),color:D.text,padding:'6px 10px',borderRadius:6,fontSize:12,outline:'none',fontFamily:'inherit',width:nombreValido?150:230}}
+              />
+              {!nombreValido && (
+                <div style={{fontSize:11,color:'#dc2626',marginTop:4,maxWidth:230,lineHeight:1.3}}>
+                  Tu nombre es obligatorio para usar la plataforma y registrar tus anuncios en el historial.
+                </div>
+              )}
+            </div>
 
             <button onClick={nuevoAnuncioReset}
               style={{fontSize:11,color:D.blue,border:`1px solid ${D.blueDim}`,borderRadius:20,padding:'5px 14px',background:D.blueDark,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
@@ -1463,7 +1472,7 @@ ${guionTexto}`
               </div>
             )}
             <div style={{fontSize:11,color:D.textFaint,marginBottom:8}}>Cualquier combinación de descripción + URL + archivos enriquece el contexto.</div>
-            <button onClick={analizar} disabled={analizando||(!nombre.trim()&&!prod.trim()&&!url.trim()&&archivos.length===0)} style={{...btnMain,opacity:(analizando||(!nombre.trim()&&!prod.trim()&&!url.trim()&&archivos.length===0))?.5:1}}>
+            <button onClick={analizar} disabled={!nombreValido||analizando||(!nombre.trim()&&!prod.trim()&&!url.trim()&&archivos.length===0)} title={!nombreValido?'Escribe tu nombre primero':undefined} style={{...btnMain,opacity:(!nombreValido||analizando||(!nombre.trim()&&!prod.trim()&&!url.trim()&&archivos.length===0))?.5:1,cursor:nombreValido?'pointer':'not-allowed'}}>
               {analizando?'Analizando producto...':'Analizar producto'}
             </button>
           </div>
@@ -1863,7 +1872,7 @@ ${guionTexto}`
                   if (!tieneAngulo) faltantes.push('Ángulo')
                   const ok = faltantes.length === 0
                   return (
-                    <button onClick={()=>generar(false)} disabled={!ok||generando} style={{...btnMain,marginTop:0,opacity:(!ok||generando)?.4:1}}>
+                    <button onClick={()=>generar(false)} disabled={!nombreValido||!ok||generando} title={!nombreValido?'Escribe tu nombre primero':undefined} style={{...btnMain,marginTop:0,opacity:(!nombreValido||!ok||generando)?.4:1,cursor:nombreValido?'pointer':'not-allowed'}}>
                       {generando
                         ?formato==='imagen'?'Generando 2 ideas...':'Generando 2 versiones...'
                         :ok
@@ -1924,8 +1933,8 @@ ${guionTexto}`
                   {/* Botón auditar + cuadro de auditoría — VIDEO */}
                   <div style={{marginTop:14, paddingTop:14, borderTop:`1px solid ${D.cardBorder}`}}>
                     {!auditorias[versionActiva] && (
-                      <button onClick={()=>auditarVersion(versionActiva,'video')} disabled={auditando===String(versionActiva)}
-                        style={{fontSize:11, padding:'7px 14px', background:D.accent, border:`1px solid ${D.cardBorder}`, color:D.textMid, borderRadius:7, cursor:'pointer', fontFamily:'inherit', fontWeight:600, opacity:auditando===String(versionActiva)?.5:1}}>
+                      <button onClick={()=>auditarVersion(versionActiva,'video')} disabled={!nombreValido||auditando===String(versionActiva)} title={!nombreValido?'Escribe tu nombre primero':undefined}
+                        style={{fontSize:11, padding:'7px 14px', background:D.accent, border:`1px solid ${D.cardBorder}`, color:D.textMid, borderRadius:7, cursor:nombreValido?'pointer':'not-allowed', fontFamily:'inherit', fontWeight:600, opacity:(!nombreValido||auditando===String(versionActiva))?.5:1}}>
                         {auditando===String(versionActiva)?'🔍 Auditando...':'🔍 Auditar este guion'}
                       </button>
                     )}
@@ -1944,8 +1953,8 @@ ${guionTexto}`
                           {renderAuditoria(auditorias[versionActiva])}
                         </div>
                         <div style={{marginTop:10, display:'flex', gap:6}}>
-                          <button onClick={()=>auditarVersion(versionActiva,'video')} disabled={auditando===String(versionActiva)}
-                            style={{fontSize:10, color:D.textMid, background:'transparent', border:`1px solid ${D.cardBorder}`, borderRadius:5, padding:'4px 9px', cursor:'pointer'}}>
+                          <button onClick={()=>auditarVersion(versionActiva,'video')} disabled={!nombreValido||auditando===String(versionActiva)} title={!nombreValido?'Escribe tu nombre primero':undefined}
+                            style={{fontSize:10, color:D.textMid, background:'transparent', border:`1px solid ${D.cardBorder}`, borderRadius:5, padding:'4px 9px', cursor:nombreValido?'pointer':'not-allowed', opacity:nombreValido?1:0.5}}>
                             ⟳ Re-auditar
                           </button>
                           <button onClick={()=>copiarAlPortapapeles(auditorias[versionActiva], 'audit_'+versionActiva)}
@@ -1971,7 +1980,7 @@ ${guionTexto}`
                         </div>
                         <div style={{display:'flex',gap:6,flexShrink:0}}>
                           <button onClick={()=>copiarAlPortapapeles(textoCompletoVersion(v), 'version_'+i)} style={{fontSize:11,color:copiadoKey==='version_'+i?D.green:D.blueLight,border:`1px solid ${copiadoKey==='version_'+i?D.green:D.blue}`,background:'transparent',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}>{copiadoKey==='version_'+i?'✓ Copiado':'Copiar'}</button>
-                          <button onClick={()=>{setVersionActiva(i);setTimeout(generarVariaciones,50)}} disabled={generandoVariaciones} style={{fontSize:11,color:D.green,border:`1px solid ${D.greenBorder}`,background:D.greenBg,borderRadius:7,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',opacity:generandoVariaciones?.5:1}}>⟳ Variaciones</button>
+                          <button onClick={()=>{setVersionActiva(i);setTimeout(generarVariaciones,50)}} disabled={!nombreValido||generandoVariaciones} title={!nombreValido?'Escribe tu nombre primero':undefined} style={{fontSize:11,color:D.green,border:`1px solid ${D.greenBorder}`,background:D.greenBg,borderRadius:7,padding:'4px 10px',cursor:nombreValido?'pointer':'not-allowed',fontFamily:'inherit',opacity:(!nombreValido||generandoVariaciones)?.5:1}}>⟳ Variaciones</button>
                         </div>
                       </div>
                       <div style={{fontSize:14,color:D.text,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{(()=>{
@@ -1991,8 +2000,8 @@ ${guionTexto}`
                       {/* Auditar idea de imagen */}
                       <div style={{marginTop:12, paddingTop:10, borderTop:`1px solid ${D.cardBorder}`}}>
                         {!auditorias['imagen_'+i] && (
-                          <button onClick={()=>auditarVersion(i,'imagen')} disabled={auditando==='imagen_'+i}
-                            style={{fontSize:11, padding:'6px 12px', background:D.accent, border:`1px solid ${D.cardBorder}`, color:D.textMid, borderRadius:7, cursor:'pointer', fontFamily:'inherit', fontWeight:600, opacity:auditando==='imagen_'+i?.5:1}}>
+                          <button onClick={()=>auditarVersion(i,'imagen')} disabled={!nombreValido||auditando==='imagen_'+i} title={!nombreValido?'Escribe tu nombre primero':undefined}
+                            style={{fontSize:11, padding:'6px 12px', background:D.accent, border:`1px solid ${D.cardBorder}`, color:D.textMid, borderRadius:7, cursor:nombreValido?'pointer':'not-allowed', fontFamily:'inherit', fontWeight:600, opacity:(!nombreValido||auditando==='imagen_'+i)?.5:1}}>
                             {auditando==='imagen_'+i?'🔍 Auditando...':'🔍 Auditar esta idea'}
                           </button>
                         )}
@@ -2033,10 +2042,10 @@ ${guionTexto}`
                   placeholder={formato==='imagen'?'Ej: más dramático · fondo diferente · otro ángulo...':'Ej: ganchos más directos · más corto · tono más coloquial...'}
                   style={{...inp,marginBottom:0}}/>
                 <div style={{display:'flex',gap:8,marginTop:8}}>
-                  <button onClick={()=>generar(false)} disabled={generando} style={{flex:1,padding:10,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:8,background:'transparent',color:D.textDim,cursor:'pointer',fontFamily:'inherit'}}>
+                  <button onClick={()=>generar(false)} disabled={!nombreValido||generando} title={!nombreValido?'Escribe tu nombre primero':undefined} style={{flex:1,padding:10,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:8,background:'transparent',color:D.textDim,cursor:nombreValido?'pointer':'not-allowed',fontFamily:'inherit',opacity:nombreValido?1:0.5}}>
                     {generando?'...':'Regenerar'}
                   </button>
-                  <button onClick={()=>generar(true)} disabled={generando||!correccion.trim()} style={{flex:2,padding:10,fontSize:12,fontWeight:600,border:`1px solid ${D.blue}60`,borderRadius:8,background:D.blueDark,color:D.blue,cursor:'pointer',fontFamily:'inherit',opacity:(!correccion.trim()||generando)?.4:1}}>
+                  <button onClick={()=>generar(true)} disabled={!nombreValido||generando||!correccion.trim()} title={!nombreValido?'Escribe tu nombre primero':undefined} style={{flex:2,padding:10,fontSize:12,fontWeight:600,border:`1px solid ${D.blue}60`,borderRadius:8,background:D.blueDark,color:D.blue,cursor:nombreValido?'pointer':'not-allowed',fontFamily:'inherit',opacity:(!nombreValido||!correccion.trim()||generando)?.4:1}}>
                     {generando?'Aplicando...':'Aplicar corrección y regenerar'}
                   </button>
                 </div>

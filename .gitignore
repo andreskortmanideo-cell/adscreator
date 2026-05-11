@@ -4,3 +4,7 @@ node_modules/
 .env
 *.log
 .DS_Store
+data/historial.db
+data/historial.db-journal
+data/historial.db-wal
+data/historial.db-shm

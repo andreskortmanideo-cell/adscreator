@@ -108,6 +108,14 @@ export default function Home() {
   const [hooksUsadosImg,setHooksUsadosImg]=useState([])
   const [ultimoCosto,setUltimoCosto]=useState(null)
   const [costoSesion,setCostoSesion]=useState({usd:0,cop:0,operaciones:0})
+  const [costoAnuncio,setCostoAnuncio]=useState({usd:0,cop:0,operaciones:0})
+  const [nombreAutor,setNombreAutor]=useState('')
+  const [mostrarHistorial,setMostrarHistorial]=useState(false)
+  const [historialItems,setHistorialItems]=useState([])
+  const [historialCargando,setHistorialCargando]=useState(false)
+  const [busquedaHist,setBusquedaHist]=useState('')
+  const [guardando,setGuardando]=useState(false)
+  const [guardadoOk,setGuardadoOk]=useState(false)
   const [variaciones,setVariaciones]=useState([])
   const [variacionActiva,setVariacionActiva]=useState(0)
   // ── NUEVO: selector de API ──────────────────────────────────────
@@ -134,6 +142,14 @@ export default function Home() {
     setCopiadoKey(null)
     setHooksUsadosImg([])
   },[formato])
+
+  // Hidrata nombreAutor desde localStorage (SSR-safe)
+  useEffect(()=>{
+    try {
+      const stored = localStorage.getItem('autor')
+      if (stored) setNombreAutor(stored)
+    } catch {}
+  },[])
 
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search)
@@ -208,6 +224,7 @@ export default function Home() {
   },[])
 
   async function api(messages,modo) {
+    if(modo==='analizar') setCostoAnuncio({usd:0,cop:0,operaciones:0})
     const r=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -222,8 +239,135 @@ export default function Home() {
         cop: prev.cop + d.costoOperacion.totales.cop,
         operaciones: prev.operaciones + 1
       }))
+      if(modo!=='analizar') {
+        setCostoAnuncio(prev=>({
+          usd: prev.usd + d.costoOperacion.totales.usd,
+          cop: prev.cop + d.costoOperacion.totales.cop,
+          operaciones: prev.operaciones + 1
+        }))
+      }
     }
     return d
+  }
+
+  // ── Historial compartido (SQLite) ─────────────────────────────
+  function avatarTextoActual() {
+    if (avatarManual.trim()) return avatarManual.trim()
+    if (avatarSel !== null && analisis?.avatares?.[avatarSel]) {
+      const a = analisis.avatares[avatarSel]
+      return (a.nombre || '') + (a.dolor_principal ? ' — ' + a.dolor_principal : '')
+    }
+    return ''
+  }
+
+  async function guardarAnuncioActual() {
+    if (versiones.length === 0) return
+    setGuardando(true)
+    setGuardadoOk(false)
+    try {
+      const nv = nivelSel || analisis?.nivel_recomendado || ''
+      const payload = {
+        nombre, prod, url, pais, plat, formato, duracion, formatoImagen,
+        nivelSel, tipo, avatarSel, avatarManual, anguloSel,
+        modeloSel, analisis,
+        versiones, versionActiva, variaciones, variacionActiva,
+        historial, msgs, auditorias,
+        promptGen, promptAnalisis,
+        hooksUsadosImg,
+        costoAnuncio
+      }
+      const body = {
+        autor: nombreAutor.trim() || 'Anónimo',
+        producto: (nombre || prod || '').toString().slice(0,200),
+        avatar: avatarTextoActual().slice(0,200),
+        formato,
+        nivel: String(nv),
+        motivo: tipo || '',
+        angulo: anguloSel || '',
+        modelo: modeloSel,
+        costoUsd: costoAnuncio.usd,
+        costoCop: costoAnuncio.cop,
+        operaciones: costoAnuncio.operaciones,
+        payload
+      }
+      const r = await fetch('/api/historial/guardar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al guardar')
+      setGuardadoOk(true)
+      setTimeout(() => setGuardadoOk(false), 2000)
+    } catch (e) {
+      alert('Error al guardar: ' + e.message)
+    }
+    setGuardando(false)
+  }
+
+  async function cargarHistorial(producto='') {
+    setHistorialCargando(true)
+    try {
+      const q = producto ? '?producto=' + encodeURIComponent(producto) : ''
+      const r = await fetch('/api/historial/listar' + q)
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al listar')
+      setHistorialItems(d.items || [])
+    } catch (e) {
+      alert('Error al cargar historial: ' + e.message)
+    }
+    setHistorialCargando(false)
+  }
+
+  async function cargarAnuncioHist(id) {
+    try {
+      const r = await fetch('/api/historial/' + id)
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'No encontrado')
+      const p = d.datos || {}
+      if (p.nombre !== undefined) setNombre(p.nombre || '')
+      if (p.prod !== undefined) setProd(p.prod || '')
+      if (p.url !== undefined) setUrl(p.url || '')
+      if (p.pais !== undefined) setPais(p.pais || 'Colombia')
+      if (p.plat !== undefined) setPlat(p.plat || 'Meta Ads')
+      if (p.formato !== undefined) setFormato(p.formato || 'video')
+      if (p.duracion !== undefined) setDuracion(p.duracion || '30')
+      if (p.formatoImagen !== undefined) setFormatoImagen(p.formatoImagen || 'Funcional')
+      if (p.nivelSel !== undefined) setNivelSel(p.nivelSel)
+      if (p.tipo !== undefined) setTipo(p.tipo)
+      if (p.avatarSel !== undefined) setAvatarSel(p.avatarSel)
+      if (p.avatarManual !== undefined) setAvatarManual(p.avatarManual || '')
+      if (p.anguloSel !== undefined) setAnguloSel(p.anguloSel)
+      if (p.modeloSel !== undefined) setModeloSel(p.modeloSel)
+      if (p.analisis !== undefined) setAnalisis(p.analisis)
+      if (Array.isArray(p.versiones)) setVersiones(p.versiones)
+      if (p.versionActiva !== undefined) setVersionActiva(p.versionActiva || 0)
+      if (Array.isArray(p.variaciones)) setVariaciones(p.variaciones)
+      if (p.variacionActiva !== undefined) setVariacionActiva(p.variacionActiva || 0)
+      if (Array.isArray(p.historial)) setHistorial(p.historial)
+      if (Array.isArray(p.msgs)) setMsgs(p.msgs)
+      if (p.auditorias && typeof p.auditorias === 'object') setAuditorias(p.auditorias)
+      if (p.promptGen !== undefined) setPromptGen(p.promptGen || '')
+      if (p.promptAnalisis !== undefined) setPromptAnalisis(p.promptAnalisis || '')
+      if (Array.isArray(p.hooksUsadosImg)) setHooksUsadosImg(p.hooksUsadosImg)
+      if (p.costoAnuncio !== undefined) setCostoAnuncio(p.costoAnuncio || {usd:0,cop:0,operaciones:0})
+      setMostrarHistorial(false)
+      setTimeout(() => document.getElementById('resultado-section')?.scrollIntoView({behavior:'smooth',block:'start'}), 150)
+    } catch (e) {
+      alert('Error al cargar: ' + e.message)
+    }
+  }
+
+  async function eliminarAnuncioHist(id) {
+    if (!confirm('¿Eliminar este anuncio del historial? Esta acción no se puede deshacer.')) return
+    try {
+      const r = await fetch('/api/historial/' + id, { method: 'DELETE' })
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al eliminar')
+      setHistorialItems(items => items.filter(it => it.id !== id))
+    } catch (e) {
+      alert('Error al eliminar: ' + e.message)
+    }
   }
 
   async function subirArchivo(file) {
@@ -863,6 +1007,71 @@ ${guionTexto}`
           </div>
         )}
 
+        {mostrarHistorial&&(
+          <div onClick={()=>setMostrarHistorial(false)} style={{position:'fixed',inset:0,background:'rgba(17,24,39,0.5)',zIndex:100,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'40px 16px',overflowY:'auto'}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:'#ffffff',border:`1px solid ${D.cardBorder}`,borderRadius:14,padding:'1.25rem',width:'100%',maxWidth:820,maxHeight:'85vh',display:'flex',flexDirection:'column'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:600,color:D.blue,letterSpacing:'.07em',textTransform:'uppercase'}}>📂 Historial compartido</div>
+                <button onClick={()=>setMostrarHistorial(false)} style={{fontSize:12,border:'none',background:'transparent',cursor:'pointer',color:D.textDim}}>✕</button>
+              </div>
+              <div style={{display:'flex',gap:8,marginBottom:12}}>
+                <input
+                  value={busquedaHist}
+                  onChange={e=>setBusquedaHist(e.target.value)}
+                  onKeyDown={e=>{ if(e.key==='Enter') cargarHistorial(busquedaHist) }}
+                  placeholder="Buscar por producto…"
+                  style={{flex:1,background:D.input,border:`1px solid ${D.inputBorder}`,color:D.text,padding:'7px 10px',borderRadius:6,fontSize:13,outline:'none',fontFamily:'inherit'}}
+                />
+                <button onClick={()=>cargarHistorial(busquedaHist)}
+                  style={{fontSize:12,padding:'7px 14px',background:D.blue,color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+                  Buscar
+                </button>
+                {busquedaHist&&(
+                  <button onClick={()=>{ setBusquedaHist(''); cargarHistorial('') }}
+                    style={{fontSize:12,padding:'7px 12px',background:'transparent',color:D.textMid,border:`1px solid ${D.cardBorder}`,borderRadius:6,cursor:'pointer',fontFamily:'inherit'}}>
+                    Limpiar
+                  </button>
+                )}
+              </div>
+              <div style={{flex:1,overflowY:'auto',border:`1px solid ${D.cardBorder}`,borderRadius:8,background:D.accent}}>
+                {historialCargando ? (
+                  <div style={{padding:24,textAlign:'center',color:D.textDim,fontSize:13}}>Cargando…</div>
+                ) : historialItems.length===0 ? (
+                  <div style={{padding:24,textAlign:'center',color:D.textDim,fontSize:13}}>Sin anuncios guardados todavía.</div>
+                ) : historialItems.map(it=>(
+                  <div key={it.id} style={{padding:'10px 12px',borderBottom:`1px solid ${D.cardBorder}`,display:'flex',alignItems:'center',gap:10}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:600,color:D.text,marginBottom:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{it.producto || '(sin producto)'}</div>
+                      <div style={{fontSize:11,color:D.textDim,display:'flex',gap:8,flexWrap:'wrap'}}>
+                        <span>{new Date(it.creado_en).toLocaleString('es-CO',{year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+                        <span>·</span>
+                        <span>{it.autor || 'Anónimo'}</span>
+                        <span>·</span>
+                        <span style={{color:it.formato==='imagen'?'#059669':D.blue}}>{it.formato==='imagen'?'Imagen':'Video'}</span>
+                        {it.nivel && <><span>·</span><span>Nivel {it.nivel}</span></>}
+                        {it.motivo && <><span>·</span><span>{it.motivo}</span></>}
+                        <span>·</span>
+                        <span>${Number(it.costo_usd||0).toFixed(4)} USD</span>
+                      </div>
+                    </div>
+                    <button onClick={()=>cargarAnuncioHist(it.id)}
+                      style={{fontSize:11,padding:'5px 12px',background:D.blue,color:'#fff',border:'none',borderRadius:5,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+                      Cargar
+                    </button>
+                    <button onClick={()=>eliminarAnuncioHist(it.id)}
+                      style={{fontSize:11,padding:'5px 10px',background:'transparent',color:'#dc2626',border:`1px solid #fecaca`,borderRadius:5,cursor:'pointer',fontFamily:'inherit'}}>
+                      Eliminar
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:10,fontSize:11,color:D.textDim,textAlign:'right'}}>
+                {historialItems.length} anuncio{historialItems.length===1?'':'s'}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── HEADER ── */}
         <div style={{background:'#ffffff',borderBottom:`1px solid ${D.cardBorder}`,padding:'0 28px',height:58,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
           <div style={{lineHeight:1}}>
@@ -871,6 +1080,19 @@ ${guionTexto}`
           </div>
 
           <div style={{display:'flex',alignItems:'center',gap:12}}>
+            {/* ── Input nombre autor (opcional) ── */}
+            <input
+              value={nombreAutor}
+              onChange={e=>{ setNombreAutor(e.target.value); try { localStorage.setItem('autor', e.target.value) } catch {} }}
+              placeholder="Tu nombre (opcional)"
+              style={{background:D.input,border:`1px solid ${D.inputBorder}`,color:D.text,padding:'6px 10px',borderRadius:6,fontSize:12,outline:'none',fontFamily:'inherit',width:150}}
+            />
+
+            <button onClick={()=>{ setMostrarHistorial(true); cargarHistorial(busquedaHist) }}
+              style={{fontSize:11,color:D.text,border:`1px solid ${D.cardBorder}`,borderRadius:20,padding:'5px 14px',background:'transparent',cursor:'pointer',fontFamily:'inherit'}}>
+              📂 Historial
+            </button>
+
             {/* ── Selector de modelo (dropdown nativo) ── */}
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{fontSize:11,color:D.textDim,letterSpacing:0.5,textTransform:'uppercase',fontWeight:500}}>Modelo IA</span>
@@ -1420,14 +1642,16 @@ ${guionTexto}`
                   {historial.length>0&&<span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:'#fef3c7',color:'#ba7517',border:'1px solid #fde68a'}}>{historial.length} corrección{historial.length>1?'es':''}</span>}
                   <InfoBtn prompt={promptGen} label={`Generación ${tipo}`}/>
                 </div>
+                <button onClick={guardarAnuncioActual} disabled={guardando}
+                  style={{fontSize:11,fontWeight:600,padding:'6px 12px',borderRadius:6,border:`1px solid ${guardadoOk?D.green:D.cardBorder}`,background:guardadoOk?D.greenBg:'transparent',color:guardadoOk?'#059669':D.textMid,cursor:guardando?'wait':'pointer',fontFamily:'inherit',opacity:guardando?.6:1}}>
+                  {guardadoOk?'✓ Guardado':guardando?'Guardando…':'💾 Guardar anuncio'}
+                </button>
               </div>
 
               {ultimoCosto && (
                 <div style={{background:D.accent,border:'1px solid '+D.cardBorder,borderRadius:8,padding:'8px 12px',fontSize:12,color:D.textMid,display:'flex',alignItems:'center',gap:12,marginBottom:12,flexWrap:'wrap'}}>
-                  <span>Última operación:</span>
-                  <span><strong>{ultimoCosto.totales.inputTokens.toLocaleString()}</strong> in + <strong>{ultimoCosto.totales.outputTokens.toLocaleString()}</strong> out tokens</span>
-                  <span>≈ <strong>${ultimoCosto.totales.usd.toFixed(4)}</strong> USD</span>
-                  <span>(<strong>${ultimoCosto.totales.cop.toFixed(0)}</strong> COP)</span>
+                  <span>Última: <strong>${ultimoCosto.totales.usd.toFixed(4)}</strong> USD (${ultimoCosto.totales.cop.toFixed(0)} COP)</span>
+                  <span style={{color:D.blue}}>· Anuncio actual: <strong>${costoAnuncio.usd.toFixed(4)}</strong> USD (${costoAnuncio.cop.toFixed(0)} COP) · {costoAnuncio.operaciones} ops</span>
                   <span style={{marginLeft:'auto',color:D.textDim}}>Sesión: ${costoSesion.usd.toFixed(4)} USD · {costoSesion.operaciones} ops</span>
                 </div>
               )}

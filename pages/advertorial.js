@@ -643,28 +643,46 @@ export default function AdvertorialCreator() {
               </div>
             ) : b.key === 'testimonios' && parseTestimonios(toText(advertorial[b.key])) ? (
               <div>
-                {parseTestimonios(toText(advertorial[b.key])).map((t,i) => (
-                  <div key={i} style={{ background:D.input, border:`1px solid ${D.cardBorder}`, borderRadius:12, padding:16, marginBottom:14 }}>
-                    <div style={{ color:D.yellow, fontSize:14, letterSpacing:'.05em', marginBottom:10 }}>{t.estrellas}</div>
-                    <p style={{ color:D.text, fontSize:14, lineHeight:1.7, margin:'0 0 12px', whiteSpace:'pre-wrap' }}>“{t.review}”</p>
-                    {t.footer.length > 0 && (
-                      <div style={{ color:D.textMid, fontSize:12, lineHeight:1.5, borderTop:`1px solid ${D.cardBorder}`, paddingTop:10 }}>
-                        {t.footer.map((l,j) => <div key={j}>{l}</div>)}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {parseTestimonios(toText(advertorial[b.key])).map((t,i) => {
+                  const optKey = `testimonio-${i}`
+                  const cardTexto = [t.estrellas, `"${t.review}"`, '', ...t.footer].filter(s => s !== undefined).join('\n')
+                  return (
+                    <div key={i} style={{ background:D.input, border:`1px solid ${D.cardBorder}`, borderRadius:12, padding:16, marginBottom:14, position:'relative' }}>
+                      <button id={`copy-${optKey}`} onClick={()=>copiarOpcion(cardTexto, optKey)}
+                        title="Copiar este testimonio"
+                        style={{ position:'absolute', top:10, right:10, padding:'3px 8px', background:'transparent', border:`1px solid ${D.cardBorder}`, color:D.text, borderRadius:4, fontSize:11, cursor:'pointer', fontFamily:'monospace' }}>
+                        📋
+                      </button>
+                      <div style={{ color:D.yellow, fontSize:14, letterSpacing:'.05em', marginBottom:10, paddingRight:36 }}>{t.estrellas}</div>
+                      <p style={{ color:D.text, fontSize:14, lineHeight:1.7, margin:'0 0 12px', whiteSpace:'pre-wrap' }}>“{t.review}”</p>
+                      {t.footer.length > 0 && (
+                        <div style={{ color:D.textMid, fontSize:12, lineHeight:1.5, borderTop:`1px solid ${D.cardBorder}`, paddingTop:10 }}>
+                          {t.footer.map((l,j) => <div key={j}>{l}</div>)}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ) : b.key === 'faq' && parseFaq(toText(advertorial[b.key])) ? (
               <div>
-                {parseFaq(toText(advertorial[b.key])).map((q,i) => (
-                  <div key={i} style={{ background:D.input, border:`1px solid ${D.cardBorder}`, borderRadius:12, padding:16, marginBottom:14 }}>
-                    {q.autor && <div style={{ color:D.textDim, fontSize:11, marginBottom:6 }}>{q.autor}</div>}
-                    <p style={{ color:D.text, fontSize:14, fontWeight:700, lineHeight:1.5, margin:'0 0 10px' }}>{q.pregunta}</p>
-                    {q.experto && <div style={{ color:D.blue, fontSize:11, fontWeight:600, marginBottom:6 }}>{q.experto}</div>}
-                    <p style={{ color:D.textMid, fontSize:14, lineHeight:1.7, margin:0, whiteSpace:'pre-wrap' }}>{q.respuesta}</p>
-                  </div>
-                ))}
+                {parseFaq(toText(advertorial[b.key])).map((q,i) => {
+                  const optKey = `faq-${i}`
+                  const cardTexto = [q.autor, q.pregunta, '', q.experto, q.respuesta].filter(s => s && s.trim()).join('\n')
+                  return (
+                    <div key={i} style={{ background:D.input, border:`1px solid ${D.cardBorder}`, borderRadius:12, padding:16, marginBottom:14, position:'relative' }}>
+                      <button id={`copy-${optKey}`} onClick={()=>copiarOpcion(cardTexto, optKey)}
+                        title="Copiar esta pregunta y respuesta"
+                        style={{ position:'absolute', top:10, right:10, padding:'3px 8px', background:'transparent', border:`1px solid ${D.cardBorder}`, color:D.text, borderRadius:4, fontSize:11, cursor:'pointer', fontFamily:'monospace' }}>
+                        📋
+                      </button>
+                      {q.autor && <div style={{ color:D.textDim, fontSize:11, marginBottom:6, paddingRight:36 }}>{q.autor}</div>}
+                      <p style={{ color:D.text, fontSize:14, fontWeight:700, lineHeight:1.5, margin:'0 0 10px', paddingRight: q.autor ? 0 : 36 }}>{q.pregunta}</p>
+                      {q.experto && <div style={{ color:D.blue, fontSize:11, fontWeight:600, marginBottom:6 }}>{q.experto}</div>}
+                      <p style={{ color:D.textMid, fontSize:14, lineHeight:1.7, margin:0, whiteSpace:'pre-wrap' }}>{q.respuesta}</p>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <p style={{ color:D.textMid, fontSize:12, lineHeight:1.85, whiteSpace:'pre-wrap', margin:0 }}>

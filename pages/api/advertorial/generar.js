@@ -546,26 +546,24 @@ Garantía de [N] días sin riesgo
 Si en [N] días de uso constante no notas una diferencia real en [resultado], te devolvemos el dinero completo. Sin complicaciones. [N] días porque ese es el tiempo que el [protocolo] necesita.
 *Aplican términos y condiciones
 
-testimonios (4 testimonios con EXTENSIONES VARIADAS — OBLIGATORIO para que parezcan reales):
-Las 4 reseñas DEBEN tener extensiones diferentes para parecer reales. Distribución obligatoria:
-- 1 reseña CORTA: 2-3 oraciones, 35-60 palabras. Estilo directo y emocional, casi un grito de gratitud.
-- 1 reseña MEDIA-CORTA: 4-5 oraciones, 70-100 palabras.
-- 1 reseña LARGA: 7-9 oraciones, 130-180 palabras. La detallada, con historia completa y números concretos.
-- 1 reseña MEDIA: 5-6 oraciones, 90-120 palabras. La escéptica de 4 estrellas.
-Diversifica también edades (rango 30-70), ciudades colombianas distintas, géneros, profesiones. NUNCA dos reseñas con la misma estructura ('Probé X, probé Y, pero...' repetido es inválido).
+testimonios (5 o 6 testimonios con EXTENSIONES EXACTAS por número de palabras — OBLIGATORIO):
+Genera 5 o 6 testimonios con extensiones MUY VARIADAS por número de palabras. Distribución obligatoria (elige 5 o 6 de esta lista, mezclados):
+- 1 testimonio MUY CORTO: 10-18 palabras. Frase emocional de impacto. Ej: "Tres semanas. Nunca dormí tan profundo en mi vida. Cambió todo."
+- 1 testimonio CORTO: 22-35 palabras. 1-2 oraciones directas.
+- 1 testimonio MEDIO-CORTO: 40-55 palabras. 2-3 oraciones con un detalle específico.
+- 1 testimonio MEDIO: 60-75 palabras. 3-4 oraciones con historia breve.
+- 1 testimonio LARGO: 90-120 palabras. Historia con contexto previo + qué probó + resultado + sueño cumplido.
+- 1 testimonio MUY LARGO (opcional, solo si decides hacer 6): 140-180 palabras. Historia detallada con condición médica específica, números concretos y sueño cumplido emocional.
 
-El ORDEN de las 4 reseñas debe ser ALEATORIO. NO presentes siempre corta → media-corta → larga → media. Mezcla el orden cada vez. Posibles secuencias válidas: larga → corta → media → media-corta; media-corta → larga → corta → media; corta → larga → media-corta → media; etc. Mezcla deliberadamente. La 4-estrellas escéptica puede estar en cualquier posición, no siempre al final.
+ORDEN OBLIGATORIAMENTE ALEATORIO — NO presentarlos de corto a largo ni de largo a corto. Mezcla: ej. largo → muy corto → medio → corto → medio-corto. La 4 estrellas escéptica puede estar en cualquier posición.
+Diversifica edades (30-70), géneros, profesiones, ciudades colombianas. NUNCA dos testimonios con la misma estructura ('Probé X, probé Y, pero...' repetido es inválido).
 
-Cada testimonio sigue una ESTRUCTURA EMOCIONAL PROGRESIVA DE 5 FASES (las 5 son obligatorias, en orden, sin saltarse ninguna):
-1) CONTEXTO PREVIO: qué vivía y cuánto tiempo (ej: "llevaba 2 años con migrañas casi diarias").
-2) QUÉ PROBÓ ANTES: 1-2 alternativas que fallaron, con nombre concreto (no genérico "probé de todo").
-3) DESCUBRIMIENTO: cómo encontró el producto (recomendación, lectura, anuncio, derivación de un profesional).
-4) RESULTADO CONCRETO: con tiempo específico ("a los 8 días", "tras 3 semanas") y dato medible.
-5) SUEÑO CUMPLIDO (OBLIGATORIA — sin esta fase 5 el testimonio queda inválido): lo que ahora puede hacer/sentir/atreverse que antes no — escena concreta, idealmente social ("volví a usar shorts en familia", "puedo cargar a mi nieto sin susto", "dormí toda la noche por primera vez en meses"). NO la omitas. NO la reemplaces por "estoy muy contenta". Tiene que ser una escena, no un adjetivo.
+Para los testimonios MEDIO, LARGO y MUY LARGO: incluye 4-5 de estas 5 fases narradas naturalmente (sin numerarlas en el texto): (1) contexto previo con tiempo, (2) qué probó antes con 1-2 nombres concretos, (3) descubrimiento, (4) resultado concreto con tiempo específico y dato medible, (5) sueño cumplido — escena concreta, idealmente social ("volví a usar shorts en familia", "puedo cargar a mi nieto sin susto", "dormí toda la noche por primera vez en meses"). NO uses "estoy muy contenta"; tiene que ser una escena, no un adjetivo.
+Para los testimonios MUY CORTO, CORTO y MEDIO-CORTO: prioriza impacto emocional sobre completitud — basta con resultado + sueño implícito o una sola fase muy concreta.
 
-Formato:
+Formato de cada testimonio:
 ★★★★★
-"[Las 5 fases narradas naturalmente en 5-7 oraciones, sin numerarlas en el texto]"
+"[Texto del testimonio según extensión asignada, respetando el rango de palabras]"
 
 [Nombre completo], [edad] años — [Ciudad]
 [Mes Día, Año]
@@ -573,23 +571,24 @@ Formato:
 
 (1 testimonio ★★★★☆ con paciencia/duda inicial — credibilidad)
 
-faq (4 preguntas + respuestas con EXTENSIONES VARIADAS — OBLIGATORIO para que parezcan reales):
-Las 4 preguntas DEBEN tener extensiones MUY diferentes para parecer reales:
-- 1 pregunta CORTA y directa: 1 oración, 8-15 palabras. Tipo '¿Sirve para X?' o '¿Cuánto tarda?'.
-- 1 pregunta MEDIA: 2 oraciones, 20-35 palabras. Con un poco de contexto personal.
-- 1 pregunta LARGA y detallada: 3-4 oraciones, 45-70 palabras. Con condición médica específica, medicamentos, edad, contexto.
-- 1 pregunta MEDIA-LARGA: 2-3 oraciones, 30-50 palabras.
-Las RESPUESTAS también deben variar: corta (2-3 frases, 50-80 palabras) para preguntas simples, media (4-5 frases, 100-150 palabras) para preguntas con matiz, larga (6-8 frases, 180-250 palabras) para preguntas complejas con condiciones médicas. Nunca 4 respuestas del mismo tamaño.
+faq (5 o 6 preguntas + respuestas con EXTENSIONES EXACTAS por número de palabras — OBLIGATORIO):
+Genera 5 o 6 preguntas y respuestas con extensiones MUY VARIADAS. Distribución obligatoria (elige 5 o 6, mezclados):
+- 1 pregunta MUY CORTA (6-12 palabras) + respuesta CORTA (30-50 palabras). Ej: "¿Sirve si tengo más de 60 años?"
+- 1 pregunta CORTA (15-22 palabras) + respuesta MEDIA-CORTA (50-75 palabras)
+- 1 pregunta MEDIA (25-35 palabras) + respuesta MEDIA (80-110 palabras)
+- 1 pregunta LARGA (40-55 palabras con condición médica/contexto) + respuesta LARGA (130-180 palabras)
+- 1 pregunta MEDIA-LARGA (30-42 palabras) + respuesta MEDIA-LARGA (100-130 palabras)
+- 1 par MUY LARGO (opcional para 6): pregunta de 50-65 palabras + respuesta de 180-230 palabras con condición compleja.
 
-El ORDEN de las 4 preguntas debe ser ALEATORIO. NO siempre corta → media → larga → media-larga. Mezcla deliberadamente cada vez.
+ORDEN OBLIGATORIAMENTE ALEATORIO. Mezcla los pares deliberadamente, no de corto a largo. La pregunta con más detalle médico puede ir primero, no siempre al final.
 
 "Preguntas y respuestas"
 
 [Nombre] [Inicial Apellido]. Hace [N] [días/semanas]
-[Pregunta realista del avatar]
+[Pregunta según extensión asignada]
 
 Dr./Dra. ${expertoNombre} · [Especialidad]
-[Respuesta — extensión según el tipo de pregunta (ver distribución arriba), valida duda + dato concreto.]
+[Respuesta según extensión asignada — valida duda + dato concreto.]
 
 cierreCTA (LÍMITE OBLIGATORIO: 50-80 palabras):
 "[Estructura corporal] ya existe. Solo hay [problema] encima."

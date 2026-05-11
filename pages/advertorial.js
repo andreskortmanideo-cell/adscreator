@@ -58,7 +58,7 @@ export default function AdvertorialCreator() {
   const [vista, setVista]         = useState('form')
   const [progreso, setProgreso]   = useState(0)
   const [progresoMsg, setProgresoMsg] = useState('')
-  const [modelo, setModelo]       = useState('claude-sonnet-4-6')
+  const [modelo, setModelo]       = useState('claude-haiku-4-5')
   const [nombre, setNombre]       = useState('')
   const [contexto, setContexto]   = useState('')
   const [avatar, setAvatar]       = useState('')

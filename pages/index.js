@@ -166,7 +166,7 @@ export default function Home() {
   const [variaciones,setVariaciones]=useState([])
   const [variacionActiva,setVariacionActiva]=useState(0)
   // ── NUEVO: selector de API ──────────────────────────────────────
-  const [modeloSel,setModeloSel]=useState('claude-sonnet-4-6')
+  const [modeloSel,setModeloSel]=useState('claude-haiku-4-5')
   const [formatoImagen,setFormatoImagen]=useState('Funcional')
   const [ctxFromAdvertorial,setCtxFromAdvertorial]=useState(null)
   const [verCtxAdv,setVerCtxAdv]=useState(false)

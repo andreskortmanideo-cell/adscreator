@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 const MODELOS = [
   { id: 'gpt-4.1-mini', label: 'GPT 4.1 Mini', desc: 'Rápido · recomendado' },
   { id: 'gpt-4o',       label: 'GPT-4o',       desc: 'Mayor calidad' },
   { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', desc: 'Mejor razonamiento' },
-  { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5',  desc: 'Rápido · económico' },
+  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5',  desc: 'Rápido · económico' },
 ]
 
 const BLOQUES = [
@@ -58,7 +58,71 @@ export default function AdvertorialCreator() {
   const [vista, setVista]         = useState('form')
   const [progreso, setProgreso]   = useState(0)
   const [progresoMsg, setProgresoMsg] = useState('')
-  const [modelo, setModelo]       = useState('claude-haiku-4-5')
+  const [modelo, setModelo]       = useState('claude-haiku-4-5-20251001')
+  const [ultimoCosto, setUltimoCosto]         = useState(null)
+  const [costoAdvertorial, setCostoAdvertorial] = useState({ usd:0, cop:0, operaciones:0 })
+  const [costoSesion, setCostoSesion]         = useState({ usd:0, cop:0, operaciones:0 })
+  const [hydrated, setHydrated]               = useState(false)
+  const [disenadorNombre, setDisenadorNombre] = useState('')
+  const [inputNombreTmp, setInputNombreTmp]   = useState('')
+  const [savedAdvertorialId, setSavedAdvertorialId] = useState(null)
+  const [guardandoBD, setGuardandoBD]         = useState(false)
+  const [guardadoOk, setGuardadoOk]           = useState(false)
+
+  useEffect(() => {
+    const n = (typeof window !== 'undefined' ? localStorage.getItem('advertorial_disenador_nombre') : '') || ''
+    setDisenadorNombre(n)
+    setHydrated(true)
+  }, [])
+
+  const cerrarModalNombre = () => {
+    const t = inputNombreTmp.trim()
+    if (t.length < 3) return
+    try { localStorage.setItem('advertorial_disenador_nombre', t) } catch {}
+    setDisenadorNombre(t)
+    setInputNombreTmp('')
+  }
+  const cambiarNombre = () => {
+    try { localStorage.removeItem('advertorial_disenador_nombre') } catch {}
+    setDisenadorNombre('')
+    setInputNombreTmp('')
+  }
+
+  const guardarAdvertorialEnBD = async (advData, costo) => {
+    if (!advData) return
+    const nombreDis = (typeof window !== 'undefined' ? localStorage.getItem('advertorial_disenador_nombre') : '') || ''
+    if (!nombreDis) return
+    setGuardandoBD(true)
+    setGuardadoOk(false)
+    try {
+      const body = {
+        id: savedAdvertorialId || undefined,
+        disenador_nombre: nombreDis,
+        producto: (nombre || '').slice(0, 200),
+        avatar: (avatar || '').slice(0, 300),
+        mercado: (mercado || '').slice(0, 100),
+        modelo,
+        costoUsd: costo?.usd || 0,
+        costoCop: costo?.cop || 0,
+        operaciones: costo?.operaciones || 0,
+        payload: { advertorial: advData, nombre, contexto, avatar, lineamiento, mercado, modelo }
+      }
+      const r = await fetch('/api/advertoriales/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      const d = await r.json()
+      if (d.error) throw new Error(d.error)
+      if (d.id && !savedAdvertorialId) setSavedAdvertorialId(d.id)
+      setGuardadoOk(true)
+      setTimeout(() => setGuardadoOk(false), 2000)
+    } catch(e) {
+      console.error('Error guardando advertorial:', e)
+    } finally {
+      setGuardandoBD(false)
+    }
+  }
   const [nombre, setNombre]       = useState('')
   const [contexto, setContexto]   = useState('')
   const [avatar, setAvatar]       = useState('')
@@ -66,8 +130,16 @@ export default function AdvertorialCreator() {
   const [mercado, setMercado]     = useState('')
   const [archivos, setArchivos]   = useState([])
   const [advertorial, setAdvertorial] = useState(null)
+  const [briefingActual, setBriefingActual] = useState(null)
   const [error, setError]         = useState(null)
   const fileRef = useRef()
+
+  // Modal de corrección puntual de bloque
+  const [modalCorr, setModalCorr] = useState({ open:false, blockKey:null, blockTitulo:'' })
+  const [instruccionCorr, setInstruccionCorr] = useState('')
+  const [corrigiendo, setCorrigiendo] = useState(false)
+  const [errorCorr, setErrorCorr] = useState(null)
+  const [toastMsg, setToastMsg] = useState('')
 
   // Modal "Generar Ad/Guion"
   const [modalAd, setModalAd]     = useState(false)
@@ -89,6 +161,12 @@ export default function AdvertorialCreator() {
     const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
     const d = await r.json()
     if (d.error) throw new Error(d.error)
+    if (d.costoOperacion) {
+      setUltimoCosto(d.costoOperacion)
+      const t = d.costoOperacion.totales
+      setCostoSesion(prev => ({ usd: prev.usd + t.usd, cop: prev.cop + t.cop, operaciones: prev.operaciones + 1 }))
+      setCostoAdvertorial(prev => ({ usd: prev.usd + t.usd, cop: prev.cop + t.cop, operaciones: prev.operaciones + 1 }))
+    }
     return d
   }
 
@@ -116,6 +194,20 @@ export default function AdvertorialCreator() {
 
     setError(null)
     setVista('loading')
+    setCostoAdvertorial({ usd:0, cop:0, operaciones:0 })
+    setUltimoCosto(null)
+    setSavedAdvertorialId(null)
+
+    let costoAcumulado = { usd:0, cop:0, operaciones:0 }
+    const acumular = (op) => {
+      if (op?.totales) {
+        costoAcumulado = {
+          usd: costoAcumulado.usd + op.totales.usd,
+          cop: costoAcumulado.cop + op.totales.cop,
+          operaciones: costoAcumulado.operaciones + 1
+        }
+      }
+    }
 
     try {
       let contenidoArchivo = ''
@@ -129,17 +221,25 @@ export default function AdvertorialCreator() {
       const payload = { nombre, contexto, avatar, lineamiento, mercado, documento: contenidoArchivo, motivo: 'educativo', modelo }
 
       setProgresoMsg('Analizando producto y audiencia...'); setProgreso(15)
-      const { analisis } = await post('/api/advertorial/analizar', payload)
+      const r1 = await post('/api/advertorial/analizar', payload)
+      acumular(r1.costoOperacion)
+      const { analisis } = r1
 
       setProgresoMsg('Construyendo estrategia narrativa...'); setProgreso(45)
-      const { briefing } = await post('/api/advertorial/briefing', { ...payload, analisis })
+      const r2 = await post('/api/advertorial/briefing', { ...payload, analisis })
+      acumular(r2.costoOperacion)
+      const { briefing } = r2
+      setBriefingActual(briefing)
 
       setProgresoMsg('Escribiendo los 15 bloques...'); setProgreso(70)
-      const { advertorial: adv } = await post('/api/advertorial/generar', { ...payload, briefing })
+      const r3 = await post('/api/advertorial/generar', { ...payload, briefing })
+      acumular(r3.costoOperacion)
+      const { advertorial: adv } = r3
 
       setProgreso(100)
       setAdvertorial(adv)
       setVista('resultado')
+      guardarAdvertorialEnBD(adv, costoAcumulado)
     } catch(e) {
       setError(e.message)
       setVista('form')
@@ -200,6 +300,61 @@ export default function AdvertorialCreator() {
     _doCopy(getBloqueTexto(b), b.key)
   }
 
+  const abrirCorreccion = (b) => {
+    setModalCorr({ open:true, blockKey:b.key, blockTitulo:b.titulo })
+    setInstruccionCorr('')
+    setErrorCorr(null)
+  }
+  const cerrarCorreccion = () => {
+    if (corrigiendo) return
+    setModalCorr({ open:false, blockKey:null, blockTitulo:'' })
+    setInstruccionCorr('')
+    setErrorCorr(null)
+  }
+  const aplicarCorreccion = async () => {
+    if (!modalCorr.blockKey || instruccionCorr.trim().length < 8) return
+    setCorrigiendo(true)
+    setErrorCorr(null)
+    try {
+      const blockKey = modalCorr.blockKey
+      const blockContent = advertorial?.[blockKey]
+      const contextoAdvertorial = {
+        nombre,
+        avatar,
+        mercado,
+        ejeNarrativo: briefingActual?.ejeNarrativo || null,
+        bajada: advertorial?.bajada || '',
+      }
+      const r = await fetch('/api/advertorial/corregir-bloque', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blockKey, blockContent, instruccionUsuario: instruccionCorr, contextoAdvertorial, modelo })
+      })
+      const d = await r.json()
+      if (d.error) throw new Error(d.error)
+      const nuevo = { ...advertorial, [blockKey]: d.contenidoCorregido }
+      setAdvertorial(nuevo)
+      if (d.costoOperacion) {
+        setUltimoCosto(d.costoOperacion)
+        const t = d.costoOperacion.totales
+        setCostoSesion(prev => ({ usd: prev.usd + t.usd, cop: prev.cop + t.cop, operaciones: prev.operaciones + 1 }))
+        setCostoAdvertorial(prev => ({ usd: prev.usd + t.usd, cop: prev.cop + t.cop, operaciones: prev.operaciones + 1 }))
+      }
+      setModalCorr({ open:false, blockKey:null, blockTitulo:'' })
+      setInstruccionCorr('')
+      setToastMsg('✓ Bloque corregido')
+      setTimeout(() => setToastMsg(''), 2000)
+      const costoActualizado = d.costoOperacion?.totales
+        ? { usd: costoAdvertorial.usd + d.costoOperacion.totales.usd, cop: costoAdvertorial.cop + d.costoOperacion.totales.cop, operaciones: costoAdvertorial.operaciones + 1 }
+        : costoAdvertorial
+      guardarAdvertorialEnBD(nuevo, costoActualizado)
+    } catch(e) {
+      setErrorCorr('No se pudo corregir el bloque. Intenta de nuevo.')
+    } finally {
+      setCorrigiendo(false)
+    }
+  }
+
   const copiarOpcion = (text, key) => {
     _doCopy(text, key, '✓')
   }
@@ -219,6 +374,33 @@ export default function AdvertorialCreator() {
   const wrap = { padding:'32px 20px', maxWidth:780, margin:'0 auto' }
   const globalStyle = `body,html{background:#ffffff;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#111827}`
 
+  // ── GATE: NOMBRE DEL DISEÑADOR (bloqueante) ───────────────
+  if (!hydrated) return <div style={{ background:'#fff', minHeight:'100vh' }} />
+  if (!disenadorNombre) return (
+    <div style={{ position:'fixed', inset:0, background:'#ffffff', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+      <style>{globalStyle}</style>
+      <div style={{ maxWidth:440, width:'100%', textAlign:'center' }}>
+        <div style={{ fontSize:11, color:D.blue, letterSpacing:'.25em', textTransform:'uppercase', marginBottom:6 }}>IDEO TEAM · Advertorial</div>
+        <h1 style={{ color:D.text, fontSize:22, fontWeight:800, margin:'0 0 8px' }}>¿Quién está creando este advertorial?</h1>
+        <p style={{ color:D.textDim, fontSize:13, marginBottom:24 }}>Tu nombre quedará registrado en el historial compartido</p>
+        <input
+          value={inputNombreTmp}
+          onChange={e=>setInputNombreTmp(e.target.value)}
+          onKeyDown={e=>{ if(e.key==='Enter' && inputNombreTmp.trim().length>=3) cerrarModalNombre() }}
+          autoFocus
+          placeholder="Nombre completo"
+          style={{ width:'100%', padding:'12px 14px', background:D.input, border:`1px solid ${D.inputBorder}`, color:D.text, borderRadius:6, fontSize:14, outline:'none', fontFamily:'inherit', boxSizing:'border-box', marginBottom:14 }}
+        />
+        <button
+          onClick={cerrarModalNombre}
+          disabled={inputNombreTmp.trim().length < 3}
+          style={{ width:'100%', padding:'12px', background: inputNombreTmp.trim().length>=3 ? D.blue : D.cardBorder, color:'#fff', border:'none', borderRadius:6, fontWeight:700, cursor: inputNombreTmp.trim().length>=3 ? 'pointer' : 'not-allowed', fontSize:14, fontFamily:'inherit' }}>
+          Continuar
+        </button>
+      </div>
+    </div>
+  )
+
   // ── FORMULARIO ───────────────────────────────────────────
   if (vista === 'form') return (
     <div style={{ background:'#ffffff', minHeight:'100vh' }}>
@@ -227,8 +409,20 @@ export default function AdvertorialCreator() {
       {/* ── HEADER ── */}
       <div style={{ background:'#ffffff', borderBottom:`1px solid ${D.cardBorder}`, padding:'0 28px', height:58, display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:10 }}>
         <div style={{ lineHeight:1 }}>
-          <div style={{ fontSize:16, fontWeight:800, color:D.text, letterSpacing:'.1em' }}>Advertorial</div>
-          <div style={{ fontSize:9, color:D.blue, letterSpacing:'.2em', textTransform:'uppercase', marginTop:3 }}>IDEO TEAM</div>
+          <div style={{ fontSize:16, fontWeight:800, color:D.text, letterSpacing:'.1em' }}>IDEO TEAM</div>
+          <div style={{ fontSize:9, color:D.blue, letterSpacing:'.2em', textTransform:'uppercase', marginTop:3 }}>Advertorial</div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <a href="/mis-advertoriales" style={{ fontSize:11, color:D.text, border:`1px solid ${D.cardBorder}`, borderRadius:20, padding:'5px 12px', background:'transparent', textDecoration:'none' }}>
+            📂 Historial
+          </a>
+          <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', background:D.blueDark, border:`1px solid ${D.cardBorder}`, borderRadius:20 }}>
+            <span style={{ fontSize:11, color:D.text, fontWeight:600 }}>👤 {disenadorNombre}</span>
+            <button onClick={cambiarNombre}
+              style={{ fontSize:10, color:D.textDim, background:'transparent', border:'none', cursor:'pointer', padding:0, fontFamily:'inherit', textDecoration:'underline' }}>
+              cambiar
+            </button>
+          </div>
         </div>
       </div>
 
@@ -237,6 +431,14 @@ export default function AdvertorialCreator() {
         <p style={{ color:D.textDim, fontSize:11, marginBottom:24, fontFamily:'monospace' }}>
           16 secciones · Nivel 2 · Estructura modelada del referente · Producto en bloque 11
         </p>
+
+        {ultimoCosto && (
+          <div style={{ background:D.blueDark, border:`1px solid ${D.cardBorder}`, borderRadius:8, padding:'8px 12px', fontSize:11, color:D.textMid, display:'flex', alignItems:'center', gap:12, marginBottom:16, flexWrap:'wrap' }}>
+            <span>Última: <strong>${ultimoCosto.totales.usd.toFixed(4)}</strong> USD (${ultimoCosto.totales.cop.toFixed(0)} COP)</span>
+            <span style={{ color:D.blue }}>· Advertorial actual: <strong>${costoAdvertorial.usd.toFixed(4)}</strong> USD (${costoAdvertorial.cop.toFixed(0)} COP) · {costoAdvertorial.operaciones} ops</span>
+            <span style={{ marginLeft:'auto', color:D.textDim }}>Sesión: ${costoSesion.usd.toFixed(4)} USD · {costoSesion.operaciones} ops</span>
+          </div>
+        )}
 
         {error && (
           <div style={{ padding:12, background:'#fef2f2', border:'1px solid #fecaca', borderRadius:6, color:'#b91c1c', fontSize:12, marginBottom:16 }}>
@@ -375,6 +577,14 @@ export default function AdvertorialCreator() {
           </button>
         </div>
 
+        {ultimoCosto && (
+          <div style={{ background:D.blueDark, border:`1px solid ${D.cardBorder}`, borderRadius:8, padding:'8px 12px', fontSize:11, color:D.textMid, display:'flex', alignItems:'center', gap:12, marginBottom:16, flexWrap:'wrap' }}>
+            <span>Última: <strong>${ultimoCosto.totales.usd.toFixed(4)}</strong> USD (${ultimoCosto.totales.cop.toFixed(0)} COP)</span>
+            <span style={{ color:D.blue }}>· Advertorial actual: <strong>${costoAdvertorial.usd.toFixed(4)}</strong> USD (${costoAdvertorial.cop.toFixed(0)} COP) · {costoAdvertorial.operaciones} ops</span>
+            <span style={{ marginLeft:'auto', color:D.textDim }}>Sesión: ${costoSesion.usd.toFixed(4)} USD · {costoSesion.operaciones} ops</span>
+          </div>
+        )}
+
         <div style={{ display:'flex', gap:8, marginBottom:20 }}>
           <button id="copy-all-text-top" onClick={()=>copiar('texto', 'all-text-top')}
             style={{ flex:1, padding:'10px', background:D.blue, color:'#fff', border:'none', borderRadius:5, fontWeight:700, cursor:'pointer', fontSize:12 }}>
@@ -406,10 +616,16 @@ export default function AdvertorialCreator() {
                 </h4>
                 {b.num===11 && <span style={{ marginLeft:8, fontSize:9, color:'#b45309', fontFamily:'monospace', background:'#fffbeb', padding:'2px 6px', borderRadius:3, border:'1px solid #fcd34d' }}>← PRODUCTO</span>}
               </div>
-              <button id={`copy-${b.key}`} onClick={()=>copiarBloque(b)}
-                style={{ padding:'4px 10px', background:D.input, border:`1px solid ${D.cardBorder}`, color:D.blueLight, borderRadius:4, fontSize:10, cursor:'pointer', fontFamily:'monospace' }}>
-                📋 Copiar
-              </button>
+              <div style={{ display:'flex', gap:6 }}>
+                <button id={`copy-${b.key}`} onClick={()=>copiarBloque(b)}
+                  style={{ padding:'4px 10px', background:D.input, border:`1px solid ${D.cardBorder}`, color:D.blueLight, borderRadius:4, fontSize:10, cursor:'pointer', fontFamily:'monospace' }}>
+                  📋 Copiar
+                </button>
+                <button onClick={()=>abrirCorreccion(b)}
+                  style={{ padding:'4px 10px', background:D.input, border:`1px solid ${D.cardBorder}`, color:D.yellow, borderRadius:4, fontSize:10, cursor:'pointer', fontFamily:'monospace' }}>
+                  ✏️ Corregir
+                </button>
+              </div>
             </div>
 
             {b.key === 'titular' && advertorial.titulares ? (
@@ -567,6 +783,49 @@ export default function AdvertorialCreator() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {modalCorr.open && (
+        <div onClick={(e)=>{ if(e.target===e.currentTarget) cerrarCorreccion() }}
+          style={{ position:'fixed', inset:0, background:'rgba(17,24,39,0.5)', zIndex:1100, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div style={{ background:D.card, border:`1px solid ${D.cardBorder}`, borderRadius:10, padding:24, maxWidth:520, width:'100%' }}>
+            <div style={{ fontSize:13, color:D.yellow, fontWeight:700, marginBottom:4 }}>✏️ Corregir bloque: {modalCorr.blockTitulo}</div>
+            <div style={{ fontSize:11, color:D.textDim, marginBottom:14 }}>
+              Indica qué cambiar. Se preserva el eje narrativo y la estructura del bloque.
+            </div>
+            <textarea
+              value={instruccionCorr}
+              onChange={e=>setInstruccionCorr(e.target.value)}
+              placeholder="Ej: hacerlo más urgente / menos técnico / cambiar el nombre del experto"
+              disabled={corrigiendo}
+              style={{ width:'100%', minHeight:110, padding:'10px 12px', background:D.input, border:`1px solid ${D.inputBorder}`, color:D.text, borderRadius:6, fontSize:12, outline:'none', fontFamily:'inherit', resize:'vertical', boxSizing:'border-box', marginBottom:6 }}
+            />
+            <div style={{ fontSize:10, color:D.textDim, fontFamily:'monospace', marginBottom:14 }}>
+              {instruccionCorr.trim().length} / 8 chars mínimos
+            </div>
+            {errorCorr && (
+              <div style={{ padding:10, background:'#fef2f2', border:'1px solid #fecaca', borderRadius:6, color:'#b91c1c', fontSize:12, marginBottom:12 }}>
+                ⚠️ {errorCorr}
+              </div>
+            )}
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={cerrarCorreccion} disabled={corrigiendo}
+                style={{ flex:1, padding:'10px', background:'transparent', border:`1px solid ${D.cardBorder}`, color:D.textMid, borderRadius:5, cursor: corrigiendo?'not-allowed':'pointer', fontSize:12, fontFamily:'inherit', opacity:corrigiendo?.5:1 }}>
+                Cancelar
+              </button>
+              <button onClick={aplicarCorreccion} disabled={corrigiendo || instruccionCorr.trim().length < 8}
+                style={{ flex:2, padding:'10px', background: (corrigiendo || instruccionCorr.trim().length < 8) ? D.cardBorder : D.yellow, color:'#fff', border:'none', borderRadius:5, cursor:(corrigiendo || instruccionCorr.trim().length < 8)?'not-allowed':'pointer', fontSize:12, fontWeight:700, fontFamily:'inherit' }}>
+                {corrigiendo ? '⏳ Corrigiendo…' : 'Aplicar corrección'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toastMsg && (
+        <div style={{ position:'fixed', bottom:20, left:'50%', transform:'translateX(-50%)', background:D.green, color:'#fff', padding:'10px 20px', borderRadius:6, fontSize:12, fontWeight:700, zIndex:1200, boxShadow:'0 4px 12px rgba(0,0,0,0.15)' }}>
+          {toastMsg}
         </div>
       )}
     </div>

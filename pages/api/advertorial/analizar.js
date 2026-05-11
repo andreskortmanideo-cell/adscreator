@@ -1,3 +1,20 @@
+const PRECIOS_MODELO = {
+  'gpt-4.1-mini': { input: 0.40, output: 1.60 },
+  'gpt-4o-mini': { input: 0.15, output: 0.60 },
+  'gpt-4o': { input: 2.50, output: 10.00 },
+  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
+  'claude-sonnet-4-5': { input: 3.00, output: 15.00 },
+  'claude-haiku-4-5': { input: 1.00, output: 5.00 },
+  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+  'claude-sonnet-4-20250514': { input: 3.00, output: 15.00 },
+}
+const TASA_USD_COP = 4000
+function calcularCosto(modelo, inputTokens, outputTokens) {
+  const p = PRECIOS_MODELO[modelo] || { input: 0, output: 0 }
+  const usd = (inputTokens / 1_000_000) * p.input + (outputTokens / 1_000_000) * p.output
+  return { usd, cop: usd * TASA_USD_COP }
+}
+
 async function callModel(messages, modelo, system = null) {
   const isGPT = modelo?.startsWith('gpt')
   if (isGPT) {
@@ -9,7 +26,7 @@ async function callModel(messages, modelo, system = null) {
     })
     const d = await r.json()
     if (d.error) throw new Error(d.error.message)
-    return d.choices[0].message.content
+    return { texto: d.choices[0].message.content, inputTokens: d.usage?.prompt_tokens || 0, outputTokens: d.usage?.completion_tokens || 0 }
   } else {
     const body = { model: modelo, max_tokens: 3500, messages }
     if (system) body.system = system
@@ -20,7 +37,7 @@ async function callModel(messages, modelo, system = null) {
     })
     const d = await r.json()
     if (d.error) throw new Error(d.error.message)
-    return d.content[0].text
+    return { texto: d.content[0].text, inputTokens: d.usage?.input_tokens || 0, outputTokens: d.usage?.output_tokens || 0 }
   }
 }
 
@@ -196,10 +213,15 @@ Devuelve SOLO JSON válido, sin markdown, sin texto antes ni después:
 
     const user = `${inputBlock}${motivoLine}\n\nAnaliza y devuelve el JSON. NO uses bloques de código markdown, devuelve el JSON crudo.`
 
-    const result = await callModel([{ role: 'user', content: user }], modelo, system)
-    const analisis = parseJSON(result, 'analizar')
+    const { texto, inputTokens, outputTokens } = await callModel([{ role: 'user', content: user }], modelo, system)
+    const analisis = parseJSON(texto, 'analizar')
+    const { usd, cop } = calcularCosto(modelo, inputTokens, outputTokens)
+    const costoOperacion = {
+      llamadas: [{ tipo: 'analizar', modelo, inputTokens, outputTokens, usd, cop }],
+      totales: { inputTokens, outputTokens, usd, cop }
+    }
 
-    return res.status(200).json({ success: true, analisis })
+    return res.status(200).json({ success: true, analisis, costoOperacion })
   } catch (error) {
     console.error('Error analizar:', error)
     return res.status(500).json({ error: error.message })

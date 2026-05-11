@@ -1,3 +1,20 @@
+const PRECIOS_MODELO = {
+  'gpt-4.1-mini': { input: 0.40, output: 1.60 },
+  'gpt-4o-mini': { input: 0.15, output: 0.60 },
+  'gpt-4o': { input: 2.50, output: 10.00 },
+  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
+  'claude-sonnet-4-5': { input: 3.00, output: 15.00 },
+  'claude-haiku-4-5': { input: 1.00, output: 5.00 },
+  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+  'claude-sonnet-4-20250514': { input: 3.00, output: 15.00 },
+}
+const TASA_USD_COP = 4000
+function calcularCosto(modelo, inputTokens, outputTokens) {
+  const p = PRECIOS_MODELO[modelo] || { input: 0, output: 0 }
+  const usd = (inputTokens / 1_000_000) * p.input + (outputTokens / 1_000_000) * p.output
+  return { usd, cop: usd * TASA_USD_COP }
+}
+
 async function callModel(messages, modelo, system) {
   const isGPT = modelo?.startsWith('gpt')
   if (isGPT) {
@@ -9,7 +26,7 @@ async function callModel(messages, modelo, system) {
     })
     const d = await r.json()
     if (d.error) throw new Error(d.error.message)
-    return d.choices[0].message.content
+    return { texto: d.choices[0].message.content, inputTokens: d.usage?.prompt_tokens || 0, outputTokens: d.usage?.completion_tokens || 0 }
   } else {
     const body = { model: modelo, max_tokens: 12000, messages }
     if (system) body.system = system
@@ -20,7 +37,7 @@ async function callModel(messages, modelo, system) {
     })
     const d = await r.json()
     if (d.error) throw new Error(d.error.message)
-    return d.content[0].text
+    return { texto: d.content[0].text, inputTokens: d.usage?.input_tokens || 0, outputTokens: d.usage?.output_tokens || 0 }
   }
 }
 
@@ -364,8 +381,8 @@ Incluye al menos UNA escena de severidad visible del problema: un momento donde 
 
 GENERA AHORA, respetando los límites de palabras de cada bloque.`
 
-  const result = await callModel([{ role: 'user', content: user }], modelo, system)
-  return parseJSON(result, 'parte1')
+  const { texto, inputTokens, outputTokens } = await callModel([{ role: 'user', content: user }], modelo, system)
+  return { data: parseJSON(texto, 'parte1'), inputTokens, outputTokens }
 }
 
 // PARTE 2: Bloques 7-10 (educativo, comparativa, por qué fallan, mecanismo)
@@ -457,8 +474,8 @@ El Trébol Rojo y la Raíz de Stillingia actúan directamente sobre los ganglios
 
 GENERA AHORA.`
 
-  const result = await callModel([{ role: 'user', content: user }], modelo, system)
-  return parseJSON(result, 'parte2')
+  const { texto, inputTokens, outputTokens } = await callModel([{ role: 'user', content: user }], modelo, system)
+  return { data: parseJSON(texto, 'parte2'), inputTokens, outputTokens }
 }
 
 // PARTE 3: Bloques 11-16 (producto, promociones, garantía, testimonios, faq, cierre)
@@ -529,7 +546,14 @@ Garantía de [N] días sin riesgo
 Si en [N] días de uso constante no notas una diferencia real en [resultado], te devolvemos el dinero completo. Sin complicaciones. [N] días porque ese es el tiempo que el [protocolo] necesita.
 *Aplican términos y condiciones
 
-testimonios (LÍMITE OBLIGATORIO: 4 testimonios, 60-85 palabras cada uno = 240-340 total):
+testimonios (4 testimonios con EXTENSIONES VARIADAS — OBLIGATORIO para que parezcan reales):
+Las 4 reseñas DEBEN tener extensiones diferentes para parecer reales. Distribución obligatoria:
+- 1 reseña CORTA: 2-3 oraciones, 35-60 palabras. Estilo directo y emocional, casi un grito de gratitud.
+- 1 reseña MEDIA-CORTA: 4-5 oraciones, 70-100 palabras.
+- 1 reseña LARGA: 7-9 oraciones, 130-180 palabras. La detallada, con historia completa y números concretos.
+- 1 reseña MEDIA: 5-6 oraciones, 90-120 palabras. La escéptica de 4 estrellas.
+Diversifica también edades (rango 30-70), ciudades colombianas distintas, géneros, profesiones. NUNCA dos reseñas con la misma estructura ('Probé X, probé Y, pero...' repetido es inválido).
+
 Cada testimonio sigue una ESTRUCTURA EMOCIONAL PROGRESIVA DE 5 FASES (las 5 son obligatorias, en orden, sin saltarse ninguna):
 1) CONTEXTO PREVIO: qué vivía y cuánto tiempo (ej: "llevaba 2 años con migrañas casi diarias").
 2) QUÉ PROBÓ ANTES: 1-2 alternativas que fallaron, con nombre concreto (no genérico "probé de todo").
@@ -547,14 +571,21 @@ Formato:
 
 (1 testimonio ★★★★☆ con paciencia/duda inicial — credibilidad)
 
-faq (LÍMITE OBLIGATORIO: 4 preguntas + respuestas, 80-110 palabras cada respuesta = 350-450 total):
+faq (4 preguntas + respuestas con EXTENSIONES VARIADAS — OBLIGATORIO para que parezcan reales):
+Las 4 preguntas DEBEN tener extensiones MUY diferentes para parecer reales:
+- 1 pregunta CORTA y directa: 1 oración, 8-15 palabras. Tipo '¿Sirve para X?' o '¿Cuánto tarda?'.
+- 1 pregunta MEDIA: 2 oraciones, 20-35 palabras. Con un poco de contexto personal.
+- 1 pregunta LARGA y detallada: 3-4 oraciones, 45-70 palabras. Con condición médica específica, medicamentos, edad, contexto.
+- 1 pregunta MEDIA-LARGA: 2-3 oraciones, 30-50 palabras.
+Las RESPUESTAS también deben variar: corta (2-3 frases, 50-80 palabras) para preguntas simples, media (4-5 frases, 100-150 palabras) para preguntas con matiz, larga (6-8 frases, 180-250 palabras) para preguntas complejas con condiciones médicas. Nunca 4 respuestas del mismo tamaño.
+
 "Preguntas y respuestas"
 
 [Nombre] [Inicial Apellido]. Hace [N] [días/semanas]
 [Pregunta realista del avatar]
 
 Dr./Dra. ${expertoNombre} · [Especialidad]
-[Respuesta 3-5 oraciones, valida duda + dato concreto.]
+[Respuesta — extensión según el tipo de pregunta (ver distribución arriba), valida duda + dato concreto.]
 
 cierreCTA (LÍMITE OBLIGATORIO: 50-80 palabras):
 "[Estructura corporal] ya existe. Solo hay [problema] encima."
@@ -584,8 +615,8 @@ Cada paso 1 frase corta, accionable, visualizable. No promete resultados absolut
 
 GENERA AHORA.`
 
-  const result = await callModel([{ role: 'user', content: user }], modelo, system)
-  return parseJSON(result, 'parte3')
+  const { texto, inputTokens, outputTokens } = await callModel([{ role: 'user', content: user }], modelo, system)
+  return { data: parseJSON(texto, 'parte3'), inputTokens, outputTokens }
 }
 
 const ESTILOS_NARRATIVOS = [
@@ -640,7 +671,7 @@ async function callModelMini(modelo, system, userPrompt) {
     })
     const d = await r.json()
     if (d.error) throw new Error(d.error.message)
-    return d.choices[0].message.content
+    return { texto: d.choices[0].message.content, inputTokens: d.usage?.prompt_tokens || 0, outputTokens: d.usage?.completion_tokens || 0 }
   }
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -655,7 +686,7 @@ async function callModelMini(modelo, system, userPrompt) {
   })
   const d = await r.json()
   if (d.error) throw new Error(d.error.message)
-  return d.content[0].text
+  return { texto: d.content[0].text, inputTokens: d.usage?.input_tokens || 0, outputTokens: d.usage?.output_tokens || 0 }
 }
 
 async function seleccionarVariacionNarrativa(nombre, avatar, contexto, ejeNarrativo, modelo) {
@@ -734,6 +765,8 @@ INSTRUCCIÓN: Devuelve SOLO un JSON válido con esta forma exacta: {"estilo": N,
     porQueFallan: Math.floor(Math.random() * NF),
   })
 
+  const llamadas = []
+
   const buildResult = (idx, fuente, razon) => ({
     estilo: ESTILOS_NARRATIVOS[idx.estilo],
     apertura: APERTURAS_VARIANTES[idx.apertura],
@@ -742,14 +775,16 @@ INSTRUCCIÓN: Devuelve SOLO un JSON válido con esta forma exacta: {"estilo": N,
     indices: { estilo: idx.estilo, apertura: idx.apertura, historia: idx.historia, porQueFallan: idx.porQueFallan },
     razonSeleccion: razon || '',
     fuenteSeleccion: fuente,
+    llamadas,
   })
 
   const algunValido = (v) => v && (v.estilo != null || v.apertura != null || v.historia != null || v.porQueFallan != null)
 
   // Intento 1: pre-llamada a gpt-4.1-mini
   try {
-    const text = await callModelMini('gpt-4.1-mini', system, userPrompt)
-    const validated = validate(tryParse(text))
+    const { texto, inputTokens, outputTokens } = await callModelMini('gpt-4.1-mini', system, userPrompt)
+    llamadas.push({ tipo: 'variacion-pre', modelo: 'gpt-4.1-mini', inputTokens, outputTokens })
+    const validated = validate(tryParse(texto))
     if (algunValido(validated)) {
       const filled = fillRandom(validated)
       return buildResult(filled, 'llm-pre', filled.razon)
@@ -763,8 +798,9 @@ INSTRUCCIÓN: Devuelve SOLO un JSON válido con esta forma exacta: {"estilo": N,
   const userProviderDistinto = modelo && !modelo.startsWith('gpt-4.1-mini')
   if (userProviderDistinto) {
     try {
-      const text = await callModelMini(modelo, system, userPrompt)
-      const validated = validate(tryParse(text))
+      const { texto, inputTokens, outputTokens } = await callModelMini(modelo, system, userPrompt)
+      llamadas.push({ tipo: 'variacion-fallback', modelo, inputTokens, outputTokens })
+      const validated = validate(tryParse(texto))
       if (algunValido(validated)) {
         const filled = fillRandom(validated)
         return buildResult(filled, 'llm-fallback', filled.razon)
@@ -788,6 +824,12 @@ export default async function handler(req, res) {
     const ctx = buildContext({ nombre, contexto, avatar, lineamiento, mercado, documento, briefing })
     const ejeNarrativo = briefing?.ejeNarrativo || null
 
+    const llamadasCosto = []
+    const registrar = (tipo, modeloLlamada, inputTokens, outputTokens) => {
+      const c = calcularCosto(modeloLlamada, inputTokens, outputTokens)
+      llamadasCosto.push({ tipo, modelo: modeloLlamada, inputTokens, outputTokens, usd: c.usd, cop: c.cop })
+    }
+
     let estiloNarrativo, aperturaElegida, historiaElegida, porQueFallanElegida
     let variacionSeleccionada, variacionFuente
 
@@ -799,6 +841,7 @@ export default async function handler(req, res) {
       porQueFallanElegida = seleccion.porQueFallan
       variacionSeleccionada = seleccion.indices
       variacionFuente = seleccion.fuenteSeleccion
+      ;(seleccion.llamadas || []).forEach(l => registrar(l.tipo, l.modelo, l.inputTokens, l.outputTokens))
     } else {
       // Compat legacy: sin eje narrativo, picks aleatorios directos
       estiloNarrativo = pickRandom(ESTILOS_NARRATIVOS)
@@ -826,9 +869,15 @@ ESTRUCTURAS A USAR (no las copies textualmente, son guías de estilo):
 
 REGLA: el TONO completo del advertorial debe seguir el estilo "${estiloNarrativo.nombre}". Cada bloque mantiene ese estilo aunque varíe el tema.`
 
-    const p1 = await parte1(ctx + variaciones, modelo, ejeNarrativo)
-    const p2 = await parte2(ctx + variaciones, modelo, p1, ejeNarrativo)
-    const p3 = await parte3(ctx + variaciones, modelo, p1, p2, ejeNarrativo)
+    const p1r = await parte1(ctx + variaciones, modelo, ejeNarrativo)
+    registrar('parte1', modelo, p1r.inputTokens, p1r.outputTokens)
+    const p1 = p1r.data
+    const p2r = await parte2(ctx + variaciones, modelo, p1, ejeNarrativo)
+    registrar('parte2', modelo, p2r.inputTokens, p2r.outputTokens)
+    const p2 = p2r.data
+    const p3r = await parte3(ctx + variaciones, modelo, p1, p2, ejeNarrativo)
+    registrar('parte3', modelo, p3r.inputTokens, p3r.outputTokens)
+    const p3 = p3r.data
 
     const advertorialRaw = { ...p1, ...p2, ...p3 }
 
@@ -874,7 +923,15 @@ REGLA: el TONO completo del advertorial debe seguir el estilo "${estiloNarrativo
     }
     const advertorial = convertBR(advertorialRaw)
 
-    return res.status(200).json({ success: true, advertorial, variacionSeleccionada, variacionFuente })
+    const totales = llamadasCosto.reduce((acc, l) => ({
+      inputTokens: acc.inputTokens + l.inputTokens,
+      outputTokens: acc.outputTokens + l.outputTokens,
+      usd: acc.usd + l.usd,
+      cop: acc.cop + l.cop,
+    }), { inputTokens: 0, outputTokens: 0, usd: 0, cop: 0 })
+    const costoOperacion = { llamadas: llamadasCosto, totales }
+
+    return res.status(200).json({ success: true, advertorial, variacionSeleccionada, variacionFuente, costoOperacion })
   } catch (error) {
     console.error('Error generar:', error)
     return res.status(500).json({ error: error.message })

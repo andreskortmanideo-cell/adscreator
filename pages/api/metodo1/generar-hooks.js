@@ -35,14 +35,18 @@ export default async function handler(req, res) {
       const matchAngulo = (h.angulo && h.angulo.toLowerCase().includes(anguloLc)) || !h.angulo
       return matchMotivo && matchAngulo
     })
-    // Muestra aleatoria de 15 para variar las referencias entre llamadas
-    const muestra = (hooksFiltrados.length > 0 ? hooksFiltrados : HOOKS_JEFE)
+    const textoDeHook = h => typeof h === 'string' ? h : (h.texto || h.plantilla || h.hook || '')
+    // Muestra aleatoria para variar las referencias entre llamadas
+    const muestraInicial = (hooksFiltrados.length > 0 ? hooksFiltrados : HOOKS_JEFE)
       .slice()
       .sort(() => 0.5 - Math.random())
+    // FIX: solo hooks cortos (≤9 palabras) como referencia — los largos
+    // del jefe arrastraban al LLM a generar hooks demasiado largos.
+    const muestraCorta = muestraInicial
+      .filter(h => textoDeHook(h).trim().split(/\s+/).length <= 9)
       .slice(0, 15)
-    const refsHooks = muestra
-      .map(h => '- ' + (typeof h === 'string' ? h : (h.texto || h.plantilla || h.hook || '')))
-      .join('\n')
+    const muestra = muestraCorta.length > 0 ? muestraCorta : muestraInicial.slice(0, 15)
+    const refsHooks = muestra.map(h => '- ' + textoDeHook(h)).join('\n')
 
     // ── LLAMADA ÚNICA — 3 hooks + idea visual simple ─────────────
     const prompt = `Eres experto en publicidad de Meta Ads. Te doy un análisis ESTRATÉGICO YA CONFIRMADO por el usuario y un cuerpo de guion. Tu tarea es generar 3 HOOKS ALTERNATIVOS + IDEA VISUAL SIMPLE para cada uno.
@@ -62,11 +66,39 @@ HOOK ORIGINAL (referencia, no copies):
 ${hookOrig}
 
 REQUISITOS DE LOS HOOKS:
+
+REGLA INVIOLABLE DE LONGITUD DEL HOOK:
+- IDEAL: 5-7 palabras.
+- MÁXIMO ABSOLUTO: 9 palabras. NO MÁS.
+- Una sola línea.
+- Frase completa y autocontenida (no termina en preposición/conjunción/artículo).
+- SIN puntos suspensivos al final.
+- Aplica para video Y para imagen por igual.
+
+EJEMPLOS BUENOS (5-9 palabras):
+✅ "Mi mesa sobrevivió cinco años de niños" (7 palabras)
+✅ "Cómo limpio manchas en 30 segundos" (6 palabras)
+✅ "Mantel blanco después de cinco navidades" (6 palabras)
+✅ "Mis amigas no creen que sea el mismo mantel" (9 palabras, en el límite)
+✅ "El mantel que aguanta todo" (5 palabras)
+
+EJEMPLOS MALOS (NO USAR, son demasiado largos):
+❌ "Mis hijos derraman jugo, yo paso un paño y desaparece. Mis amigas creen que cambié de mesa." (17 palabras, MUY largo)
+❌ "¿Cómo hago que la mesa se vea nueva después de que los niños la destrocen?" (15 palabras, MUY largo)
+❌ "No me canso de limpiar la mesa con esto" (9 palabras y termina mal, NO autónoma)
+
+REGLA DE VERIFICACIÓN ANTES DE RESPONDER:
+1. Cuenta las palabras de tu hook. Si pasa de 9 → REESCRÍBELO MÁS CORTO.
+2. ¿Es una sola línea sin puntos suspensivos? Si no → CORRIGE.
+3. ¿Termina en palabra fuerte (sustantivo, verbo, adjetivo)? Si no → REESCRIBE.
+
+PRIORIDAD: si la plantilla del jefe que tomaste como inspiración es larga, ADAPTA acortando, NUNCA copies plantillas largas literalmente.
+
+OTROS REQUISITOS:
 - Mantén MISMO motivo "${motivo}", ÁNGULO "${angulo}", NIVEL "${nivel}".
 - Si nivel es 1 o 2: NO menciones producto, marca, mecanismo. Foco en dolor/curiosidad.
 - Si nivel es 3, 4 o 5: puedes mencionar el producto/solución.
 - Cada hook con DIFERENTE entrada estratégica (problema, curiosidad, dato, prueba social).
-- ${esVideo ? '≤15 palabras (es video)' : '≤7 palabras (es imagen)'}.
 - Que fluya con el cuerpo dado.
 
 REQUISITOS DE LA IDEA VISUAL — REGLA DE ORO: DEBE DETENER EL SCROLL EN 0.5 SEGUNDOS.
@@ -163,21 +195,56 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks".`
     const r = await llamarModelo(modeloSel, prompt, 3000)
     registrarLlamada('metodo1-generacion', r.inputTokens, r.outputTokens)
 
+    const mapHook = h => ({
+      texto: (h.texto || '').toString(),
+      ideaVisual: (h.ideaVisual || '').toString(),
+      guionCompleto: (h.guionCompleto || ((h.texto || '') + '\n\n' + cuerpoTxt)).toString(),
+      advertenciaMeta: (h.advertenciaMeta || 'Cumple políticas').toString()
+    })
+
     let parsed
     try {
       parsed = parseJsonTolerante(r.texto)
     } catch (e) {
       return res.status(502).json({ error: 'No se pudieron interpretar los hooks generados: ' + e.message })
     }
-    const hooks = Array.isArray(parsed.hooks) ? parsed.hooks.slice(0, 3).map(h => ({
-      texto: (h.texto || '').toString(),
-      ideaVisual: (h.ideaVisual || '').toString(),
-      guionCompleto: (h.guionCompleto || ((h.texto || '') + '\n\n' + cuerpoTxt)).toString(),
-      advertenciaMeta: (h.advertenciaMeta || 'Cumple políticas').toString()
-    })) : []
+    const hooks = Array.isArray(parsed.hooks) ? parsed.hooks.slice(0, 3).map(mapHook) : []
     if (hooks.length === 0) {
       return res.status(502).json({ error: 'El modelo no devolvió hooks alternativos' })
     }
+
+    // ── FIX 3 — Validador de longitud (defensa de último recurso) ─
+    const palabrasMalas = ['de','del','a','la','el','los','las','en','con','un','una','y','o','pero','que','para','por','sobre','sin','si','no','su','sus','mi','mis','tu','tus']
+    const validarHook = (texto) => {
+      if (!texto) return false
+      const limpio = texto.trim().replace(/\.{3}$/, '').replace(/[.!?¿¡,;:]+$/, '').trim()
+      const palabras = limpio.split(/\s+/)
+      if (palabras.length > 9) return false            // demasiado largo
+      const ultima = (palabras[palabras.length - 1] || '').toLowerCase()
+      if (palabrasMalas.includes(ultima)) return false // termina mal
+      return true
+    }
+
+    let hooksFinal = hooks.filter(h => validarHook(h.texto))
+
+    // Si quedaron menos de 3 hooks válidos → 1 reintento más estricto
+    if (hooksFinal.length < 3) {
+      try {
+        const promptReintento = prompt + '\n\n═══ CORRECCIÓN OBLIGATORIA ═══\nTU INTENTO ANTERIOR FALLÓ: generaste hooks de más de 9 palabras. Hooks de más de 9 palabras NO se aceptan. Genera 3 hooks de MÁXIMO 9 palabras (ideal 5-7), una sola línea, sin puntos suspensivos, frase completa que termine en palabra fuerte.'
+        const r2 = await llamarModelo(modeloSel, promptReintento, 3000)
+        registrarLlamada('metodo1-generacion (reintento)', r2.inputTokens, r2.outputTokens)
+        const parsed2 = parseJsonTolerante(r2.texto)
+        const hooks2 = Array.isArray(parsed2.hooks) ? parsed2.hooks.slice(0, 3).map(mapHook) : []
+        const hooks2Validos = hooks2.filter(h => validarHook(h.texto))
+        if (hooks2Validos.length > hooksFinal.length) hooksFinal = hooks2Validos
+      } catch (e) {
+        console.error('Reintento Método 1 (longitud) falló:', e)
+      }
+    }
+
+    // Si tras el reintento aún quedan < 3 se devuelven los válidos que
+    // haya; si el validador descartó TODO, se cae a los originales.
+    const hooksDevolver = hooksFinal.length > 0 ? hooksFinal : hooks
 
     // ── Auto-save: suma versión de generación al anuncio ─────────
     let idAnuncio = anuncioId ? Number(anuncioId) : null
@@ -211,14 +278,14 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks".`
           m1Analisis: analisis,
           m1HookOriginal: hookOrig,
           m1Cuerpo: cuerpoTxt,
-          m1Hooks: hooks
+          m1Hooks: hooksDevolver
         }
       })
     } catch (e) {
       console.error('Auto-save Método 1 (generación) falló:', e)
     }
 
-    return res.status(200).json({ hooks, costoOperacion, anuncioId: idAnuncio })
+    return res.status(200).json({ hooks: hooksDevolver, costoOperacion, anuncioId: idAnuncio })
   } catch (e) {
     return res.status(500).json({ error: e.message })
   }

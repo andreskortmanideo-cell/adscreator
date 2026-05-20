@@ -1,5 +1,6 @@
 import { crearAnuncio, agregarVersion } from '../../../lib/historial-db'
 import { crearCostoOperacion, parseJsonTolerante, llamarModelo } from '../../../lib/metodo1-llm'
+import { HOOKS_JEFE } from '../../../data/hooks-jefe'
 
 export const config = {
   api: { bodyParser: { sizeLimit: '5mb' } }
@@ -24,11 +25,35 @@ export default async function handler(req, res) {
 
     const { costoOperacion, registrarLlamada } = crearCostoOperacion(modeloSel)
 
+    // ── Referencias de hooks del jefe (data/hooks-jefe.js) ───────
+    // HOOKS_JEFE son plantillas string; si en el futuro tuvieran metadata
+    // {motivo, angulo} el filtro las selecciona, si no, todas pasan.
+    const motivoLc = motivo.toLowerCase()
+    const anguloLc = angulo.toLowerCase()
+    const hooksFiltrados = HOOKS_JEFE.filter(h => {
+      const matchMotivo = (h.motivo && h.motivo.toLowerCase().includes(motivoLc)) || !h.motivo
+      const matchAngulo = (h.angulo && h.angulo.toLowerCase().includes(anguloLc)) || !h.angulo
+      return matchMotivo && matchAngulo
+    })
+    // Muestra aleatoria de 15 para variar las referencias entre llamadas
+    const muestra = (hooksFiltrados.length > 0 ? hooksFiltrados : HOOKS_JEFE)
+      .slice()
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 15)
+    const refsHooks = muestra
+      .map(h => '- ' + (typeof h === 'string' ? h : (h.texto || h.plantilla || h.hook || '')))
+      .join('\n')
+
     // ── LLAMADA ÚNICA — 3 hooks + idea visual simple ─────────────
     const prompt = `Eres experto en publicidad de Meta Ads. Te doy un análisis ESTRATÉGICO YA CONFIRMADO por el usuario y un cuerpo de guion. Tu tarea es generar 3 HOOKS ALTERNATIVOS + IDEA VISUAL SIMPLE para cada uno.
 
 ANÁLISIS CONFIRMADO (úsalo como autoridad, NO lo cuestiones):
 ${JSON.stringify(analisis)}
+
+REFERENCIAS DE HOOKS DEL JEFE (úsalos como inspiración, NO copies literal, ADAPTA al producto y avatar específico):
+${refsHooks}
+
+Estos son hooks curados que funcionan en publicidad. Tu hook generado debe sentirse en la misma línea estilística (no genérico, no anuncio tradicional, con gancho real). NO los uses literalmente; toma su tono y energía.
 
 CUERPO DEL GUION:
 ${cuerpoTxt}
@@ -98,6 +123,28 @@ POLÍTICAS DE META (RESPETAR):
 - NO menores de manera inapropiada.
 - NO promesas extremas.
 - NO dinero ostentoso, armas, drogas.
+
+REGLA CRÍTICA DE LENGUAJE — ESPAÑOL COLOMBIANO COTIDIANO:
+
+- Usa español colombiano neutro/coloquial, como se habla en Bogotá/Medellín/Cali.
+- NO uses regionalismos de otros países hispanohablantes.
+- El producto se vende en Colombia.
+
+PALABRAS PROHIBIDAS (de otros países):
+❌ "flipar", "flipé", "molar", "tío/tía" (como vocativo), "guay", "vale" como afirmación, "joder" (España)
+❌ "chingar", "pinche", "naco", "chido", "padre" (como bueno) (México)
+❌ "boludo", "che", "quilombo", "pibe", "laburo" (Argentina)
+❌ "huevón" (como insulto cariñoso, en Colombia se entiende pero no se usa así)
+❌ Anglicismos innecesarios: "cool", "fancy", "must have"
+
+PALABRAS Y EXPRESIONES OK (colombianas/neutras):
+✅ "bacano", "chévere", "qué nota"
+✅ "qué tal", "qué pasada", "no se cree"
+✅ "increíble", "impresionante", "tremendo"
+✅ "una berraquera", "un parche"
+✅ "no más", "ya no más"
+
+IMPORTANTE: el español debe sentirse natural y cotidiano para un colombiano leyendo esto en su feed, NO acartonado ni regional de otro país.
 
 OUTPUT JSON ESTRICTO:
 {

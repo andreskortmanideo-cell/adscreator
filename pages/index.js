@@ -190,6 +190,22 @@ export default function Home() {
   const [m1Cuerpo,setM1Cuerpo]=useState('')
   const [m1Hooks,setM1Hooks]=useState([])
   const [m1Detalles,setM1Detalles]=useState(false) // collapse de detalles del análisis
+  // ── Método 2 — Fusión Hook + Cuerpo ────────────────────────────
+  const [m2Cargando,setM2Cargando]=useState(false)
+  const [m2Paso,setM2Paso]=useState(1) // 1=input, 2=revisar, 3=resultado
+  const [m2TextoHook,setM2TextoHook]=useState('')
+  const [m2TextoCuerpo,setM2TextoCuerpo]=useState('')
+  const [m2Contexto,setM2Contexto]=useState('')
+  const [m2HookExtraido,setM2HookExtraido]=useState('')
+  const [m2CuerpoExtraido,setM2CuerpoExtraido]=useState('')
+  const [m2HookDescartado,setM2HookDescartado]=useState('')
+  const [m2AnalisisHook,setM2AnalisisHook]=useState(null)
+  const [m2AnalisisCuerpo,setM2AnalisisCuerpo]=useState(null)
+  const [m2Compatibilidad,setM2Compatibilidad]=useState(null)
+  const [m2GuionFusionado,setM2GuionFusionado]=useState('')
+  const [m2TransicionAgregada,setM2TransicionAgregada]=useState('')
+  const [m2Notas,setM2Notas]=useState('')
+  const [m2Detalles,setM2Detalles]=useState(false) // collapse de detalles
 
   // Limpia outputs al cambiar formato (video↔imagen) — preserva análisis y decisiones del Paso 02/03
   useEffect(()=>{
@@ -476,6 +492,22 @@ export default function Home() {
       setM1Hooks(Array.isArray(p.m1Hooks) ? p.m1Hooks : [])
       // metodo1-generacion → paso 3; metodo1-analisis → paso 2
       setM1Paso(p.m1Paso || (Array.isArray(p.m1Hooks) && p.m1Hooks.length > 0 ? 3 : 2))
+    } else if (p.modo === 'metodo2') {
+      setModo('metodo2')
+      setM2TextoHook(p.m2TextoHook || '')
+      setM2TextoCuerpo(p.m2TextoCuerpo || '')
+      setM2Contexto(p.m2Contexto || '')
+      setM2HookExtraido(p.m2HookExtraido || '')
+      setM2CuerpoExtraido(p.m2CuerpoExtraido || '')
+      setM2HookDescartado(p.m2HookDescartado || '')
+      setM2AnalisisHook(p.m2AnalisisHook || null)
+      setM2AnalisisCuerpo(p.m2AnalisisCuerpo || null)
+      setM2Compatibilidad(p.m2Compatibilidad || null)
+      setM2GuionFusionado(p.m2GuionFusionado || '')
+      setM2TransicionAgregada(p.m2TransicionAgregada || '')
+      setM2Notas(p.m2Notas || '')
+      // metodo2-fusion → paso 3; metodo2-analisis → paso 2
+      setM2Paso(p.m2Paso || (p.m2GuionFusionado ? 3 : 2))
     } else {
       setModo(p.modo || 'crear')
     }
@@ -568,6 +600,7 @@ export default function Home() {
     setUltimoCosto(null)
     setBannerSesion(null)
     resetMetodo1()
+    resetMetodo2()
   }
 
   // ── MÉTODO 1 — Variar Hook (flujo de 2 pasos) ──────────────────
@@ -659,6 +692,87 @@ export default function Home() {
       alert('Error: ' + e.message)
     }
     setM1Cargando(false)
+  }
+
+  // ── MÉTODO 2 — Fusión Hook + Cuerpo ────────────────────────────
+  function resetMetodo2() {
+    setM2Paso(1); setM2TextoHook(''); setM2TextoCuerpo(''); setM2Contexto('')
+    setM2HookExtraido(''); setM2CuerpoExtraido(''); setM2HookDescartado('')
+    setM2AnalisisHook(null); setM2AnalisisCuerpo(null); setM2Compatibilidad(null)
+    setM2GuionFusionado(''); setM2TransicionAgregada(''); setM2Notas('')
+    setM2Detalles(false)
+  }
+
+  // Paso 1 → 2: extrae hook y cuerpo, evalúa compatibilidad
+  async function analizarMetodo2() {
+    if (!nombreValido) { alert('Escribe tu nombre antes de continuar'); return }
+    if (!m2TextoHook.trim() || !m2TextoCuerpo.trim()) return
+    setM2Cargando(true)
+    try {
+      const r = await fetch('/api/metodo2/analizar', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          textoConHook: m2TextoHook.trim(),
+          textoConCuerpo: m2TextoCuerpo.trim(),
+          contextoAdicional: m2Contexto.trim(),
+          modelo: modeloSel,
+          autor: nombreAutor.trim()
+        })
+      })
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al analizar los textos')
+      setM2HookExtraido(d.hookExtraido || '')
+      setM2CuerpoExtraido(d.cuerpoExtraido || '')
+      setM2HookDescartado(d.hookDescartado || '')
+      setM2AnalisisHook(d.analisisHook || null)
+      setM2AnalisisCuerpo(d.analisisCuerpo || null)
+      setM2Compatibilidad(d.compatibilidad || null)
+      setM2GuionFusionado(''); setM2TransicionAgregada(''); setM2Notas('')
+      if (d.anuncioId) {
+        setAnuncioIdActual(d.anuncioId)
+        try { localStorage.setItem('anuncioIdActual', String(d.anuncioId)) } catch {}
+      }
+      aplicarCostoM1(d.costoOperacion)
+      setBannerSesion(null)
+      setM2Paso(2)
+    } catch(e) {
+      alert('Error: ' + e.message)
+    }
+    setM2Cargando(false)
+  }
+
+  // Paso 2 → 3: fusiona el hook y el cuerpo confirmados
+  async function fusionarMetodo2() {
+    if (!nombreValido) { alert('Escribe tu nombre antes de continuar'); return }
+    if (!m2HookExtraido.trim() || !m2CuerpoExtraido.trim()) return
+    setM2Cargando(true)
+    try {
+      const r = await fetch('/api/metodo2/fusionar', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          anuncioId: anuncioIdActual || undefined,
+          hookConfirmado: m2HookExtraido,
+          cuerpoConfirmado: m2CuerpoExtraido,
+          analisisCompatibilidad: m2Compatibilidad,
+          modelo: modeloSel,
+          autor: nombreAutor.trim()
+        })
+      })
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al fusionar')
+      setM2GuionFusionado(d.guionFusionado || '')
+      setM2TransicionAgregada(d.transicionAgregada || '')
+      setM2Notas(d.notas || '')
+      if (d.anuncioId) {
+        setAnuncioIdActual(d.anuncioId)
+        try { localStorage.setItem('anuncioIdActual', String(d.anuncioId)) } catch {}
+      }
+      aplicarCostoM1(d.costoOperacion)
+      setM2Paso(3)
+    } catch(e) {
+      alert('Error: ' + e.message)
+    }
+    setM2Cargando(false)
   }
 
   async function subirArchivo(file) {
@@ -2411,6 +2525,11 @@ ${guionTexto}`
                       style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:9,background:'transparent',color:D.textMid,cursor:m1Cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:m1Cargando?.5:1}}>
                       ↩️ Volver al análisis
                     </button>
+                    <button onClick={generarHooksMetodo1} disabled={!nombreValido||m1Cargando}
+                      title={!nombreValido?'Escribe tu nombre primero':undefined}
+                      style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.blue}`,borderRadius:9,background:D.blue,color:'#fff',cursor:(nombreValido&&!m1Cargando)?'pointer':'not-allowed',fontFamily:'inherit',fontWeight:600,opacity:(!nombreValido||m1Cargando)?.5:1}}>
+                      {m1Cargando?'Regenerando...':'🔄 Regenerar 3 hooks'}
+                    </button>
                     <button onClick={resetMetodo1} disabled={m1Cargando}
                       style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.blueDim}`,borderRadius:9,background:D.blueDark,color:D.blue,cursor:m1Cargando?'not-allowed':'pointer',fontFamily:'inherit',fontWeight:600,opacity:m1Cargando?.5:1}}>
                       🔄 Nuevo guion
@@ -2430,7 +2549,187 @@ ${guionTexto}`
             </>
           )}
 
-          {(modo === 'metodo2' || modo === 'metodo3') && (
+          {modo === 'metodo2' && (
+            <>
+              {/* Indicador de pasos */}
+              <div style={{display:'flex',gap:6,marginBottom:10,justifyContent:'center'}}>
+                {[
+                  {n:1,txt:'Tus guiones'},
+                  {n:2,txt:'Revisar fusión'},
+                  {n:3,txt:'Guion fusionado'}
+                ].map(p=>(
+                  <div key={p.n} style={{display:'flex',alignItems:'center',gap:6,fontSize:11,
+                    color:m2Paso===p.n?D.blue:m2Paso>p.n?D.green:D.textFaint,fontWeight:m2Paso===p.n?700:500}}>
+                    <span style={{width:20,height:20,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
+                      fontSize:10,fontWeight:700,color:'#fff',
+                      background:m2Paso===p.n?D.blue:m2Paso>p.n?D.green:D.textFaint}}>{m2Paso>p.n?'✓':p.n}</span>
+                    {p.txt}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── PASO 1 — input de los 2 guiones ── */}
+              {m2Paso === 1 && (
+                <div style={crd}>
+                  <div style={stepRow}><div style={stepNum}>M2</div><div style={stepLbl}>Fusión Hook + Cuerpo — Paso 1: Tus guiones</div></div>
+                  <div style={fldLbl}>Texto con el HOOK ganador</div>
+                  <div style={{fontSize:12,color:D.textDim,lineHeight:1.5,marginBottom:6}}>Te tomamos solo el hook, ignoramos el resto.</div>
+                  <textarea value={m2TextoHook} onChange={e=>setM2TextoHook(e.target.value)} rows={6}
+                    placeholder="Pega aquí el texto que contiene el hook ganador..."
+                    style={{...inp,minHeight:120,marginBottom:14}}/>
+                  <div style={fldLbl}>Texto con el CUERPO ganador</div>
+                  <div style={{fontSize:12,color:D.textDim,lineHeight:1.5,marginBottom:6}}>Te tomamos solo el cuerpo, descartamos su propio hook.</div>
+                  <textarea value={m2TextoCuerpo} onChange={e=>setM2TextoCuerpo(e.target.value)} rows={8}
+                    placeholder="Pega aquí el texto que contiene el cuerpo ganador..."
+                    style={{...inp,minHeight:160,marginBottom:14}}/>
+                  <div style={fldLbl}>Contexto adicional <span style={{color:D.textFaint,fontWeight:400,textTransform:'none',letterSpacing:0}}>(opcional)</span></div>
+                  <textarea value={m2Contexto} onChange={e=>setM2Contexto(e.target.value)} rows={3}
+                    placeholder="Qué producto vendes, qué avatar real..."
+                    style={{...inp,marginBottom:14}}/>
+                  <button onClick={analizarMetodo2}
+                    disabled={!nombreValido||!m2TextoHook.trim()||!m2TextoCuerpo.trim()||m2Cargando}
+                    title={!nombreValido?'Escribe tu nombre primero':undefined}
+                    style={{...btnMain,marginTop:0,opacity:(!nombreValido||!m2TextoHook.trim()||!m2TextoCuerpo.trim()||m2Cargando)?.5:1,cursor:(nombreValido&&m2TextoHook.trim()&&m2TextoCuerpo.trim()&&!m2Cargando)?'pointer':'not-allowed'}}>
+                    {m2Cargando?'Analizando...':'🔍 Analizar y extraer límites'}
+                  </button>
+                </div>
+              )}
+
+              {/* ── PASO 2 — revisar extracción + compatibilidad ── */}
+              {m2Paso === 2 && (
+                <>
+                  <div style={crd}>
+                    <div style={stepRow}><div style={stepNum}>M2</div><div style={stepLbl}>Paso 2: Revisar fusión</div></div>
+                    <div style={{fontSize:13,fontWeight:600,color:D.blue,marginBottom:14}}>🎯 Hook y cuerpo extraídos — Revisa y corrige</div>
+                    <div style={fldLbl}>Hook extraído</div>
+                    <textarea value={m2HookExtraido} onChange={e=>setM2HookExtraido(e.target.value)} rows={2}
+                      style={{...inp,marginBottom:12}}/>
+                    <div style={fldLbl}>Cuerpo extraído</div>
+                    <textarea value={m2CuerpoExtraido} onChange={e=>setM2CuerpoExtraido(e.target.value)} rows={9}
+                      style={{...inp,minHeight:180,marginBottom:m2HookDescartado?12:0}}/>
+                    {m2HookDescartado && (
+                      <div>
+                        <div style={fldLbl}>Hook descartado del segundo texto</div>
+                        <div style={{fontSize:13,color:D.textDim,lineHeight:1.5,fontStyle:'italic',background:D.accent,border:`1px solid ${D.cardBorder}`,borderRadius:8,padding:'8px 12px'}}>{m2HookDescartado}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Compatibilidad */}
+                  {m2Compatibilidad && (() => {
+                    const nv = (m2Compatibilidad.nivel||'media').toLowerCase()
+                    const cc = nv==='alta'?D.green : nv==='baja'?'#dc2626' : '#f59e0b'
+                    return (
+                      <div style={{...crd,borderLeft:`4px solid ${cc}`}}>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                          <span style={{fontSize:12,fontWeight:700,color:D.textMid,textTransform:'uppercase',letterSpacing:'.06em'}}>Compatibilidad</span>
+                          <span style={{fontSize:11,fontWeight:700,color:'#fff',background:cc,padding:'2px 10px',borderRadius:10,textTransform:'uppercase'}}>{nv}</span>
+                        </div>
+                        {m2Compatibilidad.razones && (
+                          <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,marginBottom:(m2Compatibilidad.advertencias&&m2Compatibilidad.advertencias.length)?8:0}}>{m2Compatibilidad.razones}</div>
+                        )}
+                        {Array.isArray(m2Compatibilidad.advertencias) && m2Compatibilidad.advertencias.length>0 && (
+                          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                            {m2Compatibilidad.advertencias.map((a,i)=>(
+                              <div key={i} style={{fontSize:12,color:'#c2620e',lineHeight:1.5}}>⚠️ {a}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+
+                  {/* Collapse análisis detallado */}
+                  <div style={{marginBottom:10}}>
+                    <button onClick={()=>setM2Detalles(!m2Detalles)}
+                      style={{background:'transparent',border:'none',color:D.blue,cursor:'pointer',fontSize:13,padding:'4px 0',fontFamily:'inherit'}}>
+                      {m2Detalles?'▾':'▸'} Ver análisis estratégico detallado
+                    </button>
+                    {m2Detalles && (
+                      <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:10}}>
+                        {[{t:'Análisis del hook',a:m2AnalisisHook},{t:'Análisis del cuerpo',a:m2AnalisisCuerpo}].map((blk,i)=>(
+                          <div key={i} style={{...crd,background:D.accent,marginBottom:0}}>
+                            <div style={{fontSize:12,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:10}}>{blk.t}</div>
+                            {blk.a ? (
+                              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}}>
+                                <DLine label="Avatar" value={blk.a.avatar||'—'}/>
+                                <DLine label="Producto" value={blk.a.producto||'—'}/>
+                                <DLine label="Nivel" value={blk.a.nivel||'—'}/>
+                                <DLine label="Motivo" value={blk.a.motivo||'—'}/>
+                                <DLine label="Ángulo" value={blk.a.angulo||'—'}/>
+                                <DLine label="Tono" value={blk.a.tono||'—'}/>
+                              </div>
+                            ) : <div style={{fontSize:12,color:D.textFaint,fontStyle:'italic'}}>Sin datos.</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={()=>setM2Paso(1)} disabled={m2Cargando}
+                      style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:9,background:'transparent',color:D.textMid,cursor:m2Cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:m2Cargando?.5:1}}>
+                      ↩️ Volver y reanalizar
+                    </button>
+                    <button onClick={fusionarMetodo2} disabled={!nombreValido||m2Cargando||!m2HookExtraido.trim()||!m2CuerpoExtraido.trim()}
+                      title={!nombreValido?'Escribe tu nombre primero':undefined}
+                      style={{flex:2,padding:12,fontSize:13,fontWeight:600,border:'none',borderRadius:9,background:`linear-gradient(135deg,#1270a0,${D.blue})`,color:'#fff',cursor:(nombreValido&&!m2Cargando)?'pointer':'not-allowed',fontFamily:'inherit',opacity:(!nombreValido||m2Cargando||!m2HookExtraido.trim()||!m2CuerpoExtraido.trim())?.5:1}}>
+                      {m2Cargando?'Fusionando...':'🔗 Confirmar y fusionar'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* ── PASO 3 — guion fusionado ── */}
+              {m2Paso === 3 && (
+                <>
+                  <div style={crd}>
+                    <div style={{fontSize:13,fontWeight:700,color:D.green,marginBottom:12}}>✅ Guion fusionado</div>
+                    <textarea readOnly value={m2GuionFusionado} rows={12}
+                      style={{...inp,minHeight:240,marginBottom:10,background:D.accent}}/>
+                    <div style={{fontSize:12,color:D.textDim,lineHeight:1.6,marginBottom:m2Notas?3:10}}>
+                      <b style={{color:D.textMid}}>Transición agregada:</b> {m2TransicionAgregada||'Ninguna'}
+                    </div>
+                    {m2Notas && (
+                      <div style={{fontSize:12,color:D.textDim,lineHeight:1.6,marginBottom:10}}>
+                        <b style={{color:D.textMid}}>Notas:</b> {m2Notas}
+                      </div>
+                    )}
+                    <button onClick={()=>copiarAlPortapapeles(m2GuionFusionado,'m2_fus')}
+                      style={{fontSize:12,fontWeight:600,padding:'8px 14px',borderRadius:8,border:`1px solid ${D.blue}`,background:copiadoKey==='m2_fus'?D.green:D.blueDark,color:copiadoKey==='m2_fus'?'#fff':D.blue,cursor:'pointer',fontFamily:'inherit'}}>
+                      {copiadoKey==='m2_fus'?'✓ Copiado':'📋 Copiar guion fusionado'}
+                    </button>
+                  </div>
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={()=>setM2Paso(2)} disabled={m2Cargando}
+                      style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:9,background:'transparent',color:D.textMid,cursor:m2Cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:m2Cargando?.5:1}}>
+                      ↩️ Volver a revisar
+                    </button>
+                    <button onClick={fusionarMetodo2} disabled={!nombreValido||m2Cargando}
+                      title={!nombreValido?'Escribe tu nombre primero':undefined}
+                      style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.blue}`,borderRadius:9,background:D.blue,color:'#fff',cursor:(nombreValido&&!m2Cargando)?'pointer':'not-allowed',fontFamily:'inherit',fontWeight:600,opacity:(!nombreValido||m2Cargando)?.5:1}}>
+                      {m2Cargando?'Refusionando...':'🔄 Refusionar'}
+                    </button>
+                    <button onClick={resetMetodo2} disabled={m2Cargando}
+                      style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.blueDim}`,borderRadius:9,background:D.blueDark,color:D.blue,cursor:m2Cargando?'not-allowed':'pointer',fontFamily:'inherit',fontWeight:600,opacity:m2Cargando?.5:1}}>
+                      🔄 Nuevo proceso
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {m2Cargando && (
+                <div style={{...crd,display:'flex',alignItems:'center',gap:12,marginTop:10}}>
+                  <div style={{width:18,height:18,border:`2px solid ${D.blueDim}`,borderTopColor:D.blue,borderRadius:'50%',animation:'m1spin .8s linear infinite',flexShrink:0}}/>
+                  <div style={{fontSize:13,color:D.textMid}}>
+                    {m2Paso===1?'Extrayendo hook y cuerpo, evaluando compatibilidad...':'Fusionando hook + cuerpo...'}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {modo === 'metodo3' && (
             <div style={{...crd,textAlign:'center',padding:'48px 20px'}}>
               <div style={{fontSize:14,color:D.textDim}}>Próximamente. Se implementará en la siguiente iteración.</div>
             </div>

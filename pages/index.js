@@ -206,6 +206,19 @@ export default function Home() {
   const [m2TransicionAgregada,setM2TransicionAgregada]=useState('')
   const [m2Notas,setM2Notas]=useState('')
   const [m2Detalles,setM2Detalles]=useState(false) // collapse de detalles
+  // ── Método 3 — Reestructurar ───────────────────────────────────
+  const [m3Cargando,setM3Cargando]=useState(false)
+  const [m3Paso,setM3Paso]=useState(1) // 1=input, 2=revisar, 3=resultado
+  const [m3GuionInput,setM3GuionInput]=useState('')
+  const [m3Contexto,setM3Contexto]=useState('')
+  const [m3Analisis,setM3Analisis]=useState(null)
+  const [m3Estructura,setM3Estructura]=useState([])
+  const [m3PalabrasClave,setM3PalabrasClave]=useState([])
+  const [m3PalabrasClaveTexto,setM3PalabrasClaveTexto]=useState('') // textarea editable como string
+  const [m3Versiones,setM3Versiones]=useState([])
+  const [m3Detalles,setM3Detalles]=useState(false)
+  const [m3VerOriginal,setM3VerOriginal]=useState(false)
+  const [m3VerDetalleVersion,setM3VerDetalleVersion]=useState({}) // {0:true,1:true}
 
   // Limpia outputs al cambiar formato (video↔imagen) — preserva análisis y decisiones del Paso 02/03
   useEffect(()=>{
@@ -508,6 +521,18 @@ export default function Home() {
       setM2Notas(p.m2Notas || '')
       // metodo2-fusion → paso 3; metodo2-analisis → paso 2
       setM2Paso(p.m2Paso || (p.m2GuionFusionado ? 3 : 2))
+    } else if (p.modo === 'metodo3') {
+      setModo('metodo3')
+      setM3GuionInput(p.m3GuionInput || '')
+      setM3Contexto(p.m3Contexto || '')
+      setM3Analisis(p.m3Analisis || null)
+      setM3Estructura(Array.isArray(p.m3Estructura) ? p.m3Estructura : [])
+      const pc3 = Array.isArray(p.m3PalabrasClave) ? p.m3PalabrasClave : []
+      setM3PalabrasClave(pc3)
+      setM3PalabrasClaveTexto(pc3.join(', '))
+      setM3Versiones(Array.isArray(p.m3Versiones) ? p.m3Versiones : [])
+      // metodo3-regeneracion → paso 3; metodo3-analisis → paso 2
+      setM3Paso(p.m3Paso || (Array.isArray(p.m3Versiones) && p.m3Versiones.length > 0 ? 3 : 2))
     } else {
       setModo(p.modo || 'crear')
     }
@@ -601,6 +626,7 @@ export default function Home() {
     setBannerSesion(null)
     resetMetodo1()
     resetMetodo2()
+    resetMetodo3()
   }
 
   // ── MÉTODO 1 — Variar Hook (flujo de 2 pasos) ──────────────────
@@ -773,6 +799,105 @@ export default function Home() {
       alert('Error: ' + e.message)
     }
     setM2Cargando(false)
+  }
+
+  // ── MÉTODO 3 — Reestructurar ───────────────────────────────────
+  function resetMetodo3() {
+    setM3Paso(1); setM3GuionInput(''); setM3Contexto('')
+    setM3Analisis(null); setM3Estructura([]); setM3PalabrasClave([]); setM3PalabrasClaveTexto('')
+    setM3Versiones([]); setM3Detalles(false); setM3VerOriginal(false); setM3VerDetalleVersion({})
+  }
+
+  function setM3Campo(campo, valor) {
+    setM3Analisis(prev => ({ ...(prev || {}), [campo]: valor }))
+  }
+  function setM3PasoFuncion(idx, valor) {
+    setM3Estructura(prev => prev.map((s, i) => i === idx ? { ...s, funcion: valor } : s))
+  }
+  function m3MoverPaso(idx, dir) {
+    setM3Estructura(prev => {
+      const arr = [...prev]
+      const j = idx + dir
+      if (j < 0 || j >= arr.length) return prev
+      const tmp = arr[idx]; arr[idx] = arr[j]; arr[j] = tmp
+      return arr.map((s, i) => ({ ...s, paso: i + 1 }))
+    })
+  }
+  function m3EliminarPaso(idx) {
+    setM3Estructura(prev => prev.filter((_, i) => i !== idx).map((s, i) => ({ ...s, paso: i + 1 })))
+  }
+  function m3AgregarPaso() {
+    setM3Estructura(prev => [...prev, { paso: prev.length + 1, funcion: '', ejemplo: '' }])
+  }
+
+  // Paso 1 → 2: analiza estructura + palabras clave
+  async function analizarMetodo3() {
+    if (!nombreValido) { alert('Escribe tu nombre antes de continuar'); return }
+    if (!m3GuionInput.trim()) return
+    setM3Cargando(true)
+    try {
+      const r = await fetch('/api/metodo3/analizar', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          guionGanador: m3GuionInput.trim(),
+          contextoAdicional: m3Contexto.trim(),
+          modelo: modeloSel,
+          autor: nombreAutor.trim()
+        })
+      })
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al analizar el guion')
+      setM3Analisis(d.analisis || {})
+      setM3Estructura(Array.isArray(d.estructura) ? d.estructura : [])
+      const pc = Array.isArray(d.palabrasClave) ? d.palabrasClave : []
+      setM3PalabrasClave(pc)
+      setM3PalabrasClaveTexto(pc.join(', '))
+      setM3Versiones([])
+      if (d.anuncioId) {
+        setAnuncioIdActual(d.anuncioId)
+        try { localStorage.setItem('anuncioIdActual', String(d.anuncioId)) } catch {}
+      }
+      aplicarCostoM1(d.costoOperacion)
+      setBannerSesion(null)
+      setM3Paso(2)
+    } catch(e) {
+      alert('Error: ' + e.message)
+    }
+    setM3Cargando(false)
+  }
+
+  // Paso 2 → 3: genera 2 versiones nuevas con la misma estructura
+  async function regenerarMetodo3() {
+    if (!nombreValido) { alert('Escribe tu nombre antes de continuar'); return }
+    if (!m3Analisis || m3Estructura.length === 0) return
+    setM3Cargando(true)
+    try {
+      const palabras = m3PalabrasClaveTexto.split(',').map(s => s.trim()).filter(Boolean)
+      const r = await fetch('/api/metodo3/regenerar', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          anuncioId: anuncioIdActual || undefined,
+          analisisConfirmado: m3Analisis,
+          estructuraConfirmada: m3Estructura,
+          palabrasClaveOriginales: palabras,
+          modelo: modeloSel,
+          autor: nombreAutor.trim()
+        })
+      })
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al generar las versiones')
+      setM3Versiones(d.versiones || [])
+      setM3PalabrasClave(palabras)
+      if (d.anuncioId) {
+        setAnuncioIdActual(d.anuncioId)
+        try { localStorage.setItem('anuncioIdActual', String(d.anuncioId)) } catch {}
+      }
+      aplicarCostoM1(d.costoOperacion)
+      setM3Paso(3)
+    } catch(e) {
+      alert('Error: ' + e.message)
+    }
+    setM3Cargando(false)
   }
 
   async function subirArchivo(file) {
@@ -2730,9 +2855,242 @@ ${guionTexto}`
           )}
 
           {modo === 'metodo3' && (
-            <div style={{...crd,textAlign:'center',padding:'48px 20px'}}>
-              <div style={{fontSize:14,color:D.textDim}}>Próximamente. Se implementará en la siguiente iteración.</div>
-            </div>
+            <>
+              {/* Indicador de pasos */}
+              <div style={{display:'flex',gap:6,marginBottom:10,justifyContent:'center'}}>
+                {[
+                  {n:1,txt:'Tu guion ganador'},
+                  {n:2,txt:'Revisar estructura'},
+                  {n:3,txt:'2 versiones nuevas'}
+                ].map(p=>(
+                  <div key={p.n} style={{display:'flex',alignItems:'center',gap:6,fontSize:11,
+                    color:m3Paso===p.n?D.blue:m3Paso>p.n?D.green:D.textFaint,fontWeight:m3Paso===p.n?700:500}}>
+                    <span style={{width:20,height:20,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
+                      fontSize:10,fontWeight:700,color:'#fff',
+                      background:m3Paso===p.n?D.blue:m3Paso>p.n?D.green:D.textFaint}}>{m3Paso>p.n?'✓':p.n}</span>
+                    {p.txt}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── PASO 1 — input del guion ganador ── */}
+              {m3Paso === 1 && (
+                <div style={crd}>
+                  <div style={stepRow}><div style={stepNum}>M3</div><div style={stepLbl}>Reestructurar — Paso 1: Tu guion ganador</div></div>
+                  <div style={fldLbl}>Pega el guion ganador que quieres reestructurar</div>
+                  <div style={{fontSize:12,color:D.textDim,lineHeight:1.5,marginBottom:6}}>El sistema mantendrá su misma estructura narrativa pero con palabras 100% diferentes.</div>
+                  <textarea value={m3GuionInput} onChange={e=>setM3GuionInput(e.target.value)} rows={9}
+                    placeholder="Pega aquí el guion ganador validado..."
+                    style={{...inp,minHeight:190,marginBottom:14}}/>
+                  <div style={fldLbl}>Contexto adicional <span style={{color:D.textFaint,fontWeight:400,textTransform:'none',letterSpacing:0}}>(opcional)</span></div>
+                  <textarea value={m3Contexto} onChange={e=>setM3Contexto(e.target.value)} rows={3}
+                    placeholder="Qué producto vendes, qué avatar real, qué intención..."
+                    style={{...inp,marginBottom:14}}/>
+                  <button onClick={analizarMetodo3}
+                    disabled={!nombreValido||!m3GuionInput.trim()||m3Cargando}
+                    title={!nombreValido?'Escribe tu nombre primero':undefined}
+                    style={{...btnMain,marginTop:0,opacity:(!nombreValido||!m3GuionInput.trim()||m3Cargando)?.5:1,cursor:(nombreValido&&m3GuionInput.trim()&&!m3Cargando)?'pointer':'not-allowed'}}>
+                    {m3Cargando?'Analizando...':'🔍 Analizar estructura y palabras clave'}
+                  </button>
+                </div>
+              )}
+
+              {/* ── PASO 2 — revisar estructura + análisis ── */}
+              {m3Paso === 2 && m3Analisis && (
+                <>
+                  <div style={crd}>
+                    <div style={stepRow}><div style={stepNum}>M3</div><div style={stepLbl}>Paso 2: Revisar estructura</div></div>
+                    <div style={{fontSize:13,fontWeight:600,color:D.blue,marginBottom:14}}>🎯 Estructura y análisis detectados — Revisa y corrige</div>
+
+                    <div style={fldLbl}>Avatar</div>
+                    <textarea value={m3Analisis.avatar||''} onChange={e=>setM3Campo('avatar',e.target.value)} rows={3}
+                      style={{...inp,marginBottom:12}}/>
+
+                    <div style={fldLbl}>Producto</div>
+                    <input type="text" value={m3Analisis.producto||''} onChange={e=>setM3Campo('producto',e.target.value)}
+                      style={{...inp,height:38,padding:'9px 12px',marginBottom:12}}/>
+
+                    <div style={fldLbl}>Formato</div>
+                    <select value={(m3Analisis.formato||'').toLowerCase().includes('imagen')?'imagen':'video'}
+                      onChange={e=>setM3Campo('formato',e.target.value)} style={{...sel,marginBottom:12}}>
+                      <option value="video">Video</option>
+                      <option value="imagen">Imagen</option>
+                    </select>
+
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+                      <div>
+                        <div style={fldLbl}>Nivel de consciencia</div>
+                        <select value={String(m3Analisis.nivel||'')} onChange={e=>setM3Campo('nivel',e.target.value)} style={sel}>
+                          <option value="">—</option>
+                          <option value="1">1 - Inconsciente</option>
+                          <option value="2">2 - Consciente del problema</option>
+                          <option value="3">3 - Consciente de la solución</option>
+                          <option value="4">4 - Consciente del producto</option>
+                          <option value="5">5 - Totalmente consciente</option>
+                        </select>
+                      </div>
+                      <div>
+                        <div style={fldLbl}>Motivo</div>
+                        <select value={m3Analisis.motivo||''} onChange={e=>setM3Campo('motivo',e.target.value)} style={sel}>
+                          <option value="">—</option>
+                          {['Emocional','Funcional','Educativo','Aspiracional','Racional'].map(m=>(
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={fldLbl}>Ángulo</div>
+                    <select value={m3Analisis.angulo||''} onChange={e=>setM3Campo('angulo',e.target.value)} style={{...sel,marginBottom:12}}>
+                      <option value="">—</option>
+                      {Object.keys(DOCTRINA_ANGULOS).map(a=>(
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </select>
+
+                    <div style={fldLbl}>Tono</div>
+                    <input type="text" value={m3Analisis.tono||''} onChange={e=>setM3Campo('tono',e.target.value)}
+                      style={{...inp,height:38,padding:'9px 12px',marginBottom:0}}/>
+                  </div>
+
+                  {/* Estructura narrativa editable */}
+                  <div style={crd}>
+                    <div style={{fontSize:12,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:10}}>Estructura narrativa</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                      {m3Estructura.map((s,i)=>(
+                        <div key={i} style={{border:`1px solid ${D.cardBorder}`,borderRadius:10,padding:12,background:D.accent}}>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,gap:8}}>
+                            <span style={{fontSize:11,fontWeight:700,color:D.blue}}>Paso {i+1}</span>
+                            <div style={{display:'flex',gap:4}}>
+                              <button onClick={()=>m3MoverPaso(i,-1)} disabled={i===0}
+                                style={{fontSize:11,padding:'2px 8px',border:`1px solid ${D.cardBorder}`,borderRadius:5,background:'#fff',color:D.textMid,cursor:i===0?'not-allowed':'pointer',fontFamily:'inherit',opacity:i===0?.4:1}}>↑ Subir</button>
+                              <button onClick={()=>m3MoverPaso(i,1)} disabled={i===m3Estructura.length-1}
+                                style={{fontSize:11,padding:'2px 8px',border:`1px solid ${D.cardBorder}`,borderRadius:5,background:'#fff',color:D.textMid,cursor:i===m3Estructura.length-1?'not-allowed':'pointer',fontFamily:'inherit',opacity:i===m3Estructura.length-1?.4:1}}>↓ Bajar</button>
+                              <button onClick={()=>m3EliminarPaso(i)}
+                                style={{fontSize:11,padding:'2px 8px',border:`1px solid #fecaca`,borderRadius:5,background:'#fff',color:'#dc2626',cursor:'pointer',fontFamily:'inherit'}}>❌ Eliminar</button>
+                            </div>
+                          </div>
+                          <div style={fldLbl}>Función</div>
+                          <textarea value={s.funcion||''} onChange={e=>setM3PasoFuncion(i,e.target.value)} rows={2}
+                            style={{...inp,marginBottom:s.ejemplo?8:0,background:'#fff'}}/>
+                          {s.ejemplo && (
+                            <div style={{fontSize:12,color:D.textDim,lineHeight:1.5,fontStyle:'italic'}}>
+                              Ejemplo del original: "{s.ejemplo}"
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={m3AgregarPaso}
+                      style={{marginTop:10,fontSize:12,padding:'7px 14px',border:`1px dashed ${D.blue}`,borderRadius:8,background:'transparent',color:D.blue,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+                      + Agregar paso
+                    </button>
+                  </div>
+
+                  {/* Palabras clave a evitar */}
+                  <div style={crd}>
+                    <div style={{fontSize:12,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Palabras clave a evitar</div>
+                    <div style={{fontSize:12,color:D.textDim,lineHeight:1.5,marginBottom:6}}>Separadas por coma. Las versiones nuevas no las usarán (usarán sinónimos).</div>
+                    <textarea value={m3PalabrasClaveTexto} onChange={e=>setM3PalabrasClaveTexto(e.target.value)} rows={4}
+                      placeholder="palabra1, palabra2, frase distintiva..."
+                      style={{...inp,marginBottom:0}}/>
+                  </div>
+
+                  {/* Collapse guion original */}
+                  <div style={{marginBottom:10}}>
+                    <button onClick={()=>setM3VerOriginal(!m3VerOriginal)}
+                      style={{background:'transparent',border:'none',color:D.blue,cursor:'pointer',fontSize:13,padding:'4px 0',fontFamily:'inherit'}}>
+                      {m3VerOriginal?'▾':'▸'} Ver guion original
+                    </button>
+                    {m3VerOriginal && (
+                      <div style={{marginTop:8,...crd,background:D.accent}}>
+                        <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,whiteSpace:'pre-wrap',maxHeight:280,overflowY:'auto'}}>{m3GuionInput||'—'}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={()=>setM3Paso(1)} disabled={m3Cargando}
+                      style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:9,background:'transparent',color:D.textMid,cursor:m3Cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:m3Cargando?.5:1}}>
+                      ↩️ Volver y reanalizar
+                    </button>
+                    <button onClick={regenerarMetodo3} disabled={!nombreValido||m3Cargando||m3Estructura.length===0}
+                      title={!nombreValido?'Escribe tu nombre primero':undefined}
+                      style={{flex:2,padding:12,fontSize:13,fontWeight:600,border:'none',borderRadius:9,background:`linear-gradient(135deg,#1270a0,${D.blue})`,color:'#fff',cursor:(nombreValido&&!m3Cargando&&m3Estructura.length>0)?'pointer':'not-allowed',fontFamily:'inherit',opacity:(!nombreValido||m3Cargando||m3Estructura.length===0)?.5:1}}>
+                      {m3Cargando?'Generando...':'🔄 Confirmar y generar 2 versiones'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* ── PASO 3 — 2 versiones nuevas ── */}
+              {m3Paso === 3 && (
+                <>
+                  <div style={{fontSize:13,fontWeight:700,color:D.green,marginBottom:10,textAlign:'center'}}>
+                    ✅ 2 versiones nuevas con misma estructura, palabras diferentes
+                  </div>
+                  {m3Versiones.map((v,i)=>(
+                    <div key={i} style={crd}>
+                      <div style={{fontSize:11,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:10}}>Versión {v.numero||i+1}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:D.textDim,marginBottom:2}}>🪝 Hook</div>
+                      <div style={{fontSize:17,fontWeight:700,color:D.text,lineHeight:1.4,marginBottom:10}}>{v.hook}</div>
+                      <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,marginBottom:10}}>
+                        <b style={{color:D.text}}>💡 Idea visual:</b> {v.ideaVisual}
+                      </div>
+                      <div style={fldLbl}>📜 Guion completo</div>
+                      <textarea readOnly value={v.guionCompleto||''} rows={9}
+                        style={{...inp,minHeight:180,marginBottom:10,background:D.accent}}/>
+                      <button onClick={()=>copiarAlPortapapeles(v.guionCompleto||'','m3_gc_'+i)}
+                        style={{fontSize:12,fontWeight:600,padding:'8px 14px',borderRadius:8,border:`1px solid ${D.blue}`,background:copiadoKey==='m3_gc_'+i?D.green:D.blueDark,color:copiadoKey==='m3_gc_'+i?'#fff':D.blue,cursor:'pointer',fontFamily:'inherit'}}>
+                        {copiadoKey==='m3_gc_'+i?'✓ Copiado':'📋 Copiar guion completo'}
+                      </button>
+                      <div style={{marginTop:10}}>
+                        <button onClick={()=>setM3VerDetalleVersion(prev=>({...prev,[i]:!prev[i]}))}
+                          style={{background:'transparent',border:'none',color:D.blue,cursor:'pointer',fontSize:13,padding:'4px 0',fontFamily:'inherit'}}>
+                          {m3VerDetalleVersion[i]?'▾':'▸'} Ver detalles
+                        </button>
+                        {m3VerDetalleVersion[i] && (
+                          <div style={{marginTop:6,fontSize:12,color:D.textMid,lineHeight:1.6}}>
+                            {Array.isArray(v.palabrasOriginalEvitadas) && v.palabrasOriginalEvitadas.length>0 && (
+                              <div style={{marginBottom:6}}>
+                                <b style={{color:D.text}}>Palabras del original evitadas:</b> {v.palabrasOriginalEvitadas.join(', ')}
+                              </div>
+                            )}
+                            {v.estructuraSeguida && (
+                              <div><b style={{color:D.text}}>Estructura seguida:</b> {v.estructuraSeguida}</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={()=>setM3Paso(2)} disabled={m3Cargando}
+                      style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:9,background:'transparent',color:D.textMid,cursor:m3Cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:m3Cargando?.5:1}}>
+                      ↩️ Volver a revisar
+                    </button>
+                    <button onClick={regenerarMetodo3} disabled={!nombreValido||m3Cargando}
+                      title={!nombreValido?'Escribe tu nombre primero':undefined}
+                      style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.blue}`,borderRadius:9,background:D.blue,color:'#fff',cursor:(nombreValido&&!m3Cargando)?'pointer':'not-allowed',fontFamily:'inherit',fontWeight:600,opacity:(!nombreValido||m3Cargando)?.5:1}}>
+                      {m3Cargando?'Regenerando...':'🔄 Regenerar 2 versiones'}
+                    </button>
+                    <button onClick={resetMetodo3} disabled={m3Cargando}
+                      style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.blueDim}`,borderRadius:9,background:D.blueDark,color:D.blue,cursor:m3Cargando?'not-allowed':'pointer',fontFamily:'inherit',fontWeight:600,opacity:m3Cargando?.5:1}}>
+                      🔄 Nuevo guion
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {m3Cargando && (
+                <div style={{...crd,display:'flex',alignItems:'center',gap:12,marginTop:10}}>
+                  <div style={{width:18,height:18,border:`2px solid ${D.blueDim}`,borderTopColor:D.blue,borderRadius:'50%',animation:'m1spin .8s linear infinite',flexShrink:0}}/>
+                  <div style={{fontSize:13,color:D.textMid}}>
+                    {m3Paso===1?'Desmontando la estructura narrativa del guion...':'Generando 2 versiones nuevas con la misma estructura...'}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
         </div>

@@ -44,23 +44,52 @@ REQUISITOS DE LOS HOOKS:
 - ${esVideo ? '≤15 palabras (es video)' : '≤7 palabras (es imagen)'}.
 - Que fluya con el cuerpo dado.
 
-REQUISITOS DE LA IDEA VISUAL — CRÍTICO:
-- DEBE ser una ESCENA CONCRETA Y SIMPLE en 1-2 frases naturales.
-- NO uses jerga técnica audiovisual: NO 'close-up', NO 'plano', NO 'jump cut', NO 'movimiento de cámara', NO 'paneo', NO 'POV'.
-- SOLO describe QUÉ se ve y QUÉ pasa, como si lo contaras a un amigo.
-- Debe ser ESPECÍFICO al producto y al avatar del análisis.
-- Debe poder rodarse con un celular en una situación real (estilo UGC).
-- Que detenga el scroll por su contenido, no por trucos de edición.
+REQUISITOS DE LA IDEA VISUAL — REGLA DE ORO: DEBE DETENER EL SCROLL EN 0.5 SEGUNDOS.
+
+Contexto: el usuario está scrolleando TikTok/Reels/Facebook. Cada video tiene 0.5 segundos para enganchar antes de que pase al siguiente. Una escena "normal" o "tranquila" NO funciona. La idea visual debe:
+
+1. SORPRENDER o crear CONFLICTO inmediato en el primer segundo.
+2. Mostrar el PROBLEMA en su momento más dramático, no después de resuelto.
+3. Generar curiosidad ("qué pasó", "cómo termina"), no resolución.
+4. Ser MEMORABLE, no cotidiana.
+
+CRITERIOS DE "SCROLL-STOPPING":
+- ✅ Pattern interrupt: algo inesperado, fuera de lo normal.
+- ✅ Drama visual: una mancha gigante, un derrame en cámara lenta, una reacción extrema (cara de horror, frustración real, sorpresa).
+- ✅ Contraste extremo: antes vs después dramático.
+- ✅ Momento de tensión: algo a punto de pasar / acabando de pasar.
+- ✅ POV intrigante: "POV: tú al despertar y ver X", "POV: tu mantel después de la cena de Navidad".
+- ✅ Relatable + exagerado: situaciones reales pero en su versión más dramática.
+
+LO QUE NUNCA FUNCIONA:
+- ❌ Personas sonriendo limpiando tranquilas.
+- ❌ Escenas resueltas, felices, sin conflicto.
+- ❌ Familia comiendo en armonía sin drama.
+- ❌ Persona aplicando producto satisfecha.
+- ❌ Cualquier cosa que se vea como anuncio tradicional de TV.
+
+REGLA: debe verse como contenido NATIVO de TikTok, no como anuncio.
 
 EJEMPLOS BUENOS (para mantel anti-manchas):
-✅ "Un niño derramando un vaso de jugo en la mesa durante la cena familiar"
-✅ "Una madre frotando una mancha de salsa sin éxito después de una hora"
-✅ "Una mesa que se va arruinando con el tiempo por manchas acumuladas"
+✅ "Niño volcando un vaso entero de jugo de uva morado sobre el mantel blanco recién puesto en plena cena"
+✅ "POV: abres la puerta del comedor después de que los niños 'almorzaron solos'. El mantel destrozado."
+✅ "Mancha gigante de salsa boloñesa expandiéndose en el mantel mientras la persona se queda paralizada con la cara de no creerlo"
+✅ "Tu mantel después de la primera comida vs después de 6 meses con manchas de café, vino y comida"
+✅ "Una mano apretando un vaso de vino tinto sobre la mesa, el vaso resbala y cae en cámara lenta"
 
-EJEMPLOS MALOS (NO usar):
-❌ "Close-up de la mancha con movimiento de zoom" (jerga técnica)
-❌ "Plano medio del avatar con expresión de frustración" (jerga técnica)
-❌ "Muestra el problema y la solución" (genérico, no concreto)
+EJEMPLOS MALOS (NO usar, son demasiado tranquilos):
+❌ "Una madre limpiando una mancha con su mantel"
+❌ "Familia comiendo tranquila con mantel impecable"
+❌ "Persona sonriendo mientras pone el mantel"
+❌ "Mujer aplicando el producto satisfecha"
+
+REGLAS QUE SIGUEN APLICANDO:
+- Sin jerga técnica audiovisual (no close-up, no plano, no movimiento de cámara).
+- Escena rodable con celular, estilo UGC.
+- Respetar políticas de Meta (no violencia gráfica, no menores en sit. inapropiada, no claims médicos extremos, no contenido engañoso).
+- "Drama" significa emoción real, NO violencia real.
+
+La idea visual debe describir la ESCENA, en 1-2 frases naturales, enfocada en el MOMENTO DE MAYOR IMPACTO.
 
 POLÍTICAS DE META (RESPETAR):
 - NO violencia gráfica, sangre, lesiones.

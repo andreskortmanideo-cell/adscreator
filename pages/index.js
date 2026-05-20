@@ -45,6 +45,13 @@ const DOCTRINA_ANGULOS = {
   'Aspiracional': { que: 'Conecta el producto con la imagen/vida que el avatar quiere.', estructura: '1) Imagen deseada 2) Identidad 3) Producto como puente 4) CTA', tono: 'Inspirador, concreto', ejemplo: 'Conviértete en la versión de ti que siempre supiste que podías ser.' }
 }
 
+const BADGES_METODO = {
+  'crear':   { label: '🎬 Crear',         bg: '#dbeafe', color: '#1e40af' },
+  'metodo1': { label: '🔍 Variar Hook',   bg: '#fef3c7', color: '#92400e' },
+  'metodo2': { label: '🔗 Fusión',        bg: '#dcfce7', color: '#166534' },
+  'metodo3': { label: '🔄 Reestructurar', bg: '#fce7f3', color: '#9f1239' }
+}
+
 function PanelDoctrina({ open, setOpen, titulo, color, children }) {
   return (
     <div style={{ marginTop: 12, borderLeft: `4px solid ${color}`, background: D.accent, borderRadius: 8, overflow: 'hidden', border: `1px solid ${D.cardBorder}` }}>
@@ -377,7 +384,7 @@ export default function Home() {
 
   async function crearAnuncioServer(briefingExtra={}) {
     try {
-      const body = { briefing: briefingActual(briefingExtra) }
+      const body = { briefing: briefingActual(briefingExtra), metodoPrincipal: 'crear' }
       const r = await fetch('/api/historial/anuncio', {
         method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
       })
@@ -1387,6 +1394,14 @@ ${guionTexto}`
                       </button>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:13,fontWeight:600,color:D.text,marginBottom:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                          {(() => {
+                            const badge = BADGES_METODO[it.metodo_principal] || BADGES_METODO['crear']
+                            return (
+                              <span style={{display:'inline-block',background:badge.bg,color:badge.color,padding:'2px 8px',borderRadius:6,fontSize:11,fontWeight:600,marginRight:8}}>
+                                {badge.label}
+                              </span>
+                            )
+                          })()}
                           #{it.id} · {it.producto || '(sin producto)'}
                         </div>
                         <div style={{fontSize:11,color:D.textDim,display:'flex',gap:8,flexWrap:'wrap'}}>

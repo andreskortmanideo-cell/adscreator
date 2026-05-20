@@ -98,6 +98,7 @@ SI DEJAS CAMPOS VACÍOS, ESTÁS FALLANDO LA TAREA.`
         motivo: (analisis.motivo || '').toString(),
         angulo: (analisis.angulo || '').toString(),
         modelo: modeloSel,
+        metodoPrincipal: 'metodo1',
         briefingJson: { modo: 'metodo1', guionInput: guion, contexto }
       })
       agregarVersion(anuncioId, {

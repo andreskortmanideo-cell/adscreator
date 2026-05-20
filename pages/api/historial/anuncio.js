@@ -10,6 +10,7 @@ export default function handler(req, res) {
     const body = req.body || {}
     const briefing = body.briefing || {}
     if (body.autor !== undefined) briefing.autor = body.autor
+    if (body.metodoPrincipal !== undefined) briefing.metodoPrincipal = body.metodoPrincipal
     if (body.id) {
       const ok = actualizarBriefing(Number(body.id), briefing)
       if (!ok) return res.status(404).json({ error: 'Anuncio no encontrado' })

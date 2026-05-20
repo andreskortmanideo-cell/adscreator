@@ -147,6 +147,7 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks".`
           motivo,
           angulo,
           modelo: modeloSel,
+          metodoPrincipal: 'metodo1',
           briefingJson: { modo: 'metodo1' }
         })
       }

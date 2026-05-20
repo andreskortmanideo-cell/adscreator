@@ -172,6 +172,11 @@ export default function Home() {
   const [verCtxAdv,setVerCtxAdv]=useState(false)
   const [auditorias,setAuditorias]=useState({}) // {0: textoAuditoria, 1: ..., 2: ...} (video) o {imagen_0: ..., imagen_1: ...}
   const [auditando,setAuditando]=useState(null) // índice que se está auditando
+  // ── NUEVO: sistema de tabs + Método 1 (Variar Hook) ────────────
+  const [modo,setModo]=useState('crear') // 'crear' | 'metodo1' | 'metodo2' | 'metodo3'
+  const [guionInput,setGuionInput]=useState('')
+  const [m1Cargando,setM1Cargando]=useState(false)
+  const [m1Resultado,setM1Resultado]=useState(null) // {analisis,hookOriginal,cuerpo,hooks}
 
   // Limpia outputs al cambiar formato (video↔imagen) — preserva análisis y decisiones del Paso 02/03
   useEffect(()=>{
@@ -447,6 +452,10 @@ export default function Home() {
     if (p.promptGen !== undefined) setPromptGen(p.promptGen || '')
     if (p.promptAnalisis !== undefined) setPromptAnalisis(p.promptAnalisis || '')
     if (Array.isArray(p.hooksUsadosImg)) setHooksUsadosImg(p.hooksUsadosImg)
+    // Método 1 — restaura modo + inputs/outputs
+    setModo(p.modo || 'crear')
+    if (p.m1Input !== undefined) setGuionInput(p.m1Input || '')
+    if (p.m1Output !== undefined) setM1Resultado(p.m1Output || null)
     // Reset costoAnuncio al costo acumulado del anuncio
     if (anuncio) {
       setCostoAnuncio({
@@ -535,6 +544,50 @@ export default function Home() {
     setCostoAnuncio({usd:0,cop:0,operaciones:0})
     setUltimoCosto(null)
     setBannerSesion(null)
+    setGuionInput(''); setM1Resultado(null)
+  }
+
+  // ── MÉTODO 1 — Variar Hook (ingeniería inversa + 3 hooks) ──────
+  async function analizarMetodo1() {
+    if (!nombreValido) { alert('Escribe tu nombre antes de continuar'); return }
+    if (!guionInput.trim()) return
+    setM1Cargando(true)
+    setM1Resultado(null)
+    try {
+      const r = await fetch('/api/metodo1/variar-hook', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          guionCompleto: guionInput.trim(),
+          modelo: modeloSel,
+          autor: nombreAutor.trim(),
+          anuncioId: anuncioIdActual || undefined
+        })
+      })
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al procesar el guion')
+      setM1Resultado({ analisis:d.analisis||{}, hookOriginal:d.hookOriginal||'', cuerpo:d.cuerpo||'', hooks:d.hooks||[] })
+      if (d.anuncioId) {
+        setAnuncioIdActual(d.anuncioId)
+        try { localStorage.setItem('anuncioIdActual', String(d.anuncioId)) } catch {}
+      }
+      if (d.costoOperacion) {
+        setUltimoCosto(d.costoOperacion)
+        setCostoSesion(prev=>({
+          usd: prev.usd + d.costoOperacion.totales.usd,
+          cop: prev.cop + d.costoOperacion.totales.cop,
+          operaciones: prev.operaciones + 1
+        }))
+        setCostoAnuncio(prev=>({
+          usd: prev.usd + d.costoOperacion.totales.usd,
+          cop: prev.cop + d.costoOperacion.totales.cop,
+          operaciones: prev.operaciones + 1
+        }))
+      }
+      setBannerSesion(null)
+    } catch(e) {
+      alert('Error: ' + e.message)
+    }
+    setM1Cargando(false)
   }
 
   async function subirArchivo(file) {
@@ -1209,7 +1262,7 @@ ${guionTexto}`
       <Head>
         <title>Ideo Team — Ads Creator</title>
         <meta name="viewport" content="width=device-width,initial-scale=1"/>
-        <style>{`*{box-sizing:border-box;margin:0;padding:0}body{background:${D.bg};font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif}textarea:focus,input:focus,select:focus{outline:none;border-color:${D.blue}!important}textarea::placeholder,input::placeholder{color:#9ca3af}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${D.bg}}::-webkit-scrollbar-thumb{background:${D.cardBorder};border-radius:2px}`}</style>
+        <style>{`*{box-sizing:border-box;margin:0;padding:0}body{background:${D.bg};font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif}textarea:focus,input:focus,select:focus{outline:none;border-color:${D.blue}!important}textarea::placeholder,input::placeholder{color:#9ca3af}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${D.bg}}::-webkit-scrollbar-thumb{background:${D.cardBorder};border-radius:2px}@keyframes m1spin{to{transform:rotate(360deg)}}`}</style>
       </Head>
       <div style={{background:D.bg,minHeight:'100vh',color:D.text}}>
 
@@ -1363,6 +1416,28 @@ ${guionTexto}`
           </div>
         </div>
 
+        {/* ── TABS DE MODOS ── */}
+        <div style={{background:'#ffffff',borderBottom:`1px solid ${D.cardBorder}`,padding:'10px 16px',display:'flex',justifyContent:'center',gap:8,flexWrap:'wrap'}}>
+          {[
+            { id:'crear', label:'Crear desde cero' },
+            { id:'metodo1', label:'Variar Hook' },
+            { id:'metodo2', label:'Fusión Hook + Cuerpo' },
+            { id:'metodo3', label:'Reestructurar' }
+          ].map(t=>{
+            const activo = modo===t.id
+            return (
+              <button key={t.id} disabled={!nombreValido}
+                onClick={()=>{ if(nombreValido) setModo(t.id) }}
+                title={!nombreValido?'Escribe tu nombre primero':undefined}
+                style={{padding:'8px 16px',borderRadius:8,border:'none',fontSize:12,fontWeight:600,fontFamily:'inherit',
+                  background:activo?D.blue:D.accent,color:activo?'#ffffff':D.textMid,
+                  cursor:nombreValido?'pointer':'not-allowed',opacity:nombreValido?1:0.55,transition:'all .15s'}}>
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+
         {bannerSesion && (
           <div style={{background:D.blueDark,borderBottom:`1px solid ${D.blueDim}`,padding:'8px 16px',display:'flex',justifyContent:'center'}}>
             <div style={{maxWidth:700,width:'100%',display:'flex',alignItems:'center',gap:10,fontSize:12,color:D.blueLight}}>
@@ -1407,6 +1482,8 @@ ${guionTexto}`
         )}
 
         <div style={{maxWidth:700,margin:'0 auto',padding:'28px 16px 80px'}}>
+
+          {modo === 'crear' && (<>
 
           {/* ── PASO 01 ── */}
           <div style={crd}>
@@ -2070,6 +2147,116 @@ ${guionTexto}`
                 ))}
               </div>
               {renderContenido(variaciones[variacionActiva],'video')}
+            </div>
+          )}
+
+          </>)}
+
+          {modo === 'metodo1' && (
+            <>
+              {/* ── Input del guion ── */}
+              <div style={crd}>
+                <div style={stepRow}><div style={stepNum}>M1</div><div style={stepLbl}>Variar Hook — Ingeniería inversa</div></div>
+                <div style={{fontSize:13,color:D.textMid,lineHeight:1.55,marginBottom:10}}>
+                  Pega tu guion completo (hook + cuerpo). El sistema analizará la estrategia y generará 3 hooks alternativos coherentes.
+                </div>
+                <textarea value={guionInput} onChange={e=>setGuionInput(e.target.value)} rows={9}
+                  placeholder="Pega aquí tu guion publicitario completo (hook + cuerpo)..."
+                  style={{...inp,minHeight:190,marginBottom:12}}/>
+                <button onClick={analizarMetodo1}
+                  disabled={!nombreValido||!guionInput.trim()||m1Cargando}
+                  title={!nombreValido?'Escribe tu nombre primero':undefined}
+                  style={{...btnMain,marginTop:0,opacity:(!nombreValido||!guionInput.trim()||m1Cargando)?.5:1,cursor:(nombreValido&&guionInput.trim()&&!m1Cargando)?'pointer':'not-allowed'}}>
+                  {m1Cargando?'Procesando...':'🔍 Analizar y generar 3 hooks'}
+                </button>
+              </div>
+
+              {m1Cargando && (
+                <div style={{...crd,display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{width:18,height:18,border:`2px solid ${D.blueDim}`,borderTopColor:D.blue,borderRadius:'50%',animation:'m1spin .8s linear infinite',flexShrink:0}}/>
+                  <div style={{fontSize:13,color:D.textMid}}>Haciendo ingeniería inversa del guion y generando hooks...</div>
+                </div>
+              )}
+
+              {m1Resultado && !m1Cargando && (
+                <>
+                  {/* Análisis estratégico */}
+                  <div style={{background:D.blueDark,border:`1px solid ${D.blueDim}`,borderRadius:14,padding:16,marginBottom:10}}>
+                    <div style={{fontSize:12,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:10}}>🎯 Análisis estratégico detectado</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}}>
+                      <DLine label="Avatar" value={m1Resultado.analisis.avatar||'—'}/>
+                      <DLine label="Formato" value={m1Resultado.analisis.formato||'—'}/>
+                      <DLine label="Duración" value={m1Resultado.analisis.duracion||'—'}/>
+                      <DLine label="Nivel" value={m1Resultado.analisis.nivel||'—'}/>
+                      <DLine label="Motivo" value={m1Resultado.analisis.motivo||'—'}/>
+                      <DLine label="Ángulo" value={m1Resultado.analisis.angulo||'—'}/>
+                      <DLine label="Tono" value={m1Resultado.analisis.tono||'—'}/>
+                    </div>
+                    {m1Resultado.analisis.estructuraNarrativa && (
+                      <div style={{fontSize:12,color:D.textDim,lineHeight:1.5,marginTop:4,fontStyle:'italic'}}>
+                        Estructura narrativa: {m1Resultado.analisis.estructuraNarrativa}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Hook original */}
+                  <div style={{background:D.accent,border:`1px solid ${D.cardBorder}`,borderRadius:14,padding:16,marginBottom:10}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,gap:10}}>
+                      <div style={{fontSize:12,fontWeight:700,color:D.textMid,textTransform:'uppercase',letterSpacing:'.06em'}}>📜 Hook original</div>
+                      <button onClick={()=>copiarAlPortapapeles(m1Resultado.hookOriginal,'m1_hookOrig')}
+                        style={{fontSize:11,color:copiadoKey==='m1_hookOrig'?D.green:D.blueLight,border:`1px solid ${copiadoKey==='m1_hookOrig'?D.green:D.blue}`,background:'transparent',borderRadius:7,padding:'3px 10px',cursor:'pointer',fontFamily:'inherit'}}>
+                        {copiadoKey==='m1_hookOrig'?'✓ Copiado':'Copiar'}
+                      </button>
+                    </div>
+                    <div style={{fontSize:14,color:D.text,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{m1Resultado.hookOriginal||'—'}</div>
+                  </div>
+
+                  {/* Cuerpo del guion */}
+                  <div style={{background:D.accent,border:`1px solid ${D.cardBorder}`,borderRadius:14,padding:16,marginBottom:10}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,gap:10}}>
+                      <div style={{fontSize:12,fontWeight:700,color:D.textMid,textTransform:'uppercase',letterSpacing:'.06em'}}>📄 Cuerpo del guion</div>
+                      <button onClick={()=>copiarAlPortapapeles(m1Resultado.cuerpo,'m1_cuerpo')}
+                        style={{fontSize:11,color:copiadoKey==='m1_cuerpo'?D.green:D.blueLight,border:`1px solid ${copiadoKey==='m1_cuerpo'?D.green:D.blue}`,background:'transparent',borderRadius:7,padding:'3px 10px',cursor:'pointer',fontFamily:'inherit'}}>
+                        {copiadoKey==='m1_cuerpo'?'✓ Copiado':'Copiar'}
+                      </button>
+                    </div>
+                    <div style={{fontSize:14,color:D.textMid,lineHeight:1.6,whiteSpace:'pre-wrap',maxHeight:240,overflowY:'auto'}}>{m1Resultado.cuerpo||'—'}</div>
+                  </div>
+
+                  {/* 3 hooks alternativos */}
+                  {m1Resultado.hooks.map((h,i)=>{
+                    const cumple = (h.advertenciaMeta||'').toLowerCase().includes('cumple polít')
+                    return (
+                      <div key={i} style={crd}>
+                        <div style={{fontSize:11,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:8}}>Hook {i+1}</div>
+                        <div style={{fontSize:17,fontWeight:700,color:D.text,lineHeight:1.4,marginBottom:10}}>{h.texto}</div>
+                        <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,marginBottom:6}}><b style={{color:D.text}}>Estrategia:</b> {h.estrategia}</div>
+                        <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,marginBottom:6}}><b style={{color:D.text}}>Idea visual:</b> {h.ideaVisual}</div>
+                        <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,marginBottom:6}}><b style={{color:D.text}}>Por qué detiene scroll:</b> {h.porQueDetieneScroll}</div>
+                        {!cumple && h.advertenciaMeta && (
+                          <div style={{fontSize:12,color:'#dc2626',fontWeight:600,lineHeight:1.5,marginTop:4,marginBottom:4}}>⚠️ {h.advertenciaMeta}</div>
+                        )}
+                        <div style={{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}>
+                          <button onClick={()=>copiarAlPortapapeles(h.texto+'\n\n'+m1Resultado.cuerpo,'m1_hc_'+i)}
+                            style={{fontSize:12,fontWeight:600,padding:'7px 14px',borderRadius:8,border:`1px solid ${D.blue}`,background:copiadoKey==='m1_hc_'+i?D.green:D.blueDark,color:copiadoKey==='m1_hc_'+i?'#fff':D.blue,cursor:'pointer',fontFamily:'inherit'}}>
+                            {copiadoKey==='m1_hc_'+i?'✓ Copiado':'📋 Copiar hook + cuerpo'}
+                          </button>
+                          <button onClick={()=>copiarAlPortapapeles(h.texto,'m1_h_'+i)}
+                            style={{fontSize:12,padding:'7px 14px',borderRadius:8,border:`1px solid ${D.cardBorder}`,background:'transparent',color:copiadoKey==='m1_h_'+i?D.green:D.textMid,cursor:'pointer',fontFamily:'inherit'}}>
+                            {copiadoKey==='m1_h_'+i?'✓ Copiado':'Copiar solo hook'}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
+            </>
+          )}
+
+          {(modo === 'metodo2' || modo === 'metodo3') && (
+            <div style={{...crd,textAlign:'center',padding:'48px 20px'}}>
+              <div style={{fontSize:14,color:D.textDim}}>Próximamente. Se implementará en la siguiente iteración.</div>
             </div>
           )}
 

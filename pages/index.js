@@ -182,6 +182,7 @@ export default function Home() {
   const [m1HookOriginal,setM1HookOriginal]=useState('')
   const [m1Cuerpo,setM1Cuerpo]=useState('')
   const [m1Hooks,setM1Hooks]=useState([])
+  const [m1Detalles,setM1Detalles]=useState(false) // collapse de detalles del análisis
 
   // Limpia outputs al cambiar formato (video↔imagen) — preserva análisis y decisiones del Paso 02/03
   useEffect(()=>{
@@ -2273,23 +2274,12 @@ ${guionTexto}`
                     <input type="text" value={m1Analisis.producto||''} onChange={e=>setM1Campo('producto',e.target.value)}
                       style={{...inp,height:38,padding:'9px 12px',marginBottom:12}}/>
 
-                    <div style={{display:'grid',gridTemplateColumns:(m1Analisis.formato||'').toLowerCase().includes('video')?'1fr 1fr':'1fr',gap:10,marginBottom:12}}>
-                      <div>
-                        <div style={fldLbl}>Formato</div>
-                        <select value={(m1Analisis.formato||'').toLowerCase().includes('imagen')?'imagen':'video'}
-                          onChange={e=>setM1Campo('formato',e.target.value)} style={sel}>
-                          <option value="video">Video</option>
-                          <option value="imagen">Imagen</option>
-                        </select>
-                      </div>
-                      {(m1Analisis.formato||'').toLowerCase().includes('video') && (
-                        <div>
-                          <div style={fldLbl}>Duración (segundos)</div>
-                          <input type="number" value={m1Analisis.duracion||''} onChange={e=>setM1Campo('duracion',e.target.value)}
-                            style={{...inp,height:38,padding:'9px 12px'}}/>
-                        </div>
-                      )}
-                    </div>
+                    <div style={fldLbl}>Formato</div>
+                    <select value={(m1Analisis.formato||'').toLowerCase().includes('imagen')?'imagen':'video'}
+                      onChange={e=>setM1Campo('formato',e.target.value)} style={{...sel,marginBottom:12}}>
+                      <option value="video">Video</option>
+                      <option value="imagen">Imagen</option>
+                    </select>
 
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
                       <div>
@@ -2327,22 +2317,33 @@ ${guionTexto}`
                       style={{...inp,height:38,padding:'9px 12px',marginBottom:0}}/>
                   </div>
 
-                  {/* Referencia read-only */}
-                  <div style={{...crd,background:D.accent}}>
-                    {m1Analisis.razonamiento && (
-                      <div style={{marginBottom:12}}>
-                        <div style={fldLbl}>Razonamiento del sistema</div>
-                        <div style={{fontSize:13,color:D.textMid,lineHeight:1.6}}>{m1Analisis.razonamiento}</div>
+                  {/* Referencia read-only — colapsable */}
+                  <div style={{marginTop:16}}>
+                    <button
+                      onClick={()=>setM1Detalles(!m1Detalles)}
+                      style={{background:'transparent',border:'none',color:D.blue,cursor:'pointer',fontSize:13,padding:'4px 0',fontFamily:'inherit'}}>
+                      {m1Detalles ? '▾' : '▸'} Ver detalles del análisis (razonamiento, hook detectado, cuerpo extraído)
+                    </button>
+                    {m1Detalles && (
+                      <div style={{marginTop:8}}>
+                        <div style={{...crd,background:D.accent}}>
+                          {m1Analisis.razonamiento && (
+                            <div style={{marginBottom:12}}>
+                              <div style={fldLbl}>Razonamiento del sistema</div>
+                              <div style={{fontSize:13,color:D.textMid,lineHeight:1.6}}>{m1Analisis.razonamiento}</div>
+                            </div>
+                          )}
+                          <div style={{marginBottom:12}}>
+                            <div style={fldLbl}>Hook original</div>
+                            <div style={{fontSize:14,color:D.text,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{m1HookOriginal||'—'}</div>
+                          </div>
+                          <div>
+                            <div style={fldLbl}>Cuerpo</div>
+                            <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,whiteSpace:'pre-wrap',maxHeight:220,overflowY:'auto'}}>{m1Cuerpo||'—'}</div>
+                          </div>
+                        </div>
                       </div>
                     )}
-                    <div style={{marginBottom:12}}>
-                      <div style={fldLbl}>Hook original</div>
-                      <div style={{fontSize:14,color:D.text,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{m1HookOriginal||'—'}</div>
-                    </div>
-                    <div>
-                      <div style={fldLbl}>Cuerpo</div>
-                      <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,whiteSpace:'pre-wrap',maxHeight:220,overflowY:'auto'}}>{m1Cuerpo||'—'}</div>
-                    </div>
                   </div>
 
                   <div style={{display:'flex',gap:8}}>

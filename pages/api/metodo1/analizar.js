@@ -58,7 +58,16 @@ ANALIZA y responde SOLO con este JSON estricto:
   },
   "hookOriginal": "primeras 1-2 frases impactantes del guion",
   "cuerpo": "todo el resto del guion sin omitir nada, palabra por palabra"
-}`
+}
+
+REGLAS OBLIGATORIAS DE OUTPUT:
+- nivel: SIEMPRE elige un número del 1 al 5. NUNCA dejes vacío.
+- motivo: SIEMPRE elige UNO de: Emocional, Funcional, Educativo, Aspiracional, Racional. NUNCA dejes vacío. Si dudas entre dos, elige el dominante.
+- angulo: SIEMPRE elige UNO de los 16 ángulos. NUNCA dejes vacío. Si dudas, elige el más prominente.
+- producto: si NO se puede inferir, escribe "No identificado en el guion (especificar en contexto adicional)".
+- razonamiento: SIEMPRE explica por qué elegiste ese nivel/motivo/ángulo, citando frases del guion.
+
+SI DEJAS CAMPOS VACÍOS, ESTÁS FALLANDO LA TAREA.`
 
     const r = await llamarModelo(modeloSel, prompt, 2200)
     registrarLlamada('metodo1-analisis', r.inputTokens, r.outputTokens)

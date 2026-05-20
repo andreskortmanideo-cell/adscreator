@@ -45,6 +45,9 @@ const DOCTRINA_ANGULOS = {
   'Aspiracional': { que: 'Conecta el producto con la imagen/vida que el avatar quiere.', estructura: '1) Imagen deseada 2) Identidad 3) Producto como puente 4) CTA', tono: 'Inspirador, concreto', ejemplo: 'Conviértete en la versión de ti que siempre supiste que podías ser.' }
 }
 
+const USUARIOS_PERMITIDOS = ['Santiago', 'Michelle', 'Andres', 'Mateo']
+const PASSWORD_GRUPO = 'IdeoTeam'
+
 const BADGES_METODO = {
   'crear':   { label: '🎬 Crear',         bg: '#dbeafe', color: '#1e40af' },
   'metodo1': { label: '🔍 Variar Hook',   bg: '#fef3c7', color: '#92400e' },
@@ -163,6 +166,11 @@ export default function Home() {
   const [costoSesion,setCostoSesion]=useState({usd:0,cop:0,operaciones:0})
   const [costoAnuncio,setCostoAnuncio]=useState({usd:0,cop:0,operaciones:0})
   const [nombreAutor,setNombreAutor]=useState('')
+  // ── Login compartido ───────────────────────────────────────────
+  const [autenticado,setAutenticado]=useState(false)
+  const [loginNombre,setLoginNombre]=useState('')
+  const [loginPassword,setLoginPassword]=useState('')
+  const [loginError,setLoginError]=useState('')
   const [mostrarHistorial,setMostrarHistorial]=useState(false)
   const [historialItems,setHistorialItems]=useState([])
   const [historialCargando,setHistorialCargando]=useState(false)
@@ -237,11 +245,17 @@ export default function Home() {
     setHooksUsadosImg([])
   },[formato])
 
-  // Hidrata nombreAutor desde localStorage (SSR-safe)
+  // Hidrata nombreAutor + sesión de login desde localStorage (SSR-safe)
   useEffect(()=>{
     try {
-      const stored = localStorage.getItem('autor')
-      if (stored) setNombreAutor(stored)
+      const storedAutor = localStorage.getItem('autor')
+      const storedAuth = localStorage.getItem('autenticado')
+      if (storedAutor && USUARIOS_PERMITIDOS.includes(storedAutor) && storedAuth === 'true') {
+        setNombreAutor(storedAutor)
+        setAutenticado(true)
+      } else if (storedAutor) {
+        setNombreAutor(storedAutor)
+      }
     } catch {}
   },[])
 
@@ -1574,6 +1588,55 @@ ${guionTexto}`
         <meta name="viewport" content="width=device-width,initial-scale=1"/>
         <style>{`*{box-sizing:border-box;margin:0;padding:0}body{background:${D.bg};font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif}textarea:focus,input:focus,select:focus{outline:none;border-color:${D.blue}!important}textarea::placeholder,input::placeholder{color:#9ca3af}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${D.bg}}::-webkit-scrollbar-thumb{background:${D.cardBorder};border-radius:2px}@keyframes m1spin{to{transform:rotate(360deg)}}`}</style>
       </Head>
+
+      {/* ── MODAL DE LOGIN COMPARTIDO (bloqueante) ── */}
+      {!autenticado && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}}>
+          <div style={{background:'#ffffff',borderRadius:16,padding:'32px 28px',width:'100%',maxWidth:440,boxShadow:'0 20px 60px rgba(0,0,0,0.35)'}}>
+            <div style={{fontSize:22,fontWeight:800,color:D.text,letterSpacing:'.02em',marginBottom:6}}>Acceso a Ideo Team Ads Creator</div>
+            <div style={{fontSize:13,color:D.textDim,marginBottom:20}}>Selecciona tu nombre</div>
+            <div style={{display:'flex',gap:8,marginBottom:18}}>
+              {USUARIOS_PERMITIDOS.map(u=>{
+                const activo = loginNombre===u
+                return (
+                  <button key={u} onClick={()=>{ setLoginNombre(u); setLoginError('') }}
+                    style={{flex:1,padding:'10px 6px',fontSize:13,fontWeight:600,fontFamily:'inherit',borderRadius:9,cursor:'pointer',
+                      border:`1px solid ${activo?D.blue:D.cardBorder}`,background:activo?D.blueDark:'transparent',color:activo?D.blueLight:D.textMid}}>
+                    {u}
+                  </button>
+                )
+              })}
+            </div>
+            <input type="password" value={loginPassword}
+              onChange={e=>{ setLoginPassword(e.target.value); setLoginError('') }}
+              onKeyDown={e=>{ if(e.key==='Enter' && loginNombre && loginPassword) document.getElementById('m-login-entrar')?.click() }}
+              placeholder="Contraseña"
+              style={{width:'100%',background:D.input,border:`1px solid ${loginError?'#dc2626':D.inputBorder}`,color:D.text,padding:'11px 12px',borderRadius:9,fontSize:14,outline:'none',fontFamily:'inherit',marginBottom:loginError?6:18}}/>
+            {loginError && (
+              <div style={{fontSize:12,color:'#dc2626',marginBottom:14,lineHeight:1.4}}>{loginError}</div>
+            )}
+            <button id="m-login-entrar"
+              disabled={!loginNombre || !loginPassword}
+              onClick={()=>{
+                if (loginPassword === PASSWORD_GRUPO && USUARIOS_PERMITIDOS.includes(loginNombre)) {
+                  setNombreAutor(loginNombre)
+                  setAutenticado(true)
+                  try { localStorage.setItem('autor', loginNombre); localStorage.setItem('autenticado', 'true') } catch {}
+                  setLoginError('')
+                } else {
+                  setLoginError('Contraseña incorrecta. Intenta de nuevo.')
+                }
+              }}
+              style={{width:'100%',padding:13,fontSize:14,fontWeight:700,borderRadius:10,border:'none',
+                background:(!loginNombre||!loginPassword)?D.cardBorder:`linear-gradient(135deg,#1270a0,${D.blue})`,
+                color:'#fff',cursor:(!loginNombre||!loginPassword)?'not-allowed':'pointer',fontFamily:'inherit',letterSpacing:'.03em'}}>
+              Entrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {autenticado && (
       <div style={{background:D.bg,minHeight:'100vh',color:D.text}}>
 
         {modalPrompt&&(
@@ -1687,19 +1750,20 @@ ${guionTexto}`
           </div>
 
           <div style={{display:'flex',alignItems:'center',gap:12}}>
-            {/* ── Input nombre autor (obligatorio) ── */}
-            <div style={{display:'flex',flexDirection:'column',gap:2}}>
-              <input
-                value={nombreAutor}
-                onChange={e=>{ setNombreAutor(e.target.value); try { localStorage.setItem('autor', e.target.value) } catch {} }}
-                placeholder={nombreValido ? 'Tu nombre' : '⚠️ Escribe tu nombre para empezar'}
-                style={{background:nombreValido?D.input:'#fef2f2',border:'1px solid '+(nombreValido?D.inputBorder:'#dc2626'),color:D.text,padding:'6px 10px',borderRadius:6,fontSize:12,outline:'none',fontFamily:'inherit',width:nombreValido?150:230}}
-              />
-              {!nombreValido && (
-                <div style={{fontSize:11,color:'#dc2626',marginTop:4,maxWidth:230,lineHeight:1.3}}>
-                  Tu nombre es obligatorio para usar la plataforma y registrar tus anuncios en el historial.
-                </div>
-              )}
+            {/* ── Indicador de usuario + cerrar sesión ── */}
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontSize:13,color:D.textMid}}>👤 {nombreAutor}</span>
+              <button
+                onClick={()=>{
+                  try { localStorage.removeItem('autenticado'); localStorage.removeItem('autor') } catch {}
+                  setAutenticado(false)
+                  setNombreAutor('')
+                  setLoginNombre('')
+                  setLoginPassword('')
+                }}
+                style={{background:'transparent',border:'none',color:D.textDim,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>
+                Cerrar sesión
+              </button>
             </div>
 
             <button onClick={nuevoAnuncioReset}
@@ -3095,6 +3159,7 @@ ${guionTexto}`
 
         </div>
       </div>
+      )}
     </>
   )
 }

@@ -1,5 +1,6 @@
 import { crearAnuncio, agregarVersion } from '../../../lib/historial-db'
 import { crearCostoOperacion, parseJsonTolerante, llamarModelo } from '../../../lib/metodo1-llm'
+import { CRITERIOS_MOTIVOS, CRITERIOS_ANGULOS, CRITERIOS_NIVELES } from '../../../lib/criterios-analisis'
 
 export const config = {
   api: { bodyParser: { sizeLimit: '5mb' } }
@@ -28,20 +29,15 @@ ${guion}
 CONTEXTO ADICIONAL (info que el usuario sabe sobre el guion):
 ${contexto || 'No proporcionado'}
 
-DOCTRINA DE 5 NIVELES DE CONSCIENCIA (Schwartz) — USA ESTAS REGLAS:
+APLICA ESTOS CRITERIOS DETERMINÍSTICOS:
 
-NIVEL 1 — Inconsciente del problema: El avatar NO sabe que tiene problema. Solo síntomas que normaliza. NO menciona producto NI solución.
-NIVEL 2 — Consciente del problema, NO de la solución: Sabe que tiene el problema. NO menciona producto. NO ofrece solución. Solo valida y educa.
-NIVEL 3 — Consciente de la solución, NO del producto: Sabe que hay soluciones. SÍ se puede mostrar el producto como descubrimiento natural.
-NIVEL 4 — Consciente del producto: Conoce el producto, está comparando. Beneficios + prueba social + comparativas.
-NIVEL 5 — Totalmente consciente: Listo para comprar. Oferta, urgencia, escasez.
+${CRITERIOS_NIVELES}
 
-REGLA DE DECISIÓN (CRÍTICA):
-- ¿Menciona el producto o marca explícitamente? → Nivel 3, 4 o 5
-- ¿Habla de soluciones generales pero no del producto? → Nivel 3
-- ¿Describe el problema sin solución? → Nivel 1 o 2
-- ¿Menciona producto + compara/argumenta beneficios? → Nivel 4
-- ¿Menciona producto + empuja urgencia/oferta? → Nivel 5
+${CRITERIOS_MOTIVOS}
+
+${CRITERIOS_ANGULOS}
+
+USA ESTAS DEFINICIONES PARA IDENTIFICAR el motivo, ángulo y nivel. NO improvises ni intuyas. Aplica las reglas de desempate. Si las señales son claras, decide rápidamente.
 
 ANALIZA y responde SOLO con este JSON estricto:
 {
@@ -54,7 +50,7 @@ ANALIZA y responde SOLO con este JSON estricto:
     "motivo": "uno de: Emocional, Funcional, Educativo, Aspiracional, Racional",
     "angulo": "uno de los 16 ángulos: Problema/Dolor, Beneficio/Resultado, Curiosidad, Urgencia/Escasez, Autoridad/Prueba Social, Novedad, Comparación/Contraste, Enemigo en Común, Historia, Transformación, FOMO, Simplicidad, Ironía/Provocación, Precio/Valor, Exclusividad, Aspiracional",
     "tono": "descripción breve del tono",
-    "razonamiento": "explicación breve (2-3 frases) de por qué decidiste este nivel/motivo/ángulo, citando frases concretas del guion como evidencia"
+    "razonamiento": "explicación breve (2-3 frases) que CITE las señales específicas de los criterios que llevaron a cada decisión. Ej: 'Detecté Nivel 3 porque la frase ...descubrí esta pulverizadora... menciona el producto. Detecté Funcional porque ...mira cómo con 40 centímetros... es demostrativo. Detecté Beneficio/Resultado porque ...en menos de 5 minutos mi motor brilla... muestra resultado logrado.'"
   },
   "hookOriginal": "primeras 1-2 frases impactantes del guion",
   "cuerpo": "todo el resto del guion sin omitir nada, palabra por palabra"
@@ -65,7 +61,7 @@ REGLAS OBLIGATORIAS DE OUTPUT:
 - motivo: SIEMPRE elige UNO de: Emocional, Funcional, Educativo, Aspiracional, Racional. NUNCA dejes vacío. Si dudas entre dos, elige el dominante.
 - angulo: SIEMPRE elige UNO de los 16 ángulos. NUNCA dejes vacío. Si dudas, elige el más prominente.
 - producto: si NO se puede inferir, escribe "No identificado en el guion (especificar en contexto adicional)".
-- razonamiento: SIEMPRE explica por qué elegiste ese nivel/motivo/ángulo, citando frases del guion.
+- razonamiento: SIEMPRE explica por qué elegiste ese nivel/motivo/ángulo, citando las señales específicas de los criterios y las frases concretas del guion que las disparan.
 
 SI DEJAS CAMPOS VACÍOS, ESTÁS FALLANDO LA TAREA.`
 

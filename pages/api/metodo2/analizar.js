@@ -1,5 +1,6 @@
 import { crearAnuncio, agregarVersion } from '../../../lib/historial-db'
 import { crearCostoOperacion, parseJsonTolerante, llamarModelo } from '../../../lib/metodo1-llm'
+import { CRITERIOS_MOTIVOS, CRITERIOS_ANGULOS, CRITERIOS_NIVELES } from '../../../lib/criterios-analisis'
 
 export const config = {
   api: { bodyParser: { sizeLimit: '5mb' } }
@@ -46,14 +47,15 @@ TU TAREA:
    - Ángulo
 4. Evalúa COMPATIBILIDAD: ¿el hook y el cuerpo van a fusionarse coherentemente? Si hay mismatch grave (avatar diferente, producto diferente, niveles muy distintos), márcalo.
 
-DOCTRINA DE 5 NIVELES SCHWARTZ (úsala):
-NIVEL 1 — Inconsciente: NO menciona producto.
-NIVEL 2 — Consciente del problema: NO menciona producto.
-NIVEL 3 — Consciente de la solución: SÍ puede mostrar producto.
-NIVEL 4 — Consciente del producto: comparativas + beneficios.
-NIVEL 5 — Totalmente consciente: oferta/urgencia.
+APLICA ESTOS CRITERIOS DETERMINÍSTICOS:
 
-REGLA: si menciona el producto → 3, 4 o 5. Si no → 1 o 2.
+${CRITERIOS_NIVELES}
+
+${CRITERIOS_MOTIVOS}
+
+${CRITERIOS_ANGULOS}
+
+USA ESTAS DEFINICIONES PARA IDENTIFICAR el motivo, ángulo y nivel de cada texto. NO improvises ni intuyas. Aplica las reglas de desempate. Si las señales son claras, decide rápidamente.
 
 OUTPUT JSON ESTRICTO:
 {
@@ -66,7 +68,8 @@ OUTPUT JSON ESTRICTO:
     "nivel": "1-5",
     "motivo": "uno de los 5",
     "angulo": "uno de los 16",
-    "tono": "..."
+    "tono": "...",
+    "razonamiento": "cita las señales específicas de los criterios que llevaron a cada decisión. Ej: 'Detecté Nivel 2 porque ...si llegas cansado... es problema sin solución.'"
   },
   "analisisCuerpo": {
     "avatar": "...",
@@ -74,7 +77,8 @@ OUTPUT JSON ESTRICTO:
     "nivel": "1-5",
     "motivo": "uno de los 5",
     "angulo": "uno de los 16",
-    "tono": "..."
+    "tono": "...",
+    "razonamiento": "cita las señales específicas de los criterios que llevaron a cada decisión. Ej: 'Detecté Nivel 3 porque ...descubrí esta pulverizadora... menciona el producto.'"
   },
   "compatibilidad": {
     "nivel": "alta|media|baja",
@@ -87,7 +91,8 @@ REGLAS OBLIGATORIAS:
 - Todos los campos SIEMPRE deben tener valor.
 - nivel: siempre 1, 2, 3, 4 o 5.
 - motivo y angulo: siempre uno de las listas.
-- Si dudas, elige el más probable.`
+- razonamiento: SIEMPRE cita las señales específicas de los criterios y las frases concretas del texto que las disparan.
+- Si dudas, aplica las reglas de desempate de los criterios.`
 
     const r = await llamarModelo(modeloSel, prompt, 2600)
     registrarLlamada('metodo2-analisis', r.inputTokens, r.outputTokens)

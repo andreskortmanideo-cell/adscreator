@@ -1,5 +1,6 @@
 import { crearAnuncio, agregarVersion } from '../../../lib/historial-db'
 import { crearCostoOperacion, parseJsonTolerante, llamarModelo } from '../../../lib/metodo1-llm'
+import { CRITERIOS_MOTIVOS, CRITERIOS_ANGULOS, CRITERIOS_NIVELES } from '../../../lib/criterios-analisis'
 
 export const config = {
   api: { bodyParser: { sizeLimit: '5mb' } }
@@ -28,14 +29,15 @@ ${guion}
 CONTEXTO ADICIONAL del usuario:
 ${contexto || 'No proporcionado'}
 
-DOCTRINA DE 5 NIVELES SCHWARTZ (úsala para el análisis):
-NIVEL 1 — Inconsciente: NO menciona producto. Síntomas normalizados.
-NIVEL 2 — Consciente del problema: NO menciona producto. Valida dolor.
-NIVEL 3 — Consciente de la solución: SÍ puede mostrar producto como descubrimiento.
-NIVEL 4 — Consciente del producto: comparativas + beneficios + prueba social.
-NIVEL 5 — Totalmente consciente: oferta/urgencia.
+APLICA ESTOS CRITERIOS DETERMINÍSTICOS:
 
-REGLA: si menciona producto/marca → 3, 4 o 5. Si no → 1 o 2.
+${CRITERIOS_NIVELES}
+
+${CRITERIOS_MOTIVOS}
+
+${CRITERIOS_ANGULOS}
+
+USA ESTAS DEFINICIONES PARA IDENTIFICAR el motivo, ángulo y nivel. NO improvises ni intuyas. Aplica las reglas de desempate. Si las señales son claras, decide rápidamente.
 
 TU TAREA:
 1. Identifica avatar, producto (si está claro), formato (video/imagen), duración estimada, nivel, motivo (Emocional/Funcional/Educativo/Aspiracional/Racional), ángulo (uno de los 16), tono.
@@ -62,7 +64,7 @@ OUTPUT JSON ESTRICTO:
     "motivo": "uno de los 5",
     "angulo": "uno de los 16",
     "tono": "...",
-    "razonamiento": "explicación breve citando frases del guion"
+    "razonamiento": "explicación breve que CITE las señales específicas de los criterios que llevaron a cada decisión, con las frases concretas del guion que las disparan. Ej: 'Detecté Nivel 3 porque ...descubrí esta pulverizadora... menciona el producto. Detecté Funcional porque ...mira cómo con 40 centímetros... es demostrativo.'"
   },
   "estructura": [
     { "paso": 1, "funcion": "qué función cumple este paso", "ejemplo": "frase del original que ilustra este paso (sin copiar todo, solo evidencia)" },
@@ -73,6 +75,7 @@ OUTPUT JSON ESTRICTO:
 
 REGLAS OBLIGATORIAS:
 - nivel, motivo, ángulo SIEMPRE con valor (no vacíos).
+- razonamiento: SIEMPRE cita las señales específicas de los criterios y las frases del guion que las disparan.
 - estructura entre 4 y 8 pasos.
 - palabrasClave entre 8 y 20 elementos.`
 

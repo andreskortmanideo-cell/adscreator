@@ -93,20 +93,49 @@ Nivel 1 (Inconsciente) → CTA tipo aprendizaje: "Aprende qué está pasando", "
 
 Nivel 2 (Consciente del problema) → CTA tipo entendimiento: "Entiende qué hay detrás", "Conoce la causa". NO mencionar producto.
 
-Nivel 3 (Consciente de la solución) → CTA OBLIGATORIA AL CIERRE. Frases válidas (elige UNA):
-- "Mira esto que encontré"
-- "Vale la pena que lo veas"
-- "Te muestro qué descubrí"
-- "Esto cambió todo para mí, mira"
-- "Esto es lo que finalmente encontró que funcionaba"
-NUNCA imperativos de compra. NUNCA "necesitas esto" ni "te lo recomiendo". El tono es de descubrimiento personal compartido.
-REGLA INVIOLABLE: el último párrafo del guion DEBE contener una de estas formulaciones o equivalentes. NO terminar con conclusión reflexiva tipo "Eso fue lo que transformó mi negocio" (esa no invita acción).
+Nivel 3 (Consciente de la solución) → CTA de DESCUBRIMIENTO PERSONAL + leve nota de valor. NO invita directamente al espectador a probar. Es más un comentario propio del avatar sobre lo que encontró.
 
-Nivel 4 (Consciente del producto) → CTA evaluativo: "Pruébalo", "Compáralo", "Mira la diferencia". Puede ser más directo.
+EJEMPLOS DE TONO Nivel 3 (referencia de estilo, NO copiar literal):
+- "Vale la pena conocerlo"
+- "Esto fue lo que me funcionó a mí"
+- "Por fin algo que sí cumple"
+- "Lo que finalmente cambió todo para mí"
+- "Esto sí funcionó como esperaba"
+INCORRECTO en Nivel 3 (esto YA es Nivel 4):
+❌ "Si te pasa lo mismo, échale un vistazo"
+❌ "Te lo recomiendo si tienes este problema"
+❌ "Pruébalo y mira la diferencia"
+REGLA Nivel 3: el cierre debe sentirse como un COMENTARIO PROPIO del avatar, no como recomendación al espectador.
 
-Nivel 5 (Totalmente consciente) → CTA de compra: "Aprovecha", "Asegura el tuyo". Urgencia explícita.
+Nivel 4 (Consciente del producto) → CTA INVITA al espectador a CONSIDERARLO o PROBARLO. Más directo. Le habla al espectador.
 
-REGLA INVIOLABLE: el CTA debe coincidir con el nivel. Si elegiste Nivel 3, NO usar verbos imperativos de compra ni recomendaciones directas.
+EJEMPLOS DE TONO Nivel 4 (referencia de estilo, NO copiar literal):
+- "Si te pasa lo mismo, échale un vistazo"
+- "Pruébalo y mira la diferencia"
+- "Te lo recomiendo si has tenido este problema"
+- "Vale la pena que lo pruebes tú también"
+- "Compáralo con lo que estás usando"
+
+Nivel 5 (Totalmente consciente) → CTA de COMPRA DIRECTA con urgencia, oferta o escasez.
+
+EJEMPLOS DE TONO Nivel 5 (referencia de estilo, NO copiar literal):
+- "Aprovecha la oferta antes de que se acabe"
+- "Asegura el tuyo hoy"
+- "Últimas unidades disponibles"
+- "Solo por hoy con envío gratis"
+- "Pídelo ahora y recibe en 48 horas"
+
+INSTRUCCIÓN DE VARIACIÓN OBLIGATORIA (aplica a Niveles 3, 4 y 5):
+- Los ejemplos arriba son REFERENCIAS DE ESTILO Y TONO, NO plantillas para copiar.
+- Genera SIEMPRE frases ORIGINALES adaptadas al producto, avatar y contexto del guion.
+- NUNCA repitas literalmente las frases de los ejemplos.
+- Si generas múltiples versiones (V1, V2), cada una debe tener un CTA DIFERENTE pero respetando el TONO del nivel correspondiente.
+- El CTA debe sentirse natural y conectado con la narrativa del guion, no como una frase pegada al final.
+
+REGLA INVIOLABLE: cada nivel respeta SU escala. Nunca uses una frase de Nivel 4 para un Nivel 3 ni viceversa. Si dudas, pregúntate:
+- Nivel 3: ¿es un comentario propio del avatar sobre lo que encontró? → SÍ es nivel 3
+- Nivel 4: ¿le habla al espectador para que considere probarlo? → SÍ es nivel 4
+- Nivel 5: ¿hay urgencia, oferta o llamada a comprar ahora? → SÍ es nivel 5
 ═════════════════════════════════════════════`
 }
 

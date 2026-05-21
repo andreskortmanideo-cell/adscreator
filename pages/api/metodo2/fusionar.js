@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
-    const { anuncioId, hookConfirmado, cuerpoConfirmado, analisisCompatibilidad, modelo, autor } = req.body || {}
+    const { anuncioId, hookConfirmado, cuerpoConfirmado, analisisCompatibilidad, modelo, autor, correccionUsuario } = req.body || {}
     const hook = (hookConfirmado || '').toString().trim()
     const cuerpo = (cuerpoConfirmado || '').toString().trim()
     if (!hook) return res.status(400).json({ error: 'hookConfirmado requerido' })
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     const { costoOperacion, registrarLlamada } = crearCostoOperacion(modeloSel)
 
     // ── LLAMADA ÚNICA — fusión hook + cuerpo ─────────────────────
-    const prompt = `Eres editor experto en publicidad. Te doy un HOOK y un CUERPO que vienen de guiones distintos. Tu tarea es FUSIONARLOS en una sola pieza coherente.
+    let prompt = `Eres editor experto en publicidad. Te doy un HOOK y un CUERPO que vienen de guiones distintos. Tu tarea es FUSIONARLOS en una sola pieza coherente.
 
 HOOK (NO modificar, NI UNA PALABRA):
 ${hook}
@@ -51,6 +51,11 @@ OUTPUT JSON ESTRICTO:
   "transicionAgregada": "la frase de transición que agregaste, o 'Ninguna' si no agregaste nada",
   "notas": "comentario breve sobre cómo quedó la fusión"
 }`
+
+    // ── PARTE 6 — corrección opcional del usuario (regenerar con ajuste) ──
+    if (correccionUsuario && correccionUsuario.toString().trim()) {
+      prompt += '\n\nCORRECCIÓN DEL USUARIO (aplica este ajuste al guion fusionado, respetando hook y cuerpo): ' + correccionUsuario.toString().trim()
+    }
 
     const r = await llamarModelo(modeloSel, prompt, 3000)
     registrarLlamada('metodo2-fusion', r.inputTokens, r.outputTokens)

@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
-    const { anuncioId, analisisConfirmado, estructuraConfirmada, palabrasClaveOriginales, guionOriginal, modelo, autor } = req.body || {}
+    const { anuncioId, analisisConfirmado, estructuraConfirmada, palabrasClaveOriginales, guionOriginal, modelo, autor, correccionUsuario } = req.body || {}
     const analisis = analisisConfirmado || {}
     const estructura = Array.isArray(estructuraConfirmada) ? estructuraConfirmada : []
     const palabrasClave = Array.isArray(palabrasClaveOriginales)
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       : '(el análisis no listó palabras clave; igual evita copiar frases literales del original)'
 
     // ── LLAMADA ÚNICA — 2 versiones nuevas, misma estructura ─────
-    const prompt = `Eres redactor experto en publicidad. Te doy una ESTRUCTURA narrativa validada, un análisis estratégico, y una lista de PALABRAS CLAVE del original que NO debes reutilizar.
+    let prompt = `Eres redactor experto en publicidad. Te doy una ESTRUCTURA narrativa validada, un análisis estratégico, y una lista de PALABRAS CLAVE del original que NO debes reutilizar.
 
 Tu tarea: generar 2 VERSIONES NUEVAS del guion que sigan EXACTAMENTE la misma estructura pero con contenido y palabras DIFERENTES.
 
@@ -100,6 +100,11 @@ OUTPUT JSON ESTRICTO:
 }
 
 Devuelve EXACTAMENTE 2 objetos dentro de "versiones".`
+
+    // ── PARTE 6 — corrección opcional del usuario (regenerar con ajuste) ──
+    if (correccionUsuario && correccionUsuario.toString().trim()) {
+      prompt += '\n\nCORRECCIÓN DEL USUARIO (aplica este ajuste a las 2 versiones, manteniendo la estructura y el análisis): ' + correccionUsuario.toString().trim()
+    }
 
     const r = await llamarModelo(modeloSel, prompt, 3500)
     registrarLlamada('metodo3-regeneracion', r.inputTokens, r.outputTokens)

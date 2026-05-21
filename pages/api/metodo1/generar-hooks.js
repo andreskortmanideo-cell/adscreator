@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
-    const { anuncioId, analisisConfirmado, hookOriginal, cuerpo, modelo, autor } = req.body || {}
+    const { anuncioId, analisisConfirmado, hookOriginal, cuerpo, modelo, autor, correccionUsuario } = req.body || {}
     const analisis = analisisConfirmado || {}
     const cuerpoTxt = (cuerpo || '').toString().trim()
     const hookOrig = (hookOriginal || '').toString().trim()
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     const refsHooks = muestra.map(h => '- ' + textoDeHook(h)).join('\n')
 
     // ── LLAMADA ÚNICA — 3 hooks + idea visual simple ─────────────
-    const prompt = `Eres experto en publicidad de Meta Ads. Te doy un análisis ESTRATÉGICO YA CONFIRMADO por el usuario y un cuerpo de guion. Tu tarea es generar 3 HOOKS ALTERNATIVOS + IDEA VISUAL SIMPLE para cada uno.
+    let prompt = `Eres experto en publicidad de Meta Ads. Te doy un análisis ESTRATÉGICO YA CONFIRMADO por el usuario y un cuerpo de guion. Tu tarea es generar 3 HOOKS ALTERNATIVOS + IDEA VISUAL SIMPLE para cada uno.
 
 ANÁLISIS CONFIRMADO (úsalo como autoridad, NO lo cuestiones):
 ${JSON.stringify(analisis)}
@@ -191,6 +191,11 @@ OUTPUT JSON ESTRICTO:
 }
 
 Devuelve EXACTAMENTE 3 objetos dentro de "hooks".`
+
+    // ── PARTE 6 — corrección opcional del usuario (regenerar con ajuste) ──
+    if (correccionUsuario && correccionUsuario.toString().trim()) {
+      prompt += '\n\nCORRECCIÓN DEL USUARIO (aplica este ajuste a los 3 hooks): ' + correccionUsuario.toString().trim()
+    }
 
     const r = await llamarModelo(modeloSel, prompt, 3000)
     registrarLlamada('metodo1-generacion', r.inputTokens, r.outputTokens)

@@ -141,6 +141,32 @@ function VersionesExpandidas({ id, onCargar, D }) {
   )
 }
 
+// ── PARTE 6 — Tarjeta de corrección reutilizable (M1/M2/M3) ──
+// Definida a nivel de módulo a propósito: si se declarara dentro de Home()
+// React la remontaría en cada render y el textarea perdería el foco al teclear.
+function TarjetaCorreccion({ correccion, setCorreccion, onAplicar, loading }) {
+  return (
+    <div style={{ marginTop:24, padding:16, background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8 }}>
+      <div style={{ fontWeight:600, marginBottom:8, color:'#92400e' }}>
+        🔧 ¿Quieres ajustar algo?
+      </div>
+      <textarea
+        value={correccion}
+        onChange={(e)=>setCorreccion(e.target.value)}
+        placeholder="Describe el cambio. Ej: 'Quita la mención al alcance', 'Hazlo más emocional', 'Cambia el CTA por uno más directo'..."
+        style={{ width:'100%', minHeight:60, padding:8, fontSize:13, borderRadius:4, border:'1px solid #fcd34d', fontFamily:'inherit', boxSizing:'border-box' }}
+      />
+      <button
+        onClick={onAplicar}
+        disabled={loading || !correccion.trim()}
+        style={{ marginTop:8, padding:'8px 16px', background:'#d97706', color:'white', border:'none', borderRadius:4, cursor:(loading||!correccion.trim())?'not-allowed':'pointer', fontFamily:'inherit', fontWeight:600, opacity:(!correccion.trim()||loading)?0.5:1 }}
+      >
+        {loading ? 'Aplicando...' : '🔧 Aplicar corrección y regenerar'}
+      </button>
+    </div>
+  )
+}
+
 export default function Home() {
   const [pais,setPais]=useState('Colombia')
   const [plat,setPlat]=useState('Meta Ads')
@@ -243,6 +269,13 @@ export default function Home() {
   const [m3VerOriginal,setM3VerOriginal]=useState(false)
   const [m3VerEstructura,setM3VerEstructura]=useState(false) // FIX 4 — estructura plegada por defecto
   const [m3VerDetalleVersion,setM3VerDetalleVersion]=useState({}) // {0:true,1:true}
+  // ── PARTE 6 — corrección/regeneración con ajuste en M1/M2/M3 ──
+  const [m1Correccion,setM1Correccion]=useState('')
+  const [m2Correccion,setM2Correccion]=useState('')
+  const [m3Correccion,setM3Correccion]=useState('')
+  const [m1LoadingCorreccion,setM1LoadingCorreccion]=useState(false)
+  const [m2LoadingCorreccion,setM2LoadingCorreccion]=useState(false)
+  const [m3LoadingCorreccion,setM3LoadingCorreccion]=useState(false)
 
   // Limpia outputs al cambiar formato (video↔imagen) — preserva análisis y decisiones del Paso 02/03
   useEffect(()=>{
@@ -750,6 +783,41 @@ export default function Home() {
     setM1Cargando(false)
   }
 
+  // ── PARTE 6 — aplicar corrección y regenerar los 3 hooks (M1) ──
+  async function aplicarCorreccionM1() {
+    if (!nombreValido) { alert('Escribe tu nombre antes de continuar'); return }
+    if (!m1Analisis || !m1Correccion.trim()) return
+    setM1LoadingCorreccion(true)
+    try {
+      const r = await fetch('/api/metodo1/generar-hooks', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          anuncioId: anuncioIdActual || undefined,
+          analisisConfirmado: m1Analisis,
+          hookOriginal: m1HookOriginal,
+          cuerpo: m1Cuerpo,
+          modelo: modeloSel,
+          autor: nombreAutor.trim(),
+          correccionUsuario: m1Correccion.trim()
+        })
+      })
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al aplicar la corrección')
+      setM1Hooks(d.hooks || [])
+      if (d.anuncioId) {
+        setAnuncioIdActual(d.anuncioId)
+        try { localStorage.setItem('anuncioIdActual', String(d.anuncioId)) } catch {}
+      }
+      aplicarCostoM1(d.costoOperacion)
+      setM1Correccion('')
+      // TODO: el backend auto-guarda la versión como tipo 'metodo1-generacion';
+      // un tipo 'metodo1-correccion' propio requeriría distinguirlo en agregarVersion.
+    } catch(e) {
+      alert('Error: ' + e.message)
+    }
+    setM1LoadingCorreccion(false)
+  }
+
   // ── MÉTODO 2 — Fusión Hook + Cuerpo ────────────────────────────
   function resetMetodo2() {
     setM2Paso(1); setM2TextoHook(''); setM2TextoCuerpo(''); setM2Contexto('')
@@ -829,6 +897,41 @@ export default function Home() {
       alert('Error: ' + e.message)
     }
     setM2Cargando(false)
+  }
+
+  // ── PARTE 6 — aplicar corrección y regenerar el guion fusionado (M2) ──
+  async function aplicarCorreccionM2() {
+    if (!nombreValido) { alert('Escribe tu nombre antes de continuar'); return }
+    if (!m2HookExtraido.trim() || !m2CuerpoExtraido.trim() || !m2Correccion.trim()) return
+    setM2LoadingCorreccion(true)
+    try {
+      const r = await fetch('/api/metodo2/fusionar', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          anuncioId: anuncioIdActual || undefined,
+          hookConfirmado: m2HookExtraido,
+          cuerpoConfirmado: m2CuerpoExtraido,
+          analisisCompatibilidad: m2Compatibilidad,
+          modelo: modeloSel,
+          autor: nombreAutor.trim(),
+          correccionUsuario: m2Correccion.trim()
+        })
+      })
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al aplicar la corrección')
+      setM2GuionFusionado(d.guionFusionado || '')
+      setM2TransicionAgregada(d.transicionAgregada || '')
+      setM2Notas(d.notas || '')
+      if (d.anuncioId) {
+        setAnuncioIdActual(d.anuncioId)
+        try { localStorage.setItem('anuncioIdActual', String(d.anuncioId)) } catch {}
+      }
+      aplicarCostoM1(d.costoOperacion)
+      setM2Correccion('')
+    } catch(e) {
+      alert('Error: ' + e.message)
+    }
+    setM2LoadingCorreccion(false)
   }
 
   // ── MÉTODO 3 — Reestructurar ───────────────────────────────────
@@ -929,6 +1032,42 @@ export default function Home() {
       alert('Error: ' + e.message)
     }
     setM3Cargando(false)
+  }
+
+  // ── PARTE 6 — aplicar corrección y regenerar las 2 versiones (M3) ──
+  async function aplicarCorreccionM3() {
+    if (!nombreValido) { alert('Escribe tu nombre antes de continuar'); return }
+    if (!m3Analisis || m3Estructura.length === 0 || !m3Correccion.trim()) return
+    setM3LoadingCorreccion(true)
+    try {
+      const palabras = m3PalabrasClaveTexto.split(',').map(s => s.trim()).filter(Boolean)
+      const r = await fetch('/api/metodo3/regenerar', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          anuncioId: anuncioIdActual || undefined,
+          analisisConfirmado: m3Analisis,
+          estructuraConfirmada: m3Estructura,
+          palabrasClaveOriginales: palabras,
+          guionOriginal: m3GuionInput.trim(),
+          modelo: modeloSel,
+          autor: nombreAutor.trim(),
+          correccionUsuario: m3Correccion.trim()
+        })
+      })
+      const d = await r.json()
+      if (!r.ok || d.error) throw new Error(d.error || 'Error al aplicar la corrección')
+      setM3Versiones(d.versiones || [])
+      setM3PalabrasClave(palabras)
+      if (d.anuncioId) {
+        setAnuncioIdActual(d.anuncioId)
+        try { localStorage.setItem('anuncioIdActual', String(d.anuncioId)) } catch {}
+      }
+      aplicarCostoM1(d.costoOperacion)
+      setM3Correccion('')
+    } catch(e) {
+      alert('Error: ' + e.message)
+    }
+    setM3LoadingCorreccion(false)
   }
 
   async function subirArchivo(file) {
@@ -2756,6 +2895,12 @@ ${guionTexto}`
                       </div>
                     )
                   })}
+                  <TarjetaCorreccion
+                    correccion={m1Correccion}
+                    setCorreccion={setM1Correccion}
+                    onAplicar={aplicarCorreccionM1}
+                    loading={m1LoadingCorreccion}
+                  />
                   <div style={{display:'flex',gap:8}}>
                     <button onClick={()=>setM1Paso(2)} disabled={m1Cargando}
                       style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:9,background:'transparent',color:D.textMid,cursor:m1Cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:m1Cargando?.5:1}}>
@@ -2936,6 +3081,12 @@ ${guionTexto}`
                       {copiadoKey==='m2_fus'?'✓ Copiado':'📋 Copiar guion fusionado'}
                     </button>
                   </div>
+                  <TarjetaCorreccion
+                    correccion={m2Correccion}
+                    setCorreccion={setM2Correccion}
+                    onAplicar={aplicarCorreccionM2}
+                    loading={m2LoadingCorreccion}
+                  />
                   <div style={{display:'flex',gap:8}}>
                     <button onClick={()=>setM2Paso(2)} disabled={m2Cargando}
                       style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:9,background:'transparent',color:D.textMid,cursor:m2Cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:m2Cargando?.5:1}}>
@@ -3191,6 +3342,12 @@ ${guionTexto}`
                       </div>
                     </div>
                   ))}
+                  <TarjetaCorreccion
+                    correccion={m3Correccion}
+                    setCorreccion={setM3Correccion}
+                    onAplicar={aplicarCorreccionM3}
+                    loading={m3LoadingCorreccion}
+                  />
                   <div style={{display:'flex',gap:8}}>
                     <button onClick={()=>setM3Paso(2)} disabled={m3Cargando}
                       style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:9,background:'transparent',color:D.textMid,cursor:m3Cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:m3Cargando?.5:1}}>

@@ -33,12 +33,28 @@ ${cuerpo}
 REGLAS DE FUSIÓN (CRÍTICAS):
 1. NO cambies ni una palabra del HOOK.
 2. NO cambies ni una palabra del CUERPO.
-3. SOLO puedes:
-   - Agregar 1-2 frases CORTAS de transición entre el hook y el cuerpo si la conexión es abrupta.
-   - Ajustar puntuación (punto, coma, salto de línea) entre las dos partes.
-4. La transición (si la agregas) debe sentirse natural, NO forzada.
-5. Si el hook y el cuerpo se conectan naturalmente, NO agregues nada. Simplemente únelos.
+3. POR DEFECTO: une el hook y el cuerpo SIN agregar nada en medio. La fusión más limpia es la mejor.
+4. SOLO agrega 1-2 palabras o una frase corta de transición SI Y SOLO SI:
+   - Hay un quiebre claro de tema entre hook y cuerpo
+   - El hook habla de algo y el cuerpo cambia bruscamente de contexto
+   - Sin transición se siente forzado o incoherente leer las dos partes seguidas
+5. En la MAYORÍA de los casos, NO se necesita transición. El hook y el cuerpo conectan naturalmente cuando hablan del mismo producto/avatar/problema.
 6. Usa español colombiano cotidiano (NO regionalismos de España, México, Argentina).
+
+EJEMPLOS:
+
+CASO 1 — NO agregar transición (los dos textos conectan naturalmente):
+HOOK: "Compré esta depiladora y ahora esas rozaduras ya no existen."
+CUERPO: "Yo pasaba rozándome todo el día, incómodo en reuniones..."
+FUSIÓN CORRECTA: "Compré esta depiladora y ahora esas rozaduras ya no existen. Yo pasaba rozándome todo el día, incómodo en reuniones..."
+FUSIÓN INCORRECTA (transición innecesaria): "...ya no existen. Pero déjame contarte por qué funciona tan diferente. Yo pasaba..."
+
+CASO 2 — SÍ agregar transición (quiebre temático):
+HOOK: "Compré esto y cambió mi vida."
+CUERPO: "Los técnicos de motos te dirán que esto es imposible..."
+FUSIÓN CORRECTA: "Compré esto y cambió mi vida. Mira por qué. Los técnicos de motos te dirán que esto es imposible..."
+
+REGLA DE ORO: si dudas, NO agregues transición. Es mejor una fusión limpia que una con relleno innecesario.
 
 CONSIDERACIONES DE COMPATIBILIDAD:
 ${compatTxt}
@@ -48,7 +64,7 @@ Si las advertencias indican mismatch (ej: niveles distintos), suaviza la transic
 OUTPUT JSON ESTRICTO:
 {
   "guionFusionado": "el texto completo: hook + (transición si aplica) + cuerpo, listo para copiar",
-  "transicionAgregada": "la frase de transición que agregaste, o 'Ninguna' si no agregaste nada",
+  "transicionAgregada": "si NO agregaste transición pon exactamente 'Ninguna'; si agregaste, pon la frase exacta que agregaste",
   "notas": "comentario breve sobre cómo quedó la fusión"
 }`
 

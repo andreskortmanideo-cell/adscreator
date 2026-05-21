@@ -792,6 +792,10 @@ Completa todos los campos vacios con tu analisis real del producto. CRITICO: sco
       body[0].content = imagenesUser.length > 0
         ? [{ type: 'text', text: promptAnalisis }, ...imagenesUser]
         : promptAnalisis
+      // Log de diagnóstico temporal — verificar que las imágenes llegan al LLM.
+      console.log('[GENERATE] modo=analizar | imágenes recibidas:', imagenesUser.length,
+        '| provider:', provider,
+        '| prompt al LLM (primeros 500 chars):', promptAnalisis.substring(0, 500))
 
     } else if (isGenerar) {
       const userMsg = body[0].content

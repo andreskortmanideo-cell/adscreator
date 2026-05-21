@@ -64,6 +64,54 @@ ${estructuraTxt}
 PALABRAS Y FRASES DEL ORIGINAL QUE NO PUEDES USAR (evítalas o usa sinónimos/reformulaciones):
 ${palabrasTxt}
 
+═════════════════════════════════════════════
+REGLA INVIOLABLE — ELEMENTOS QUE DEBES MANTENER INTACTOS EN LAS NUEVAS VERSIONES:
+
+Al generar las versiones nuevas, copia EXACTAMENTE como aparecen en el guion original:
+
+1. NOMBRE DEL PRODUCTO o CATEGORÍA:
+   - Si el original dice "pulverizadora" → las versiones nuevas dicen "pulverizadora" (NO "equipo", "sistema", "aparato", "dispositivo")
+   - Si dice "depiladora" → dice "depiladora"
+   - Si dice "mantel" → dice "mantel"
+   - Si dice marca específica, la marca se conserva
+
+2. ESPECIFICACIONES TÉCNICAS NUMÉRICAS — copia los números exactos:
+   - Dimensiones: 40 cm, 1.5 metros, etc.
+   - Tiempos específicos: 5 minutos, 10 días, 4 minutos
+   - Cantidades: 3 horas, 2 semanas, 30 segundos
+   - Datos cuantitativos: peso, capacidad, alcance
+
+3. NOMBRES TÉCNICOS o MECANISMOS específicos:
+   - Si el original menciona "compresor" → conservar
+   - Si menciona "gatillo", "válvula", "manguera" → conservar
+   - Componentes del producto se mantienen igual
+
+4. CARACTERÍSTICAS FÍSICAS:
+   - Materiales mencionados (acero, plástico, etc.)
+   - Color si se menciona
+   - Forma específica
+
+LO QUE SÍ PUEDES Y DEBES VARIAR:
+- Narrativa del problema del avatar
+- Cómo el avatar cuenta su historia (palabras, expresiones)
+- Adjetivos descriptivos del resultado
+- Tono general (más o menos emocional dentro del mismo motivo)
+- Forma de presentar beneficios
+- Forma del CTA (manteniendo el nivel correspondiente)
+- Conectores y estructura interna de las frases
+
+EJEMPLO CORRECTO:
+ORIGINAL: "Esta pulverizadora tiene 40 cm de alcance y manguera de metro y medio. La uso 5 minutos al día."
+NUEVA VERSIÓN 1: "Encontré esta pulverizadora con 40 cm de alcance, y su manguera de metro y medio me ayuda muchísimo. Bastan 5 minutos al día."
+NUEVA VERSIÓN 2: "Mira esta pulverizadora: 40 cm de alcance, manguera de metro y medio. Solo 5 minutos al día son suficientes."
+
+EJEMPLO INCORRECTO (NO HACER):
+"Este equipo de inyección dual con casi dos metros de cable. Bastan dos minutos."
+(❌ Cambió "pulverizadora" por "equipo de inyección dual", "1.5m" por "casi dos metros", "5 min" por "dos minutos")
+
+REGLA DE ORO: si dudas si algo es invariable, MANTÉNLO igual. Es mejor ser conservador con datos técnicos que inventar especificaciones que no existen.
+═════════════════════════════════════════════
+
 REGLAS DE ORO:
 1. Cada versión nueva DEBE cumplir TODOS los pasos de la estructura en el mismo orden.
 2. NO uses NINGUNA de las palabras clave listadas. Usa sinónimos o reformulaciones naturales.

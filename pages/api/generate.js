@@ -744,10 +744,27 @@ export default async function handler(req, res) {
     let hooksIndicesUsados = []  // anti-repetición: índices de HOOKS_JEFE escogidos en este request, devueltos al frontend
 
     if (isAnalisis) {
-      const userMsg = body[0].content
+      // El frontend manda body[0].content como string (solo texto) o como
+      // array multimodal [{type:'text'},{type:'image_url'},...] cuando el
+      // usuario sube imágenes. Antes se interpolaba el array tal cual en el
+      // prompt → "[object Object],[object Object]" y, además, la línea
+      // `body[0].content = promptAnalisis` descartaba las imágenes. El LLM
+      // recibía un prompt sin producto y respondía "Espero el contenido...".
+      // Aquí separamos el texto de las imágenes para tratarlos por separado.
+      const contenidoUser = body[0].content
+      const esMultimodal = Array.isArray(contenidoUser)
+      const userMsg = esMultimodal
+        ? contenidoUser.filter(p => p && p.type === 'text').map(p => p.text).join('\n').trim()
+        : contenidoUser
+      const imagenesUser = esMultimodal
+        ? contenidoUser.filter(p => p && (p.type === 'image_url' || p.type === 'image'))
+        : []
+      const notaImagenes = imagenesUser.length > 0
+        ? `\n\nEl usuario adjuntó ${imagenesUser.length} imagen(es) del producto. Analízalas con visión como fuente principal de información: identifica qué es el producto, qué hace, sus características visibles, su uso y su público. Combínalas con los datos de texto de arriba para construir el análisis.`
+        : ''
       const promptAnalisis = `Eres un experto senior en marketing digital especializado en Meta Ads, TikTok Ads y respuesta directa para ecommerce. Tienes profundo conocimiento de Eugene Schwartz, Joe Sugarman, Dan Kennedy, Gary Halbert y Alex Hormozi.
 
-${userMsg}
+${userMsg}${notaImagenes}
 
 Antes de responder el JSON, piensa internamente estas preguntas sobre el producto:
 
@@ -770,7 +787,11 @@ Luego responde SOLO el JSON con tus conclusiones reales, sin texto antes ni desp
 
 Completa todos los campos vacios con tu analisis real del producto. CRITICO: score DEBE ser un INTEGER (85, 72, 60...) NUNCA texto ni palabras en ingles. ejemplo_hook sin comillas.`
       promptEjecutado = promptAnalisis
-      body[0].content = promptAnalisis
+      // Si hubo imágenes, el content sigue siendo multimodal (prompt de texto
+      // + imágenes) para que el LLM las reciba con visión. Si no, basta el string.
+      body[0].content = imagenesUser.length > 0
+        ? [{ type: 'text', text: promptAnalisis }, ...imagenesUser]
+        : promptAnalisis
 
     } else if (isGenerar) {
       const userMsg = body[0].content
@@ -1251,9 +1272,33 @@ ${reglaCierreFormato}`
     const isVideoGenerar = (isGenerar || isVariaciones) && !isImagenFormato
 
     // ── Función de llamada única al modelo ──────────────────────────
+    // Las imágenes llegan del frontend en formato OpenAI ({type:'image_url'}).
+    // La API nativa de Claude usa otro esquema ({type:'image', source:{...}}),
+    // así que convertimos cualquier content multimodal antes de enviarlo.
+    function adaptarMensajesParaClaude(messages) {
+      return messages.map(m => {
+        if (!Array.isArray(m.content)) return m
+        return {
+          ...m,
+          content: m.content.map(part => {
+            if (part && part.type === 'image_url') {
+              const url = (part.image_url && part.image_url.url) || ''
+              const dataMatch = url.match(/^data:([^;]+);base64,(.+)$/)
+              if (dataMatch) {
+                return { type: 'image', source: { type: 'base64', media_type: dataMatch[1], data: dataMatch[2] } }
+              }
+              return { type: 'image', source: { type: 'url', url } }
+            }
+            return part
+          })
+        }
+      })
+    }
+
     async function llamarModelo(messages, maxTok) {
       if (provider === 'claude') {
         if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY no configurada')
+        const messagesClaude = adaptarMensajesParaClaude(messages)
         let textC = ''
         let inputTokens = 0, outputTokens = 0
         let intentosC = 0
@@ -1261,7 +1306,7 @@ ${reglaCierreFormato}`
           const r = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-            body: JSON.stringify({ model: modeloClaude, max_tokens: maxTok, messages })
+            body: JSON.stringify({ model: modeloClaude, max_tokens: maxTok, messages: messagesClaude })
           })
           const d = await r.json()
           if (d.error) throw new Error(d.error.message || JSON.stringify(d.error))

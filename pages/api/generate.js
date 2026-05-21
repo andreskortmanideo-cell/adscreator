@@ -1,6 +1,103 @@
+import { CRITERIOS_MOTIVOS, CRITERIOS_ANGULOS, CRITERIOS_NIVELES } from '../../lib/criterios-analisis'
+
 const { HOOKS_COMPLETOS, TODOS_LOS_HOOKS } = require('../../data/hooks-data')
 const { HOOKS_JEFE } = require('../../data/hooks-jefe')
 const { DOCTRINA_TIPOS_IMAGEN } = require('../../data/doctrina-tipos-imagen')
+
+// ── Doctrina determinística compartida — el modo Crear genera aplicando los
+// mismos criterios que el auditor, evitando inconsistencias en el output. ──
+const BLOQUE_CRITERIOS_DETERMINISTICOS = `
+═════════════════════════════════════════════
+DOCTRINA OBLIGATORIA — APLICA ESTOS CRITERIOS AL GENERAR
+
+${CRITERIOS_NIVELES}
+
+${CRITERIOS_MOTIVOS}
+
+${CRITERIOS_ANGULOS}
+═════════════════════════════════════════════`
+
+function bloqueReglasEstructuralesAngulo(anguloVenta) {
+  return `
+═════════════════════════════════════════════
+REGLAS ESTRUCTURALES OBLIGATORIAS POR ÁNGULO:
+
+El ángulo elegido es: ${anguloVenta || '(no especificado)'}
+
+ESTRUCTURA SEGÚN ÁNGULO:
+
+Problema/Dolor → ABRE con el dolor concreto del avatar. Ej: "Si llegas con la espalda destrozada cada noche..."
+
+Beneficio/Resultado → ABRE con el resultado YA logrado. Ej: "Ahora limpio en 20 minutos lo que antes me tomaba 3 horas." LUEGO contar el problema anterior y el cómo. NUNCA abrir con problema.
+
+Curiosidad → ABRE con pregunta intrigante o dato. Ej: "¿Sabías que el 80% de los mecánicos siguen lavando a mano?"
+
+Urgencia/Escasez → ABRE con tiempo/stock limitado. Ej: "Solo quedan 24 horas."
+
+Autoridad/Prueba Social → ABRE con cifra o testimonio. Ej: "3000 mecánicos ya lo usan."
+
+Novedad → ABRE con la novedad. Ej: "Acaba de llegar a Colombia."
+
+Comparación/Contraste → ABRE con la comparación. Ej: "Limpiar a mano vs con esto: 3 horas vs 20 minutos."
+
+Enemigo en Común → ABRE con el villano. Ej: "La industria te hizo creer que necesitas químicos caros."
+
+Historia → ABRE con la narrativa. Ej: "Hace 3 meses estaba a punto de cerrar el taller."
+
+Transformación → ABRE con el contraste. Ej: "Pasé de trabajar 12 horas a 6 ganando lo mismo."
+
+FOMO → ABRE mostrando que otros ya cambiaron. Ej: "Mientras dudas, otros ya están ahorrando 2 horas diarias."
+
+Simplicidad → ABRE remarcando la facilidad. Ej: "3 pasos. Eso es todo."
+
+Ironía/Provocación → ABRE rompiendo la creencia común. Ej: "Limpiar más fuerte está dañando tus motores."
+
+Precio/Valor → ABRE enmarcando la inversión. Ej: "Por menos de lo que gastas en almuerzos en una semana."
+
+Exclusividad → ABRE filtrando al público. Ej: "Esto no es para todos."
+
+Aspiracional → ABRE con la identidad deseada. Ej: "Conviértete en el mecánico que recomiendan."
+
+REGLA INVIOLABLE: la primera frase del guion DEBE alinearse con la estructura del ángulo elegido. Si elegiste Beneficio/Resultado, NUNCA abras con problema.
+═════════════════════════════════════════════`
+}
+
+function bloqueReglasCTANivel(nivelConsciencia) {
+  return `
+═════════════════════════════════════════════
+REGLAS DE CTA SEGÚN NIVEL DE CONSCIENCIA:
+
+El nivel elegido es: ${nivelConsciencia || '(no especificado)'}
+
+CTA SEGÚN NIVEL:
+
+Nivel 1 (Inconsciente) → CTA tipo aprendizaje: "Aprende qué está pasando", "Mira por qué". NO mencionar producto. NO invitar a probar.
+
+Nivel 2 (Consciente del problema) → CTA tipo entendimiento: "Entiende qué hay detrás", "Conoce la causa". NO mencionar producto.
+
+Nivel 3 (Consciente de la solución) → CTA de DESCUBRIMIENTO SUAVE. Ejemplos válidos:
+- "Mira esto que encontré"
+- "Vale la pena que lo veas"
+- "Te muestro lo que descubrí"
+- "Esto fue lo que cambió todo para mí"
+NUNCA imperativos de compra. NUNCA "necesitas esto" ni "te lo recomiendo". El tono es de descubrimiento personal compartido.
+
+Nivel 4 (Consciente del producto) → CTA evaluativo: "Pruébalo", "Compáralo", "Mira la diferencia". Puede ser más directo.
+
+Nivel 5 (Totalmente consciente) → CTA de compra: "Aprovecha", "Asegura el tuyo". Urgencia explícita.
+
+REGLA INVIOLABLE: el CTA debe coincidir con el nivel. Si elegiste Nivel 3, NO usar verbos imperativos de compra ni recomendaciones directas.
+═════════════════════════════════════════════`
+}
+
+const BLOQUE_AUTOVERIFICACION = `
+ANTES DE DEVOLVER EL JSON, AUTOVERIFICA:
+1. ¿La primera frase del guion respeta la estructura del ángulo elegido?
+2. ¿El CTA es coherente con el nivel elegido?
+3. ¿El producto aparece en los primeros 5-7 segundos? (si nivel ≥ 3)
+4. ¿El motivo se refleja en el tono y palabras del guion?
+
+Si alguna respuesta es NO, reescribe el guion antes de devolverlo.`
 
 const PRECIOS_MODELO = {
   'gpt-4.1-mini': { input: 0.40, output: 1.60 },
@@ -751,6 +848,10 @@ Esta llamada produce UNA SOLA idea (no 3). Es la idea con eje "${eje.nombre}" ($
 ${eje.instruccion}
 ${RELLENO_BLOCK(hookPreseleccionado)}
 ${bloqueReglaTexto}${bloqueReglaMotivoImg}${refuerzoImg}
+${BLOQUE_CRITERIOS_DETERMINISTICOS}
+${bloqueReglasEstructuralesAngulo(anguloImg)}
+${bloqueReglasCTANivel(nivelImg)}
+${BLOQUE_AUTOVERIFICACION}
 
 OUTPUT EXPECTED (DEVUELVE EXACTAMENTE ESTAS 3 SECCIONES — IGNORA cualquier formato anterior del bloque PROMPT_IMAGEN_BASE inicial, este es el formato definitivo):
 
@@ -1393,6 +1494,10 @@ PALABRAS: exactamente ${npalabras} palabras (= ${dur3} segundos).
 REGLA DE LONGITUD DEL GUION (CRÍTICA):
 - Respeta estrictamente el conteo de palabras: 180 palabras por minuto = 3 palabras por segundo.
 - NO excedas más de 10% del límite — máximo absoluto ${Math.ceil(npalabras * 1.1)} palabras.
+${BLOQUE_CRITERIOS_DETERMINISTICOS}
+${bloqueReglasEstructuralesAngulo(anguloV)}
+${bloqueReglasCTANivel(nivelGen)}
+${BLOQUE_AUTOVERIFICACION}
 
 FORMATO — devuelve ÚNICAMENTE esto:
 

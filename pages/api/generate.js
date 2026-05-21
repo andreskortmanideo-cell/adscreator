@@ -2026,3 +2026,12 @@ Genera la idea completa otra vez con un hook nuevo, corto y completo.`
     res.status(500).json({ error: e.message })
   }
 }
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "20mb",
+    },
+    responseLimit: "20mb",
+  },
+};

@@ -1849,9 +1849,9 @@ ${guionTexto}`
         <div style={{background:'#ffffff',borderBottom:`1px solid ${D.cardBorder}`,padding:'10px 16px',display:'flex',justifyContent:'center',gap:8,flexWrap:'wrap'}}>
           {[
             { id:'crear', label:'Crear desde cero' },
-            { id:'metodo1', label:'Variar Hook' },
-            { id:'metodo2', label:'Fusión Hook + Cuerpo' },
-            { id:'metodo3', label:'Reestructurar' }
+            { id:'metodo1', label:'Método 1 — Variar Hook' },
+            { id:'metodo2', label:'Método 2 — Fusión Hook + Cuerpo' },
+            { id:'metodo3', label:'Método 3 — Reestructurar' }
           ].map(t=>{
             const activo = modo===t.id
             return (

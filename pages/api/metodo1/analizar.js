@@ -6,6 +6,16 @@ export const config = {
   api: { bodyParser: { sizeLimit: '5mb' } }
 }
 
+// ── Validadores del hook detectado (mismo patrón que Método 2) ──
+function contarFrasesM1(texto) {
+  if (!texto) return 0
+  return texto.split(/[.!?]+/).filter(s => s.trim().length > 0).length
+}
+function contarPalabrasM1(texto) {
+  if (!texto) return 0
+  return texto.trim().split(/\s+/).length
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -39,6 +49,20 @@ ${CRITERIOS_ANGULOS}
 
 USA ESTAS DEFINICIONES PARA IDENTIFICAR el motivo, ángulo y nivel. NO improvises ni intuyas. Aplica las reglas de desempate. Si las señales son claras, decide rápidamente.
 
+REGLA CRÍTICA PARA EXTRAER EL HOOK DEL GUION:
+El "hook detectado" (campo hookOriginal) es ÚNICAMENTE la primera oración hasta el primer punto (.), signo de exclamación (!) o interrogación (?). UNA SOLA frase, máximo 15 palabras.
+TODO lo demás (incluso narrativa del avatar como "Yo pasaba...", "Antes me costaba...", "Tenía el problema de...") es CUERPO LEGÍTIMO y se conserva en el campo "cuerpo".
+
+EJEMPLO CORRECTO:
+GUION: "Conseguí esta depiladora y el picor desapareció. Yo pasaba rozándome todo el día, incómodo en reuniones. Mira cómo la uso..."
+hookOriginal: "Conseguí esta depiladora y el picor desapareció." (1 frase)
+cuerpo: "Yo pasaba rozándome todo el día, incómodo en reuniones. Mira cómo la uso..." (TODO el resto)
+
+EJEMPLO INCORRECTO (lo que NO debes hacer):
+hookOriginal MAL: "Conseguí esta depiladora y el picor desapareció. Yo pasaba rozándome todo el día, incómodo en reuniones." (2 frases — el cuerpo perdería frases legítimas del avatar)
+
+REGLA INVIOLABLE: hookOriginal NUNCA debe tener más de 1 punto ni más de 15 palabras.
+
 ANALIZA y responde SOLO con este JSON estricto:
 {
   "analisis": {
@@ -52,8 +76,8 @@ ANALIZA y responde SOLO con este JSON estricto:
     "tono": "descripción breve del tono",
     "razonamiento": "explicación breve (2-3 frases) que CITE las señales específicas de los criterios que llevaron a cada decisión. Ej: 'Detecté Nivel 3 porque la frase ...descubrí esta pulverizadora... menciona el producto. Detecté Funcional porque ...mira cómo con 40 centímetros... es demostrativo. Detecté Beneficio/Resultado porque ...en menos de 5 minutos mi motor brilla... muestra resultado logrado.'"
   },
-  "hookOriginal": "primeras 1-2 frases impactantes del guion",
-  "cuerpo": "todo el resto del guion sin omitir nada, palabra por palabra"
+  "hookOriginal": "ÚNICAMENTE la primera oración del guion hasta el primer punto, exclamación o interrogación. UNA SOLA frase, máximo 15 palabras",
+  "cuerpo": "TODO el resto del guion sin omitir nada, palabra por palabra"
 }
 
 REGLAS OBLIGATORIAS DE OUTPUT:
@@ -75,10 +99,22 @@ SI DEJAS CAMPOS VACÍOS, ESTÁS FALLANDO LA TAREA.`
       return res.status(502).json({ error: 'No se pudo interpretar el análisis del guion: ' + e.message })
     }
     const analisis = parsed.analisis || {}
-    const hookOriginal = (parsed.hookOriginal || '').toString().trim()
-    const cuerpo = (parsed.cuerpo || '').toString().trim()
+    let hookOriginal = (parsed.hookOriginal || '').toString().trim()
+    let cuerpo = (parsed.cuerpo || '').toString().trim()
     if (!hookOriginal && !cuerpo) {
       return res.status(502).json({ error: 'El modelo no logró separar hook y cuerpo del guion' })
+    }
+
+    // ── Validador post-respuesta: el hook detectado debe ser SOLO la
+    //    primera frase. Si el LLM devolvió más de 1 frase o más de 15
+    //    palabras, recortamos al primer punto y devolvemos el resto al cuerpo.
+    if (contarFrasesM1(hookOriginal) > 1 || contarPalabrasM1(hookOriginal) > 15) {
+      console.log('[M1 VALIDADOR] Hook detectado excede límites. Corrigiendo...')
+      const match = guion.match(/^[^.!?]+[.!?]/)
+      if (match) {
+        hookOriginal = match[0].trim()
+        cuerpo = guion.substring(match[0].length).trim()
+      }
     }
 
     // ── Auto-save: crea el anuncio + guarda versión de análisis ──

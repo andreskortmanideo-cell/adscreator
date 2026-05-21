@@ -28,7 +28,14 @@ ESTRUCTURA SEGÚN ÁNGULO:
 
 Problema/Dolor → ABRE con el dolor concreto del avatar. Ej: "Si llegas con la espalda destrozada cada noche..."
 
-Beneficio/Resultado → ABRE con el resultado YA logrado. Ej: "Ahora limpio en 20 minutos lo que antes me tomaba 3 horas." LUEGO contar el problema anterior y el cómo. NUNCA abrir con problema.
+Beneficio/Resultado → ABRE con el resultado YA logrado QUE INCLUYE o IMPLICA el producto en las PRIMERAS 1-2 FRASES.
+  EJEMPLOS CORRECTOS (producto en palabra 1-10):
+  ✅ "Esta pulverizadora limpió mi motor en 5 minutos."
+  ✅ "Limpio en 5 minutos con esta pulverizadora de alta presión."
+  ✅ "En 5 minutos esta herramienta hace lo que antes me tomaba 1 hora."
+  EJEMPLOS INCORRECTOS (producto aparece después de palabra 20):
+  ❌ "Limpio en 5 minutos lo que antes me tomaba una hora. Mi taller estaba lleno de grasa, polvo... [continúa contando el problema sin mencionar producto] ... Descubrí esta pulverizadora." (producto en palabra 41)
+  REGLA NUMÉRICA OBLIGATORIA: si el nivel es 3, 4 o 5, el producto (nombre o categoría) debe aparecer en las PRIMERAS 15 palabras del guion. LUEGO se cuenta el problema anterior y el cómo. NUNCA abrir con problema.
 
 Curiosidad → ABRE con pregunta intrigante o dato. Ej: "¿Sabías que el 80% de los mecánicos siguen lavando a mano?"
 
@@ -58,6 +65,17 @@ Exclusividad → ABRE filtrando al público. Ej: "Esto no es para todos."
 
 Aspiracional → ABRE con la identidad deseada. Ej: "Conviértete en el mecánico que recomiendan."
 
+REGLA DE TONO DE APERTURA:
+- NUNCA abras un guion con "Cómo + verbo" (ej. "Cómo limpias", "Cómo logras"). Eso es tono de tutorial/imperativo, no de descubrimiento personal.
+- NUNCA abras con verbo en imperativo dirigido al espectador (ej. "Mira", "Descubre", "Prueba"). Excepto si es Nivel 4-5.
+- En Nivel 3, la voz debe ser EN PRIMERA PERSONA del que descubrió, no de instructor.
+
+EJEMPLOS DE APERTURA:
+❌ "Cómo limpias superficies difíciles en 5 segundos" (imperativo)
+❌ "Descubre la forma de limpiar más rápido" (imperativo)
+✅ "Limpio superficies difíciles en 5 segundos" (primera persona)
+✅ "En 5 segundos limpio lo que antes me tomaba media hora" (primera persona con resultado)
+
 REGLA INVIOLABLE: la primera frase del guion DEBE alinearse con la estructura del ángulo elegido. Si elegiste Beneficio/Resultado, NUNCA abras con problema.
 ═════════════════════════════════════════════`
 }
@@ -75,12 +93,14 @@ Nivel 1 (Inconsciente) → CTA tipo aprendizaje: "Aprende qué está pasando", "
 
 Nivel 2 (Consciente del problema) → CTA tipo entendimiento: "Entiende qué hay detrás", "Conoce la causa". NO mencionar producto.
 
-Nivel 3 (Consciente de la solución) → CTA de DESCUBRIMIENTO SUAVE. Ejemplos válidos:
+Nivel 3 (Consciente de la solución) → CTA OBLIGATORIA AL CIERRE. Frases válidas (elige UNA):
 - "Mira esto que encontré"
 - "Vale la pena que lo veas"
-- "Te muestro lo que descubrí"
-- "Esto fue lo que cambió todo para mí"
+- "Te muestro qué descubrí"
+- "Esto cambió todo para mí, mira"
+- "Esto es lo que finalmente encontró que funcionaba"
 NUNCA imperativos de compra. NUNCA "necesitas esto" ni "te lo recomiendo". El tono es de descubrimiento personal compartido.
+REGLA INVIOLABLE: el último párrafo del guion DEBE contener una de estas formulaciones o equivalentes. NO terminar con conclusión reflexiva tipo "Eso fue lo que transformó mi negocio" (esa no invita acción).
 
 Nivel 4 (Consciente del producto) → CTA evaluativo: "Pruébalo", "Compáralo", "Mira la diferencia". Puede ser más directo.
 
@@ -92,12 +112,12 @@ REGLA INVIOLABLE: el CTA debe coincidir con el nivel. Si elegiste Nivel 3, NO us
 
 const BLOQUE_AUTOVERIFICACION = `
 ANTES DE DEVOLVER EL JSON, AUTOVERIFICA:
-1. ¿La primera frase del guion respeta la estructura del ángulo elegido?
-2. ¿El CTA es coherente con el nivel elegido?
-3. ¿El producto aparece en los primeros 5-7 segundos? (si nivel ≥ 3)
-4. ¿El motivo se refleja en el tono y palabras del guion?
+1. ¿La primera frase abre con resultado SIN imperativo "cómo"?
+2. ¿El producto (nombre o categoría) aparece en las primeras 15 palabras? (si nivel ≥ 3)
+3. ¿El último párrafo contiene una CTA explícita de descubrimiento? (Nivel 3)
+4. ¿El motivo se refleja en el tono?
 
-Si alguna respuesta es NO, reescribe el guion antes de devolverlo.`
+Si alguna respuesta es NO, REESCRIBE el guion. NO devuelvas un guion que falle estas verificaciones.`
 
 const PRECIOS_MODELO = {
   'gpt-4.1-mini': { input: 0.40, output: 1.60 },

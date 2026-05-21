@@ -1318,6 +1318,32 @@ ${txt(adv.cierreCTA)}
   async function auditarVersion(idx, fmt) {
     const v = versiones[idx]
     if (!v) return
+    // ── Detección robusta del formato REAL desde la estructura de la versión.
+    //    El parámetro fmt del call site no es confiable; se ignora y se deriva
+    //    el formato del propio contenido para que el auditor aplique los
+    //    criterios correctos (video narrativo vs imagen con bullets). ──
+    const detectarFormatoReal = (version) => {
+      // Si tiene bullets con contenido → imagen
+      if (version?.bullets && Array.isArray(version.bullets) && version.bullets.length > 0) {
+        return 'imagen'
+      }
+      // Si tiene guionCompleto largo (más de 50 palabras) → video
+      if (version?.guionCompleto && version.guionCompleto.split(/\s+/).length > 50) {
+        return 'video'
+      }
+      // Si tiene campo formato explícito y es válido
+      if (version?.formato === 'video' || version?.formato === 'imagen') {
+        return version.formato
+      }
+      // Si tiene guionNeto o guionVisual narrativo → video
+      if (version?.guionNeto || version?.guionVisual) {
+        const texto = version.guionNeto || version.guionVisual
+        if (texto.split(/\s+/).length > 30) return 'video'
+      }
+      // Default seguro
+      return 'video'
+    }
+    fmt = detectarFormatoReal(v)
     const key = (fmt==='imagen'?'imagen_':'')+idx
     setAuditando(key)
     try {
@@ -1372,7 +1398,10 @@ ${lineamientosBloque}
 CONTENIDO GENERADO A AUDITAR:
 ${guionTexto}`
 
-      console.log('[AUDIT FRONTEND] Formato enviado:', fmt, '| Version completa:', v)
+      console.log('[AUDIT FRONTEND] Formato detectado:', fmt, 'desde version:', {
+        tieneBullets: !!v?.bullets?.length,
+        largoGuion: v?.guionCompleto?.split(/\s+/).length
+      })
       const d = await api([{role:'user', content:ctxAud}], 'auditar', { formato: fmt })
       const text = d.content?.[0]?.text || ''
       const nuevasAud = { ...auditorias, [key]: text }

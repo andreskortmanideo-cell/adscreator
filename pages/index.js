@@ -370,13 +370,13 @@ export default function Home() {
     }catch(e){console.error('Error cargando advertorial:',e)}
   },[])
 
-  async function api(messages,modo) {
+  async function api(messages,modo,extra) {
     if (!(nombreAutor || '').trim()) { alert('Escribe tu nombre antes de continuar'); return }
     if(modo==='analizar') setCostoAnuncio({usd:0,cop:0,operaciones:0})
     const r=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages,modo,apiProvider:modeloSel.startsWith('claude')?'claude':'openai',modelo:modeloSel})   // <-- pasa el provider
+      body:JSON.stringify({messages,modo,apiProvider:modeloSel.startsWith('claude')?'claude':'openai',modelo:modeloSel,...(extra||{})})   // <-- pasa el provider + campos extra (ej: formato)
     })
     const d=await r.json()
     if(d.error) throw new Error(d.error)
@@ -1372,7 +1372,7 @@ ${lineamientosBloque}
 CONTENIDO GENERADO A AUDITAR:
 ${guionTexto}`
 
-      const d = await api([{role:'user', content:ctxAud}], 'auditar')
+      const d = await api([{role:'user', content:ctxAud}], 'auditar', { formato: fmt })
       const text = d.content?.[0]?.text || ''
       const nuevasAud = { ...auditorias, [key]: text }
       setAuditorias(nuevasAud)

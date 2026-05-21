@@ -712,7 +712,7 @@ REGLAS DE PRESERVACIÓN DEL HOOK (OBLIGATORIAS):
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
-  const { messages, modo, apiProvider, modelo } = req.body
+  const { messages, modo, apiProvider, modelo, formato } = req.body
   const provider = apiProvider || 'openai'
   const modeloGPT = (modelo && modelo.startsWith('gpt')) ? modelo : 'gpt-4o-mini'
   const modeloClaude = (modelo && modelo.startsWith('claude')) ? modelo : 'claude-sonnet-4-6'
@@ -1081,50 +1081,75 @@ Empieza DIRECTAMENTE con ═══ de VERSIÓN 1, sin texto introductorio`
 
     } else if (modo === 'auditar') {
       const userMsg = body[0].content
-      // ── Detección del formato declarado (video | imagen) ──
-      // El frontend envía "FORMATO: video" o "FORMATO: imagen" dentro del input.
-      // Si NO viene, se ASUME video por default (la mayoría del flujo es video).
+      // ── Formato declarado: campo explícito del body (preferente) →
+      //    regex "FORMATO: ..." del contenido (fallback) → 'video' por default. ──
+      const formatoBody = String(formato || '').toLowerCase()
       const formatoMatch = String(userMsg || '').match(/FORMATO:\s*([a-záéíóú]+)/i)
-      const formatoAuditoria = (formatoMatch && formatoMatch[1].toLowerCase() === 'imagen') ? 'imagen' : 'video'
+      const formatoRegex = formatoMatch ? formatoMatch[1].toLowerCase() : ''
+      const formatoAuditoria = (formatoBody === 'imagen' || formatoRegex === 'imagen') ? 'imagen' : 'video'
 
-      // ── PASO 3 — Reglas de evaluación diferenciadas por formato ──
-      const bloqueCriteriosFormato = formatoAuditoria === 'imagen'
-        ? `═══ EVALUACIÓN SEGÚN FORMATO: IMAGEN ═══
-El contenido es una PIEZA VISUAL. Evalúalo como COMPOSICIÓN VISUAL:
-- Evalúa la COMPOSICIÓN VISUAL: headline corto, 3-4 bullets de máximo 6 palabras cada uno, foto del producto en uso.
-- Si el contenido es un párrafo narrativo largo → márcalo como ❌ NO ADECUADO para imagen.
-- Evalúa si los bullets son ultra-cortos y específicos.
-- Evalúa la composición visual obligatoria del tipo de imagen declarado.
-PUNTAJE GLOBAL para imagen — pondera así: 20% Nivel, 20% Motivo, 20% Ángulo, 20% Estructura visual, 20% Bullets.`
-        : `═══ EVALUACIÓN SEGÚN FORMATO: VIDEO ═══
-El contenido es un GUION DE VIDEO. Evalúalo como CONTENIDO NARRATIVO:
-- Evalúa la NARRATIVA: hook, desarrollo, cierre y CTA.
-- NO exijas bullets. NO exijas headline visual. NO exijas composición fotográfica.
-- NO penalices que el contenido sea un párrafo narrativo — un párrafo narrado es EXACTAMENTE lo correcto para video.
-- Evalúa la duración estimada (palabras ÷ 3 = segundos aproximados).
-- Evalúa si la apertura es "scroll-stopping" según cómo está descrita.
-- Evalúa la coherencia entre el nivel, el motivo y el ángulo declarados y el contenido.
-- NO incluyas la sección "TIPO DE IMAGEN" en tu respuesta — no aplica a video.
-PUNTAJE GLOBAL para video — pondera así: 25% Nivel, 25% Motivo, 25% Ángulo, 25% Narrativa (hook + desarrollo + cierre + CTA).`
+      // ── Switch CLARO de criterios por formato — sin mezclar video/imagen ──
+      const bloqueCriteriosFormato = formatoAuditoria === 'video'
+        ? `═══════════════════════════════════════════════
+CRITERIOS PARA VIDEO (NO MENCIONAR IMAGEN NUNCA)
+═══════════════════════════════════════════════
+El contenido es un GUION DE VIDEO — narrativa hablada para feed/reels.
+Audita 4 dimensiones, 25 puntos cada una:
 
-      const promptAuditoria = `FORMATO DECLARADO: ${formatoAuditoria}. Aplica los criterios de auditoría correspondientes a este formato y NUNCA mezcles criterios de video con criterios de imagen.
+1. NIVEL DE CONSCIENCIA: el guion respeta las reglas del nivel declarado.
+2. MOTIVO: el tono, las palabras y la estructura reflejan el motivo declarado.
+3. ÁNGULO: la APERTURA del guion respeta la estructura del ángulo (ej: Beneficio/Resultado abre con resultado, NO con problema).
+4. NARRATIVA AUDIOVISUAL:
+   - ¿Hook scroll-stopping en la primera frase?
+   - ¿El producto aparece en las primeras 15 palabras si el nivel ≥ 3?
+   - ¿CTA coherente con el nivel?
+   - ¿Tono consistente de principio a fin?
+   - ¿Duración estimada coherente (palabras ÷ 3 = segundos)?
 
-Eres un auditor estricto de marketing de respuesta directa. Revisa el siguiente guión/idea contra los LINEAMIENTOS DEL CLIENTE (incluidos en el input) y reporta cumplimiento criterio por criterio.
+PROHIBICIONES ABSOLUTAS AL AUDITAR VIDEO:
+- NO exijas bullets. El video es narrativa, no lista.
+- NO exijas headline visual. El video tiene hook narrativo.
+- NUNCA escribas la sección "TIPO DE IMAGEN" ni menciones "composición visual", "foto del producto", "headline" o "bullets" en NINGUNA parte de tu respuesta.
+- NO penalices que el contenido sea un párrafo narrativo — es EXACTAMENTE lo correcto para video.
+- Evalúa el guion como CONTENIDO NARRATIVO para feed/reels.
+
+PUNTAJE: cada dimensión vale 25 puntos. Suma máxima 100.`
+        : `═══════════════════════════════════════════════
+CRITERIOS PARA IMAGEN
+═══════════════════════════════════════════════
+El contenido es una PIEZA VISUAL.
+Audita 5 dimensiones, 20 puntos cada una:
+
+1. NIVEL DE CONSCIENCIA: la pieza respeta las reglas del nivel declarado.
+2. MOTIVO: el enfoque visual refleja el motivo declarado.
+3. ÁNGULO: el headline / la composición respeta la estructura del ángulo.
+4. ESTRUCTURA VISUAL: headline corto + foto del producto en uso.
+5. BULLETS: 3-4 bullets ultra-cortos (máximo 6 palabras cada uno).
+
+REGLAS PARA IMAGEN:
+- SÍ exige bullets. La imagen es visual.
+- SÍ exige headline corto.
+- Penaliza párrafos narrativos largos como contenido principal.
+
+PUNTAJE: cada dimensión vale 20 puntos. Suma máxima 100.`
+
+      const promptAuditoria = `Eres un auditor experto de marketing de respuesta directa. Evalúa el contenido aplicando criterios diferenciados SEGÚN EL FORMATO. NUNCA mezcles criterios de video con criterios de imagen.
+
+FORMATO DECLARADO: ${formatoAuditoria}
 
 ${bloqueCriteriosFormato}
 
 REGLAS ABSOLUTAS DE AUDITORÍA:
 - Solo evalúa contra los lineamientos explícitamente provistos en el bloque "═══ LINEAMIENTOS DEL CLIENTE A VERIFICAR ═══" del input.
 - Si una decisión es prohibida en un lineamiento (ej: "Nivel 1: NO menciones el producto"), una violación es ❌ — no negocies.
-- Si una decisión es obligatoria (ej: "ESTRUCTURA: 1) Nombrar el dolor 2)..."), evalúa pasó por paso.
+- Si una decisión es obligatoria (ej: "ESTRUCTURA: 1) Nombrar el dolor 2)..."), evalúa paso por paso.
 - Sé crítico y específico. Cita LÍNEAS o FRAGMENTOS exactos del contenido como evidencia.
 - Si el guión cumple en parte: ⚠️ + qué falta. Si cumple bien: ✅ + cita evidencia. Si no cumple: ❌ + cita la desviación.
-- RESPETA EL FORMATO DECLARADO (${formatoAuditoria}): si es video NUNCA penalices por falta de bullets ni de composición visual; si es imagen NUNCA penalices por no ser un guion narrativo.
 
 INPUT (decisiones + lineamientos + contenido a auditar):
 ${userMsg}
 
-FORMATO DE RESPUESTA EXACTO — devuelve EXACTAMENTE esta estructura, una sección por lineamiento presente en el input:
+FORMATO DE RESPUESTA EXACTO — devuelve EXACTAMENTE esta estructura:
 
 📊 AUDITORÍA DE LINEAMIENTOS
 
@@ -1142,20 +1167,27 @@ MOTIVO [nombre]:
 ✅ [criterio]: explicación
 ⚠️ [criterio]: explicación
 ❌ [criterio]: explicación
-${formatoAuditoria === 'imagen' ? `
-TIPO DE IMAGEN [nombre]:
+${formatoAuditoria === 'video' ? `
+NARRATIVA AUDIOVISUAL:
 ✅ [criterio]: explicación
 ⚠️ [criterio]: explicación
 ❌ [criterio]: explicación
 ` : `
-NARRATIVA (hook + desarrollo + cierre + CTA):
+ESTRUCTURA VISUAL:
+✅ [criterio]: explicación
+⚠️ [criterio]: explicación
+❌ [criterio]: explicación
+
+BULLETS:
 ✅ [criterio]: explicación
 ⚠️ [criterio]: explicación
 ❌ [criterio]: explicación
 `}
 PUNTAJE GLOBAL: X/100
 
-(usa la siguiente rúbrica: 90-100 = todos los lineamientos cumplidos; 70-89 = mayoría con uno o dos parciales; 50-69 = mitad parciales/no cumplidos; <50 = mayoría no cumplidos. Aplica la ponderación por formato indicada arriba. Sé estricto, no inflate.)
+(${formatoAuditoria === 'video'
+  ? '4 dimensiones × 25 puntos: Nivel, Motivo, Ángulo, Narrativa audiovisual.'
+  : '5 dimensiones × 20 puntos: Nivel, Motivo, Ángulo, Estructura visual, Bullets.'} Rúbrica: 90-100 = todo cumplido; 70-89 = mayoría con parciales; 50-69 = mitad sin cumplir; <50 = mayoría sin cumplir. Sé estricto, no inflate.)
 
 RECOMENDACIONES (top 3 cambios concretos para subir el puntaje):
 1. [acción específica que respete el lineamiento del nivel — no inventes nada que viole prohibiciones]
@@ -1166,7 +1198,8 @@ REGLAS DE FORMATO DE RESPUESTA:
 - Empieza directamente con "📊 AUDITORÍA DE LINEAMIENTOS", sin preámbulo.
 - Cada criterio empieza con ✅ ⚠️ o ❌ (con espacio después del emoji).
 - "PUNTAJE GLOBAL: X/100" debe aparecer literalmente con esa cadena (el frontend la parsea).
-- "RECOMENDACIONES" igual literal.`
+- "RECOMENDACIONES" igual literal.
+${formatoAuditoria === 'video' ? '- ESTO ES UN VIDEO: NUNCA escribas la sección "TIPO DE IMAGEN", NUNCA menciones bullets, headline ni composición visual.' : ''}`
 
       promptEjecutado = promptAuditoria
       body[0].content = promptAuditoria

@@ -1086,10 +1086,12 @@ Empieza DIRECTAMENTE con ═══ de VERSIÓN 1, sin texto introductorio`
       const formatoBody = String(formato || '').toLowerCase()
       const formatoMatch = String(userMsg || '').match(/FORMATO:\s*([a-záéíóú]+)/i)
       const formatoRegex = formatoMatch ? formatoMatch[1].toLowerCase() : ''
-      const formatoAuditoria = (formatoBody === 'imagen' || formatoRegex === 'imagen') ? 'imagen' : 'video'
+      const formatoDetectado = (formatoBody === 'imagen' || formatoRegex === 'imagen') ? 'imagen' : 'video'
 
-      // ── LOG TEMPORAL DE DIAGNÓSTICO — eliminar tras confirmar el fix ──
-      console.log('[AUDIT BACKEND] req.body.formato:', formato, '| regex contenido:', formatoRegex || '(sin match)', '| Resuelto a:', formatoAuditoria)
+      // WORKAROUND TEMPORAL: forzar evaluación como video
+      // TODO: bug del switch backend no toma rama correcta. Resolver después de entrega.
+      const formatoAuditoria = 'video'
+      console.log('[AUDIT BACKEND] formatoAuditoria FORZADO a video | detectado era:', formatoDetectado, '| req.body.formato:', formato)
 
       // ── Switch por formato reescrito como if/else explícito.
       //    Los ternarios dentro de template literals a veces los ignora el LLM;

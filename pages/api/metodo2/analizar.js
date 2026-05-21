@@ -32,12 +32,21 @@ export default async function handler(req, res) {
 CONTEXTO ADICIONAL del usuario:
 ${contexto || 'No proporcionado'}
 
-DEFINICIONES ESTRICTAS:
-- HOOK: las primeras 1-2 frases CORTAS e impactantes que detienen el scroll. Generalmente 1 línea, 5-9 palabras. NO incluye contexto adicional ni explicación.
+DEFINICIÓN ESTRICTA DE HOOK (M2):
+- El hook es UNA SOLA FRASE corta (5-12 palabras, idealmente 5-9).
+- Termina con el PRIMER punto (.), signo de exclamación (!) o interrogación (?) que aparezca en el texto.
+- NO incluye frases adicionales aunque parezcan parte del gancho.
+- Si la primera oración es muy larga (>12 palabras), TRUNCA en la primera coma que tenga sentido autónomo o reformula para que quede corta.
+
+EJEMPLOS:
+- Texto: "La pulverizadora que me salvó el taller. Y te voy a mostrar exactamente por qué." → Hook correcto: "La pulverizadora que me salvó el taller." (NO tomar la segunda frase)
+- Texto: "Si llegas con dolor en la espalda, no eres el único." → Hook correcto: "Si llegas con dolor en la espalda, no eres el único."
+
+DEFINICIÓN DE CUERPO:
 - CUERPO: TODO el contenido que va después del hook. Incluye desarrollo del problema, presentación de solución, beneficios, prueba social, CTA.
 
 TU TAREA:
-1. Del TEXTO_1, extrae SOLO el hook (corto, 5-9 palabras ideal). NO te lleves más de lo que es estrictamente el gancho.
+1. Del TEXTO_1, extrae SOLO la PRIMERA frase corta como hook (termina en el primer . ! o ?). NO te lleves la segunda frase ni más de lo que es estrictamente el gancho.
 2. Del TEXTO_2, primero identifica su propio hook (1-2 primeras frases impactantes) y DESCÁRTALO. Luego extrae todo el resto como cuerpo.
 3. Analiza ambos contenidos para detectar:
    - Avatar de cada uno (¿son el mismo avatar? ¿son compatibles?)
@@ -103,8 +112,23 @@ REGLAS OBLIGATORIAS:
     } catch (e) {
       return res.status(502).json({ error: 'No se pudo interpretar el análisis: ' + e.message })
     }
-    const hookExtraido = (parsed.hookExtraido || '').toString().trim()
+    let hookExtraido = (parsed.hookExtraido || '').toString().trim()
     const cuerpoExtraido = (parsed.cuerpoExtraido || '').toString().trim()
+
+    // ── FIX 3 — Validador: el hook debe ser SOLO la primera frase corta ──
+    const contarPalabras = (t) => t.split(/\s+/).filter(Boolean).length
+    if (hookExtraido && contarPalabras(hookExtraido) > 12) {
+      // Recorta en el primer punto / exclamación / interrogación.
+      const m = hookExtraido.match(/^[^.!?]*[.!?]/)
+      if (m && m[0].trim()) {
+        const recortado = m[0].trim()
+        console.warn(`[metodo2-analisis] hook recortado en primera frase: "${hookExtraido}" → "${recortado}"`)
+        hookExtraido = recortado
+      }
+      if (contarPalabras(hookExtraido) > 12) {
+        console.warn(`[metodo2-analisis] hook aún supera 12 palabras tras recorte: "${hookExtraido}"`)
+      }
+    }
     const hookDescartado = (parsed.hookDescartado || '').toString().trim()
     const analisisHook = parsed.analisisHook || {}
     const analisisCuerpo = parsed.analisisCuerpo || {}

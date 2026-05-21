@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
-    const { anuncioId, analisisConfirmado, estructuraConfirmada, palabrasClaveOriginales, modelo, autor } = req.body || {}
+    const { anuncioId, analisisConfirmado, estructuraConfirmada, palabrasClaveOriginales, guionOriginal, modelo, autor } = req.body || {}
     const analisis = analisisConfirmado || {}
     const estructura = Array.isArray(estructuraConfirmada) ? estructuraConfirmada : []
     const palabrasClave = Array.isArray(palabrasClaveOriginales)
@@ -19,6 +19,18 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'estructuraConfirmada requerida' })
     }
     const modeloSel = (modelo || 'claude-haiku-4-5').toString()
+
+    // ── FIX 5 — longitud objetivo: similar al original (±10% de palabras) ──
+    const guionOrig = (guionOriginal || '').toString().trim()
+    const palabrasOriginal = guionOrig ? guionOrig.split(/\s+/).filter(Boolean).length : 0
+    const reglaLongitud = palabrasOriginal > 0
+      ? `REGLA DE LONGITUD (CRÍTICA):
+- El guion original tiene ${palabrasOriginal} palabras. Cada nueva versión debe tener entre ${Math.floor(palabrasOriginal * 0.9)} y ${Math.ceil(palabrasOriginal * 1.1)} palabras.
+- NO infles el contenido. NO agregues frases nuevas que no estuvieran en la estructura del original.
+- Mantén una longitud SIMILAR al original (margen ±10%).`
+      : `REGLA DE LONGITUD (CRÍTICA):
+- Las versiones nuevas deben tener una longitud SIMILAR al original (margen ±10% de palabras).
+- NO infles el contenido. NO agregues frases nuevas que no estuvieran en la estructura del original.`
 
     const { costoOperacion, registrarLlamada } = crearCostoOperacion(modeloSel)
 
@@ -61,6 +73,14 @@ REGLAS DE ORO:
 8. Idea visual (cada versión): escena CONCRETA estilo TikTok/Reels que detenga el scroll en 0.5s (drama, pattern interrupt, POV, reacción extrema). NO uses jerga audiovisual (no 'close-up', 'plano', 'movimiento de cámara'). NO escenas tranquilas/casuales.
 9. Español colombiano cotidiano, SIN regionalismos de España, México, Argentina (NO 'flipar', NO 'tío', NO 'cool', NO 'guay', NO 'che', NO 'pinche'). Palabras OK: bacano, chévere, qué nota, increíble, no más, qué berraquera.
 10. Respetar políticas de Meta (no violencia gráfica, no claims médicos extremos, no menores inapropiados, no engaño).
+
+REGLA DE APARICIÓN DEL PRODUCTO (CRÍTICA PARA NIVELES 3, 4, 5):
+- El producto debe MENCIONARSE o INTRODUCIRSE en los primeros 5-7 segundos del guion (aproximadamente palabras 15-20 del texto).
+- NO esperes más de la mitad del guion para mencionar el producto.
+- La estructura ideal es: dolor breve (5s) → mención del producto/descubrimiento (5-7s) → demostración + beneficios → CTA.
+- Si el nivel es 1 o 2 esta regla NO aplica (porque no se menciona producto).
+
+${reglaLongitud}
 
 OUTPUT JSON ESTRICTO:
 {

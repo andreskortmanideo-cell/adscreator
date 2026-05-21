@@ -1382,8 +1382,17 @@ ${enfoque.estilo}
 Este estilo debe dominar TODO el guión, no solo el inicio.
 
 ${reglaNivel}${bloqueReglaMotivoVid}
+${parseInt(nivelGen, 10) >= 3 ? `
+REGLA DE APARICIÓN DEL PRODUCTO (CRÍTICA PARA NIVELES 3, 4, 5):
+- El producto debe MENCIONARSE o INTRODUCIRSE en los primeros 5-7 segundos del guion (aproximadamente palabras 15-20 del texto).
+- NO esperes más de la mitad del guion para mencionar el producto.
+- La estructura ideal es: dolor breve (5s) → mención del producto/descubrimiento (5-7s) → demostración + beneficios → CTA.
+` : `(Nivel ${nivelGen}: NO se menciona producto — la regla de aparición temprana del producto NO aplica.)`}
 
 PALABRAS: exactamente ${npalabras} palabras (= ${dur3} segundos).
+REGLA DE LONGITUD DEL GUION (CRÍTICA):
+- Respeta estrictamente el conteo de palabras: 180 palabras por minuto = 3 palabras por segundo.
+- NO excedas más de 10% del límite — máximo absoluto ${Math.ceil(npalabras * 1.1)} palabras.
 
 FORMATO — devuelve ÚNICAMENTE esto:
 

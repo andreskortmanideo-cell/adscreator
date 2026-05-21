@@ -55,6 +55,21 @@ const BADGES_METODO = {
   'metodo3': { label: '🔄 Reestructurar', bg: '#fce7f3', color: '#9f1239' }
 }
 
+// FIX 1 — Labels visuales de duración recalibrados +10s. El valor enviado al
+// backend (state `duracion`) NO cambia; solo se desplaza lo que ve el usuario.
+const DURACIONES_DISPONIBLES = [
+  { valor: '10', label: '20s' },
+  { valor: '20', label: '30s' },
+  { valor: '30', label: '40s' },
+  { valor: '40', label: '50s' },
+  { valor: '50', label: '60s' },
+  { valor: '60', label: '70s' }
+]
+const labelDuracion = (v) => {
+  const d = DURACIONES_DISPONIBLES.find(x => String(x.valor) === String(v))
+  return d ? d.label : `${v}s`
+}
+
 function PanelDoctrina({ open, setOpen, titulo, color, children }) {
   return (
     <div style={{ marginTop: 12, borderLeft: `4px solid ${color}`, background: D.accent, borderRadius: 8, overflow: 'hidden', border: `1px solid ${D.cardBorder}` }}>
@@ -226,6 +241,7 @@ export default function Home() {
   const [m3Versiones,setM3Versiones]=useState([])
   const [m3Detalles,setM3Detalles]=useState(false)
   const [m3VerOriginal,setM3VerOriginal]=useState(false)
+  const [m3VerEstructura,setM3VerEstructura]=useState(false) // FIX 4 — estructura plegada por defecto
   const [m3VerDetalleVersion,setM3VerDetalleVersion]=useState({}) // {0:true,1:true}
 
   // Limpia outputs al cambiar formato (video↔imagen) — preserva análisis y decisiones del Paso 02/03
@@ -819,7 +835,7 @@ export default function Home() {
   function resetMetodo3() {
     setM3Paso(1); setM3GuionInput(''); setM3Contexto('')
     setM3Analisis(null); setM3Estructura([]); setM3PalabrasClave([]); setM3PalabrasClaveTexto('')
-    setM3Versiones([]); setM3Detalles(false); setM3VerOriginal(false); setM3VerDetalleVersion({})
+    setM3Versiones([]); setM3Detalles(false); setM3VerOriginal(false); setM3VerEstructura(false); setM3VerDetalleVersion({})
   }
 
   function setM3Campo(campo, valor) {
@@ -894,6 +910,7 @@ export default function Home() {
           analisisConfirmado: m3Analisis,
           estructuraConfirmada: m3Estructura,
           palabrasClaveOriginales: palabras,
+          guionOriginal: m3GuionInput.trim(),
           modelo: modeloSel,
           autor: nombreAutor.trim()
         })
@@ -2312,8 +2329,8 @@ ${guionTexto}`
                   <>
                     <div style={fldLbl}>Duración</div>
                     <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
-                      {['10','20','30','40','50','60'].map(s=>(
-                        <button key={s} onClick={()=>setDuracion(s)} style={{...chipBtn(duracion===s),minWidth:50,textAlign:'center'}}>{s}s</button>
+                      {DURACIONES_DISPONIBLES.map(d=>(
+                        <button key={d.valor} onClick={()=>setDuracion(d.valor)} style={{...chipBtn(duracion===d.valor),minWidth:50,textAlign:'center'}}>{d.label}</button>
                       ))}
                     </div>
                   </>
@@ -2335,7 +2352,7 @@ ${guionTexto}`
                       {generando
                         ?formato==='imagen'?'Generando 2 ideas...':'Generando 2 versiones...'
                         :ok
-                          ?formato==='imagen'?'Generar 2 ideas de imagen':`Generar 2 versiones (${duracion}s)`
+                          ?formato==='imagen'?'Generar 2 ideas de imagen':`Generar 2 versiones (${labelDuracion(duracion)})`
                           :`Falta seleccionar: ${faltantes.join(', ')}`}
                     </button>
                   )
@@ -2351,7 +2368,7 @@ ${guionTexto}`
                 <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
                   <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:D.blueDark,color:D.blue,border:`1px solid ${D.blueDim}`}}>{tipo}</span>
                   <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:D.greenBg,color:'#059669',border:`1px solid ${D.greenBorder}`}}>
-                    {formato==='imagen'?'Imagen estática':`Video ${duracion}s`}
+                    {formato==='imagen'?'Imagen estática':`Video ${labelDuracion(duracion)}`}
                   </span>
                   <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:D.accent,color:D.textMid,border:`1px solid ${D.cardBorder}`}}>{pais} · Nivel {nivelSel||analisis?.nivel_recomendado}</span>
                   <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:modeloSel.startsWith('claude')?'#ecfdf5':'#1a1000',color:modeloSel.startsWith('claude')?'#059669':'#92400e',border:`1px solid ${modeloSel.startsWith('claude')?'#a7f3d0':'#fde68a'}`}}>
@@ -3017,40 +3034,6 @@ ${guionTexto}`
                       style={{...inp,height:38,padding:'9px 12px',marginBottom:0}}/>
                   </div>
 
-                  {/* Estructura narrativa editable */}
-                  <div style={crd}>
-                    <div style={{fontSize:12,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:10}}>Estructura narrativa</div>
-                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                      {m3Estructura.map((s,i)=>(
-                        <div key={i} style={{border:`1px solid ${D.cardBorder}`,borderRadius:10,padding:12,background:D.accent}}>
-                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,gap:8}}>
-                            <span style={{fontSize:11,fontWeight:700,color:D.blue}}>Paso {i+1}</span>
-                            <div style={{display:'flex',gap:4}}>
-                              <button onClick={()=>m3MoverPaso(i,-1)} disabled={i===0}
-                                style={{fontSize:11,padding:'2px 8px',border:`1px solid ${D.cardBorder}`,borderRadius:5,background:'#fff',color:D.textMid,cursor:i===0?'not-allowed':'pointer',fontFamily:'inherit',opacity:i===0?.4:1}}>↑ Subir</button>
-                              <button onClick={()=>m3MoverPaso(i,1)} disabled={i===m3Estructura.length-1}
-                                style={{fontSize:11,padding:'2px 8px',border:`1px solid ${D.cardBorder}`,borderRadius:5,background:'#fff',color:D.textMid,cursor:i===m3Estructura.length-1?'not-allowed':'pointer',fontFamily:'inherit',opacity:i===m3Estructura.length-1?.4:1}}>↓ Bajar</button>
-                              <button onClick={()=>m3EliminarPaso(i)}
-                                style={{fontSize:11,padding:'2px 8px',border:`1px solid #fecaca`,borderRadius:5,background:'#fff',color:'#dc2626',cursor:'pointer',fontFamily:'inherit'}}>❌ Eliminar</button>
-                            </div>
-                          </div>
-                          <div style={fldLbl}>Función</div>
-                          <textarea value={s.funcion||''} onChange={e=>setM3PasoFuncion(i,e.target.value)} rows={2}
-                            style={{...inp,marginBottom:s.ejemplo?8:0,background:'#fff'}}/>
-                          {s.ejemplo && (
-                            <div style={{fontSize:12,color:D.textDim,lineHeight:1.5,fontStyle:'italic'}}>
-                              Ejemplo del original: "{s.ejemplo}"
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <button onClick={m3AgregarPaso}
-                      style={{marginTop:10,fontSize:12,padding:'7px 14px',border:`1px dashed ${D.blue}`,borderRadius:8,background:'transparent',color:D.blue,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
-                      + Agregar paso
-                    </button>
-                  </div>
-
                   {/* Palabras clave a evitar */}
                   <div style={crd}>
                     <div style={{fontSize:12,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Palabras clave a evitar</div>
@@ -3058,6 +3041,56 @@ ${guionTexto}`
                     <textarea value={m3PalabrasClaveTexto} onChange={e=>setM3PalabrasClaveTexto(e.target.value)} rows={4}
                       placeholder="palabra1, palabra2, frase distintiva..."
                       style={{...inp,marginBottom:0}}/>
+                  </div>
+
+                  {/* FIX 4 — Estructura narrativa interna + razonamiento, plegados (avanzado) */}
+                  <div style={{marginBottom:10}}>
+                    <button onClick={()=>setM3VerEstructura(!m3VerEstructura)}
+                      style={{background:'transparent',border:'none',color:D.blue,cursor:'pointer',fontSize:13,padding:'4px 0',fontFamily:'inherit'}}>
+                      {m3VerEstructura?'▾':'▸'} Ver estructura narrativa interna (avanzado)
+                    </button>
+                    {m3VerEstructura && (
+                      <>
+                        <div style={{marginTop:8,...crd}}>
+                          <div style={{fontSize:12,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:10}}>Estructura narrativa</div>
+                          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                            {m3Estructura.map((s,i)=>(
+                              <div key={i} style={{border:`1px solid ${D.cardBorder}`,borderRadius:10,padding:12,background:D.accent}}>
+                                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,gap:8}}>
+                                  <span style={{fontSize:11,fontWeight:700,color:D.blue}}>Paso {i+1}</span>
+                                  <div style={{display:'flex',gap:4}}>
+                                    <button onClick={()=>m3MoverPaso(i,-1)} disabled={i===0}
+                                      style={{fontSize:11,padding:'2px 8px',border:`1px solid ${D.cardBorder}`,borderRadius:5,background:'#fff',color:D.textMid,cursor:i===0?'not-allowed':'pointer',fontFamily:'inherit',opacity:i===0?.4:1}}>↑ Subir</button>
+                                    <button onClick={()=>m3MoverPaso(i,1)} disabled={i===m3Estructura.length-1}
+                                      style={{fontSize:11,padding:'2px 8px',border:`1px solid ${D.cardBorder}`,borderRadius:5,background:'#fff',color:D.textMid,cursor:i===m3Estructura.length-1?'not-allowed':'pointer',fontFamily:'inherit',opacity:i===m3Estructura.length-1?.4:1}}>↓ Bajar</button>
+                                    <button onClick={()=>m3EliminarPaso(i)}
+                                      style={{fontSize:11,padding:'2px 8px',border:`1px solid #fecaca`,borderRadius:5,background:'#fff',color:'#dc2626',cursor:'pointer',fontFamily:'inherit'}}>❌ Eliminar</button>
+                                  </div>
+                                </div>
+                                <div style={fldLbl}>Función</div>
+                                <textarea value={s.funcion||''} onChange={e=>setM3PasoFuncion(i,e.target.value)} rows={2}
+                                  style={{...inp,marginBottom:s.ejemplo?8:0,background:'#fff'}}/>
+                                {s.ejemplo && (
+                                  <div style={{fontSize:12,color:D.textDim,lineHeight:1.5,fontStyle:'italic'}}>
+                                    Ejemplo del original: "{s.ejemplo}"
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <button onClick={m3AgregarPaso}
+                            style={{marginTop:10,fontSize:12,padding:'7px 14px',border:`1px dashed ${D.blue}`,borderRadius:8,background:'transparent',color:D.blue,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+                            + Agregar paso
+                          </button>
+                        </div>
+                        {m3Analisis.razonamiento && (
+                          <div style={{marginTop:8,...crd,background:D.accent}}>
+                            <div style={{fontSize:12,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Razonamiento del análisis</div>
+                            <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{m3Analisis.razonamiento}</div>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
 
                   {/* Collapse guion original */}

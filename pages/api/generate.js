@@ -744,6 +744,16 @@ export default async function handler(req, res) {
     let hooksIndicesUsados = []  // anti-repetición: índices de HOOKS_JEFE escogidos en este request, devueltos al frontend
 
     if (isAnalisis) {
+      // ── Logs de diagnóstico temporal — bug imágenes en modo Crear ──
+      console.log('[GENERATE-ANALISIS] === INICIO ===')
+      console.log('[GENERATE-ANALISIS] Provider:', apiProvider, 'Modelo:', modelo)
+      console.log('[GENERATE-ANALISIS] body[0].content tipo:', Array.isArray(body[0].content) ? 'array' : typeof body[0].content)
+      if (Array.isArray(body[0].content)) {
+        console.log('[GENERATE-ANALISIS] Cantidad de partes:', body[0].content.length)
+        body[0].content.forEach((parte, i) => {
+          console.log('[GENERATE-ANALISIS] Parte ' + i + ' tipo:', parte.type, parte.type === 'image_url' ? 'URL len: ' + (parte.image_url?.url?.length || 0) : 'texto len: ' + (parte.text?.length || 0))
+        })
+      }
       // El frontend manda body[0].content como string (solo texto) o como
       // array multimodal [{type:'text'},{type:'image_url'},...] cuando el
       // usuario sube imágenes. Antes se interpolaba el array tal cual en el
@@ -796,6 +806,7 @@ Completa todos los campos vacios con tu analisis real del producto. CRITICO: sco
       console.log('[GENERATE] modo=analizar | imágenes recibidas:', imagenesUser.length,
         '| provider:', provider,
         '| prompt al LLM (primeros 500 chars):', promptAnalisis.substring(0, 500))
+      console.log('[GENERATE-ANALISIS] Mensajes finales que se envían al LLM:', JSON.stringify(body, null, 2).substring(0, 1000))
 
     } else if (isGenerar) {
       const userMsg = body[0].content
@@ -1303,6 +1314,7 @@ ${reglaCierreFormato}`
       if (provider === 'claude') {
         if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY no configurada')
         const messagesClaude = adaptarMensajesParaClaude(messages)
+        if (isAnalisis) console.log('[GENERATE-ANALISIS-CLAUDE] Mensajes adaptados para Claude:', JSON.stringify(messagesClaude, null, 2).substring(0, 1000))
         let textC = ''
         let inputTokens = 0, outputTokens = 0
         let intentosC = 0
@@ -2003,6 +2015,7 @@ Genera la idea completa otra vez con un hook nuevo, corto y completo.`
         const tipoLlamada = isAnalisis ? 'Análisis' : (modo === 'auditar') ? 'Auditoría' : (modo === 'mapear_advertorial') ? 'Mapeo advertorial' : (isVariaciones) ? 'Variaciones' : (modo === 'correccion') ? 'Corrección' : 'Llamada principal'
         const rMain = await llamarModelo(body, maxTok)
         responseText = rMain.texto
+        if (isAnalisis) console.log('[GENERATE-ANALISIS] Respuesta cruda del LLM (primeros 500 chars):', JSON.stringify(rMain).substring(0, 500))
         registrarLlamada(tipoLlamada, modeloUsado, rMain.inputTokens, rMain.outputTokens)
       }
     }

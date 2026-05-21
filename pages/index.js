@@ -1372,6 +1372,7 @@ ${lineamientosBloque}
 CONTENIDO GENERADO A AUDITAR:
 ${guionTexto}`
 
+      console.log('[AUDIT FRONTEND] Formato enviado:', fmt, '| Version completa:', v)
       const d = await api([{role:'user', content:ctxAud}], 'auditar', { formato: fmt })
       const text = d.content?.[0]?.text || ''
       const nuevasAud = { ...auditorias, [key]: text }

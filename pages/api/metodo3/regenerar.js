@@ -23,6 +23,8 @@ export default async function handler(req, res) {
     // ── FIX 5 — longitud objetivo: similar al original (±10% de palabras) ──
     const guionOrig = (guionOriginal || '').toString().trim()
     const palabrasOriginal = guionOrig ? guionOrig.split(/\s+/).filter(Boolean).length : 0
+    const minPalabras = Math.floor(palabrasOriginal * 0.9)
+    const maxPalabras = Math.ceil(palabrasOriginal * 1.1)
     const reglaLongitud = palabrasOriginal > 0
       ? `REGLA DE LONGITUD (CRÍTICA):
 - El guion original tiene ${palabrasOriginal} palabras. Cada nueva versión debe tener entre ${Math.floor(palabrasOriginal * 0.9)} y ${Math.ceil(palabrasOriginal * 1.1)} palabras.
@@ -120,6 +122,16 @@ Devuelve EXACTAMENTE 2 objetos dentro de "versiones".`
     })) : []
     if (versiones.length === 0) {
       return res.status(502).json({ error: 'El modelo no devolvió versiones nuevas' })
+    }
+
+    // ── PARTE 5 — Validador post-respuesta: avisar si una versión infla la longitud ──
+    if (palabrasOriginal > 0) {
+      versiones.forEach((v, i) => {
+        const palabras = (v.guionCompleto || '').split(/\s+/).filter(Boolean).length
+        if (palabras > maxPalabras * 1.2) {
+          console.log(`[M3 VALIDADOR] Versión ${i + 1} muy larga (${palabras} vs max ${maxPalabras}). Considera reintento.`)
+        }
+      })
     }
 
     // ── Auto-save: suma versión de regeneración al anuncio ───────

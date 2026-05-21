@@ -110,6 +110,39 @@ REGLA INVIOLABLE: el CTA debe coincidir con el nivel. Si elegiste Nivel 3, NO us
 ═════════════════════════════════════════════`
 }
 
+// ── Regla numérica inviolable: producto dentro de las primeras 15 palabras ──
+// Aplica a niveles 3-5. La valida también el validador post-generación.
+function bloqueReglaProducto15(anguloVenta) {
+  return `
+═════════════════════════════════════════════
+REGLA NUMÉRICA OBLIGATORIA DEL PRODUCTO (CRÍTICA — INVIOLABLE):
+- Si el nivel es 3, 4 o 5, el nombre del producto (o una referencia clara como "esta pulverizadora", "este aparato", "este sistema") DEBE aparecer dentro de las PRIMERAS 15 PALABRAS del guion narrado.
+- NO importa el ángulo elegido (${anguloVenta || 'el ángulo actual'}): TODOS los ángulos se acomodan a esta regla.
+- Si el ángulo es Problema/Dolor, NO dediques más de 10 palabras al dolor antes de mencionar el producto.
+- Si el ángulo es Beneficio/Resultado, el producto debe estar en la apertura junto al resultado.
+- Si el ángulo es Curiosidad, la pregunta intrigante debe incluir o llegar al producto en 15 palabras.
+
+EJEMPLOS POR ÁNGULO (todos cumplen producto ≤ 15 palabras):
+
+Problema/Dolor + Nivel 3:
+✅ "¿Cansado de fregar motores a mano? Esta pulverizadora cambió mi taller." (producto palabra 9)
+✅ "Fregar motores destrozaba mi espalda. Esta pulverizadora lo arregló." (producto palabra 7)
+❌ "¿Cansado de fregar? Yo pasaba horas raspando grasa, espalda destrozada, sin solución. Hasta que conseguí esta pulverizadora..." (producto palabra 17+, INACEPTABLE)
+
+Beneficio/Resultado + Nivel 3:
+✅ "Limpio en 5 minutos con esta pulverizadora de alta presión." (producto palabra 6)
+✅ "Esta pulverizadora hace en 5 min lo que antes me tomaba 1 hora." (producto palabra 2)
+
+Curiosidad + Nivel 3:
+✅ "¿Sabías que esta pulverizadora limpia motores en 30 segundos?" (producto palabra 5)
+
+Historia + Nivel 3:
+✅ "Hace 3 meses conocí esta pulverizadora y mi taller cambió." (producto palabra 6)
+
+Si tu guion no cumple esta regla, REESCRÍBELO antes de devolver la respuesta. Un guion que falle esta regla será rechazado y regenerado automáticamente.
+═════════════════════════════════════════════`
+}
+
 const BLOQUE_AUTOVERIFICACION = `
 ANTES DE DEVOLVER EL JSON, AUTOVERIFICA:
 1. ¿La primera frase abre con resultado SIN imperativo "cómo"?
@@ -1307,6 +1340,39 @@ Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
       return palabras.slice(-n).join(' ')
     }
 
+    // ── Extrae solo el cuerpo narrado de una versión (sin separadores ═══,
+    // sin encabezado "VERSIÓN X — Hook:", sin delimitadores --- ni markdown) ──
+    function extraerGuionNarrado(texto) {
+      return String(texto || '')
+        .replace(/═{3,}[^\n]*/g, ' ')
+        .replace(/VERSI[OÓ]N\s*\d+\s*[—\-–]\s*Hook:\s*[^\n]+/gi, ' ')
+        .replace(/^\s*---+\s*$/gm, ' ')
+        .replace(/\*+/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+    }
+
+    // ── Cuenta en qué palabra del guion aparece el producto (nombre o
+    // referencia genérica "este/esta..."). Devuelve Infinity si no aparece. ──
+    function contarPalabrasHastaProducto(texto, producto) {
+      if (!texto || !producto) return Infinity
+      const palabras = texto.toLowerCase().split(/\s+/).filter(Boolean)
+      // Primera palabra significativa del nombre del producto (ignora artículos/preposiciones)
+      const stop = ['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del']
+      const tokensProd = producto.toLowerCase().split(/\s+/).map(w => w.replace(/[^a-záéíóúñ0-9]/gi, ''))
+      const referenciaProducto = (tokensProd.find(w => w.length >= 3 && !stop.includes(w)) || tokensProd[0] || '').trim()
+      const referenciasGenericas = ['este', 'esta', 'estos', 'estas']
+
+      for (let i = 0; i < palabras.length; i++) {
+        const limpia = palabras[i].replace(/[^a-záéíóúñ0-9]/gi, '')
+        // Coincidencia con el nombre del producto
+        if (referenciaProducto && limpia.includes(referenciaProducto)) return i + 1
+        // Referencia genérica "este/esta..." seguida de un sustantivo
+        if (referenciasGenericas.includes(limpia) && i < palabras.length - 1) return i + 1
+      }
+      return Infinity
+    }
+
     if (isVideoGenerar) {
       // ── 2 llamadas paralelas, una por versión, con max_tokens ajustado ──
       const durMatch3 = body[0].content.match(/DURACI[ÓO]N: (\d+)/)
@@ -1331,6 +1397,8 @@ Devuelve SOLO un JSON: {"indices": [n1, n2, n3]}`
       // FIX #7 — Selección de 2 hooks de HOOKS_JEFE (585 plantillas curadas por el jefe)
       // Pre-llamada barata a gpt-4.1-mini con todo el contexto (motivo, ángulo, nivel, avatar, plataforma)
       const plataformaV = ctxOriginal.match(/PLATAFORMA: ([^\n]+)/)?.[1]?.trim() || ''
+      // Nombre del producto — lo usa el validador post-generación (producto en primeras 15 palabras)
+      const productoV = (ctxOriginal.match(/PRODUCTO:\s*([^\n]+)/) || [])[1]?.trim() || ''
       const excluidosVRaw = ctxOriginal.match(/HOOKS_YA_USADOS:\s*([^\n]+)/)?.[1]?.trim() || ''
       const excluidosV = excluidosVRaw.split(/[, ]+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n))
       const seleccionV = await seleccionarHooksJefe({
@@ -1503,12 +1571,7 @@ ${enfoque.estilo}
 Este estilo debe dominar TODO el guión, no solo el inicio.
 
 ${reglaNivel}${bloqueReglaMotivoVid}
-${parseInt(nivelGen, 10) >= 3 ? `
-REGLA DE APARICIÓN DEL PRODUCTO (CRÍTICA PARA NIVELES 3, 4, 5):
-- El producto debe MENCIONARSE o INTRODUCIRSE en los primeros 5-7 segundos del guion (aproximadamente palabras 15-20 del texto).
-- NO esperes más de la mitad del guion para mencionar el producto.
-- La estructura ideal es: dolor breve (5s) → mención del producto/descubrimiento (5-7s) → demostración + beneficios → CTA.
-` : `(Nivel ${nivelGen}: NO se menciona producto — la regla de aparición temprana del producto NO aplica.)`}
+${parseInt(nivelGen, 10) >= 3 ? bloqueReglaProducto15(anguloV) : `(Nivel ${nivelGen}: NO se menciona producto — la regla de aparición temprana del producto NO aplica.)`}
 
 PALABRAS: exactamente ${npalabras} palabras (= ${dur3} segundos).
 REGLA DE LONGITUD DEL GUION (CRÍTICA):
@@ -1546,7 +1609,12 @@ Esta es la versión ${i+1} de 2. Las 2 versiones DEBEN tener un cierre completam
 - NO uses las mismas palabras finales que las otras versiones
 - NO uses la misma frase de CTA literal, construye tu propio CTA con tus palabras
 - Las últimas 5-7 palabras de cada versión deben ser únicas
-- Los ejemplos de CTA del nivel son INSPIRACIÓN, no frases para copiar literalmente`
+- Los ejemplos de CTA del nivel son INSPIRACIÓN, no frases para copiar literalmente
+
+REGLA DE DIVERSIDAD ENTRE VERSIONES:
+- Las 2 versiones del mismo formato deben ser DIFERENTES en hook, narrativa y estructura interna.
+- Pero AMBAS deben cumplir la regla del producto en las primeras 15 palabras.
+- NO repitas la misma apertura entre versiones.`
 
         // CAMBIO B — inyectar cierres de versiones anteriores como "evitar"
         let bloqueEvitar = ''
@@ -1576,6 +1644,62 @@ CIERRE QUE DEBES EVITAR (versión 1 ya terminó así, no lo repitas ni parafrase
           texto = texto.replace(/VERSI[OÓ]N \d+/, `VERSIÓN ${num}`)
         }
         if (!texto.trim().endsWith('---')) texto = texto.trim() + '\n---'
+
+        // ── VALIDADOR POST-GENERACIÓN — producto en las primeras 15 palabras (niveles ≥ 3) ──
+        // Determinístico: si el producto aparece tarde, se reintenta UNA vez con prompt
+        // más estricto. Si el reintento tampoco cumple, se deja pasar con warning en logs.
+        if (parseInt(nivelGen, 10) >= 3 && productoV) {
+          const guionNarrado = extraerGuionNarrado(texto)
+          const palabrasHastaProducto = contarPalabrasHastaProducto(guionNarrado, productoV)
+
+          if (palabrasHastaProducto > 15) {
+            console.log(`[VALIDADOR] Versión ${num}: producto aparece en palabra ${palabrasHastaProducto} (>15). Reintentando...`)
+
+            const promptReintento = `${promptConDif}
+
+═══════════════════════════════════════════════
+TU INTENTO ANTERIOR FALLÓ — REINTENTO OBLIGATORIO:
+El producto apareció en la palabra ${palabrasHastaProducto} del guion narrado. La regla EXIGE que el producto (nombre, categoría o referencia clara como "esta/este ...") aparezca dentro de las PRIMERAS 15 PALABRAS, sin excepción.
+
+GUION QUE FALLÓ:
+"${guionNarrado}"
+
+Reescribe el MISMO concepto (mismo hook, mismo ángulo, misma longitud, mismo estilo narrativo, mismo CTA del nivel) pero con el producto mencionado dentro de las primeras 15 palabras del texto narrado.
+Devuelve SOLO el formato indicado (═══ ... VERSIÓN ${num} — Hook: ... ═══ ... texto ... ---).
+═══════════════════════════════════════════════`
+
+            try {
+              const rRe = await llamarModelo([{ role: 'user', content: promptReintento }], maxTokVersion)
+              registrarLlamada(`Video versión ${num} (reintento validador producto)`, modeloUsado, rRe.inputTokens, rRe.outputTokens)
+              const tRe = String(rRe.texto || '').trim()
+
+              if (tRe.length > 30 && !tRe.includes("I'm sorry") && !tRe.includes("Lo siento") && !tRe.includes("can't assist")) {
+                let textoRe = tRe
+                if (!textoRe.match(/^═{3,}/)) {
+                  textoRe = `═══════════════════════════════\nVERSIÓN ${num} — Hook: ` + textoRe
+                } else {
+                  textoRe = textoRe.replace(/VERSI[OÓ]N \d+/, `VERSIÓN ${num}`)
+                }
+                if (!textoRe.trim().endsWith('---')) textoRe = textoRe.trim() + '\n---'
+
+                const reCount = contarPalabrasHastaProducto(extraerGuionNarrado(textoRe), productoV)
+                if (reCount <= 15) {
+                  texto = textoRe
+                  console.log(`[VALIDADOR] Versión ${num}: reintento OK, producto ahora en palabra ${reCount}.`)
+                } else {
+                  console.warn(`[VALIDADOR] Versión ${num}: el reintento sigue fallando (producto en palabra ${reCount}). Se devuelve el guion original SIN bloquear la generación.`)
+                }
+              } else {
+                console.warn(`[VALIDADOR] Versión ${num}: el reintento no devolvió un guion válido. Se devuelve el guion original SIN bloquear.`)
+              }
+            } catch (e) {
+              console.warn(`[VALIDADOR] Versión ${num}: error en el reintento (${e?.message || e}). Se devuelve el guion original SIN bloquear.`)
+            }
+          } else {
+            console.log(`[VALIDADOR] Versión ${num}: OK, producto en palabra ${palabrasHastaProducto}.`)
+          }
+        }
+
         resultados.push(texto)
       }
       responseText = resultados.join('\n\n')

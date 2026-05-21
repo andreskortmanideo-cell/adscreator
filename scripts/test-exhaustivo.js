@@ -3,6 +3,7 @@ const path = require('path');
 
 const CONFIG = {
   baseUrl: 'http://51.83.129.63/ads/api',
+  plataforma: 'Meta Ads',
   producto: {
     nombre: 'Pulverizadora de Alta Presión',
     descripcion: 'Pulverizadora conectable a compresor de aire. Limpia motores, herramientas, superficies. Manguera de 1.5m, alcance de 40cm, válvula ajustable. Producto para mecánicos y talleres en Colombia.',
@@ -90,8 +91,57 @@ GUION: ${version.guionCompleto || version.guion || ''}`;
   return r.content?.[0]?.text || '';
 }
 
+// Parser JSON tolerante del análisis — replica parseConFix() de pages/index.js
+function parsearJsonAnalisis(texto) {
+  let limpio = (texto || '').replace(/```json|```/g, '').trim();
+  const ini = limpio.indexOf('{');
+  const fin = limpio.lastIndexOf('}');
+  if (ini !== -1 && fin !== -1) limpio = limpio.slice(ini, fin + 1);
+  try { return JSON.parse(limpio); } catch (e1) {
+    const fixed = limpio
+      .replace(/}\s*{/g, '},{')
+      .replace(/]\s*\[/g, '],[')
+      .replace(/}\s*"/g, '},"')
+      .replace(/]\s*"/g, '],"')
+      .replace(/,(\s*[}\]])/g, '$1');
+    try { return JSON.parse(fixed); } catch (e2) {
+      const opens = (fixed.match(/{/g) || []).length;
+      const closes = (fixed.match(/}/g) || []).length;
+      const opensA = (fixed.match(/\[/g) || []).length;
+      const closesA = (fixed.match(/]/g) || []).length;
+      let extra = fixed;
+      for (let k = 0; k < opensA - closesA; k++) extra += ']';
+      for (let k = 0; k < opens - closes; k++) extra += '}';
+      try { return JSON.parse(extra); } catch (e3) { throw e1; }
+    }
+  }
+}
+
+// Replica el flujo real del frontend: analizar() corre modo 'analizar' y guarda
+// el resultado (niveles con nombre+ángulo, avatares) que luego usa buildCtx().
+// Ver pages/index.js:1089-1171 (analizar) y :1180-1195 (buildCtx).
+let _analisisProductoCache = null;
+async function obtenerAnalisisProducto() {
+  if (_analisisProductoCache) return _analisisProductoCache;
+  console.log('  → Analizando producto (modo analizar)...');
+  // Mismo ctxBase que arma el frontend en analizar() — pages/index.js:1102
+  const ctxBase = `NOMBRE: ${CONFIG.producto.nombre}
+PRODUCTO: ${CONFIG.producto.descripcion}
+MERCADO: ${CONFIG.producto.mercado}
+PLATAFORMA: ${CONFIG.plataforma}`;
+  const d = await llamarApi('/generate', {
+    messages: [{ role: 'user', content: ctxBase }],
+    modo: 'analizar',
+    apiProvider: 'anthropic',
+    modelo: CONFIG.modelo
+  });
+  _analisisProductoCache = parsearJsonAnalisis(d.content?.[0]?.text || '');
+  return _analisisProductoCache;
+}
+
 // ============ MODO CREAR DESDE 0 ============
-// IMPORTANTE: usa modo:'generar' (NO 'analizar') y los parámetros van EMBEBIDOS en messages[0].content
+// Replica el flujo real: 1) modo 'analizar' del producto  2) modo 'generar'
+// con messages[0].content armado EXACTAMENTE como buildCtx() del frontend.
 async function testCrearDesde0() {
   console.log('\n🎬 === MODO CREAR DESDE 0 ===');
   const niveles = CONFIG.crearCombinaciones.niveles;
@@ -100,6 +150,20 @@ async function testCrearDesde0() {
   const total = niveles.length * motivos.length * angulos.length;
   let contador = 0;
 
+  // Paso 1 — análisis del producto (una sola vez, igual que el frontend)
+  let analisisProducto;
+  try {
+    analisisProducto = await obtenerAnalisisProducto();
+  } catch (e) {
+    console.error(`  ❌ No se pudo analizar el producto: ${e.message}`);
+    resultados.push({ modo: 'CREAR', n: 0, nivel: '', motivo: '', angulo: '', version: 0, hook: '', guion: '', puntaje: 0, error: 'analizar producto: ' + e.message.substring(0, 180) });
+    return;
+  }
+  // Avatar mapeado igual que el frontend (buildCtx): avatares[avatar_recomendado]
+  const idxAvatar = Number.isInteger(analisisProducto.avatar_recomendado) ? analisisProducto.avatar_recomendado : 0;
+  const avatarObj = (analisisProducto.avatares || [])[idxAvatar] || null;
+  const avatarStr = avatarObj ? `${avatarObj.nombre} — ${avatarObj.dolor_principal}` : '';
+
   for (const nivel of niveles) {
     for (const motivo of motivos) {
       for (const angulo of angulos) {
@@ -107,18 +171,14 @@ async function testCrearDesde0() {
         console.log(`\n[${contador}/${total}] CREAR: N${nivel} | ${motivo} | ${angulo}`);
 
         try {
-          // Construir prompt EMBEBIDO según formato real del endpoint
-          const contenidoGen = `PRODUCTO: ${CONFIG.producto.nombre}
-DESCRIPCIÓN: ${CONFIG.producto.descripcion}
-MERCADO: ${CONFIG.producto.mercado}
-AVATAR: ${CONFIG.producto.avatar}
-TIPO: ${motivo}
-NIVEL: ${nivel}
-ANGULO_VENTA: ${angulo}
-FORMATO: ${CONFIG.formato}
-DURACIÓN: ${CONFIG.duracion}
-
-Genera 2 versiones del anuncio respetando nivel, motivo y ángulo declarados.`;
+          // ni = nivel del análisis: aporta nombre + ángulo de consciencia
+          const ni = (analisisProducto.niveles || []).find(n => Number(n.numero) === nivel) || { nombre: '', angulo: '' };
+          // messages[0].content armado EXACTAMENTE como buildCtx() — pages/index.js:1183-1194
+          const durStr = CONFIG.formato === 'video' ? `\nDURACIÓN: ${CONFIG.duracion} segundos` : '';
+          const avatarLine = avatarStr ? `\nAVATAR: ${avatarStr}` : '';
+          const anguloVentaLine = angulo ? `\nANGULO_VENTA: ${angulo}` : '';
+          const prodStr = `\nPRODUCTO: ${CONFIG.producto.descripcion}`;
+          const contenidoGen = `TIPO: ${motivo}\nMERCADO: ${CONFIG.producto.mercado}\nPLATAFORMA: ${CONFIG.plataforma}\nFORMATO: ${CONFIG.formato}${durStr}\nNIVEL: ${nivel} - ${ni.nombre}\nÁNGULO: ${ni.angulo}${avatarLine}${anguloVentaLine}${prodStr}`;
 
           const generado = await llamarApi('/generate', {
             messages: [{ role: 'user', content: contenidoGen }],

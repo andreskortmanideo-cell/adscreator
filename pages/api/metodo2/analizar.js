@@ -45,9 +45,20 @@ EJEMPLOS:
 DEFINICIÓN DE CUERPO:
 - CUERPO: TODO el contenido que va después del hook. Incluye desarrollo del problema, presentación de solución, beneficios, prueba social, CTA.
 
+REGLA CRÍTICA PARA EXTRAER EL CUERPO DEL TEXTO_2:
+El "hook descartable" del TEXTO_2 es ÚNICAMENTE la primera oración hasta el primer punto (.), signo de exclamación (!) o interrogación (?). UNA SOLA frase, máximo 15 palabras.
+TODO lo demás (incluso narrativa del avatar como "Yo llevaba años..." o "Antes me costaba...") es CUERPO LEGÍTIMO y se conserva.
+
+EJEMPLO CORRECTO:
+TEXTO_2: "Esta pulverizadora hace en tres minutos lo que el cepillo nunca lograba. Yo llevaba años limpiando motores a mano, sudando. Un día la probé..."
+Hook descartado: "Esta pulverizadora hace en tres minutos lo que el cepillo nunca lograba." (1 frase)
+Cuerpo extraído: "Yo llevaba años limpiando motores a mano, sudando. Un día la probé..." (TODO el resto)
+
+REGLA INVIOLABLE: hookDescartado NUNCA debe tener más de 1 punto ni más de 15 palabras.
+
 TU TAREA:
 1. Del TEXTO_1, extrae SOLO la PRIMERA frase corta como hook (termina en el primer . ! o ?). NO te lleves la segunda frase ni más de lo que es estrictamente el gancho.
-2. Del TEXTO_2, primero identifica su propio hook (1-2 primeras frases impactantes) y DESCÁRTALO. Luego extrae todo el resto como cuerpo.
+2. Del TEXTO_2, identifica su propio hook (SOLO la primera oración, hasta el primer . ! o ?) y DESCÁRTALO. Luego extrae TODO el resto como cuerpo — incluida la narrativa del avatar.
 3. Analiza ambos contenidos para detectar:
    - Avatar de cada uno (¿son el mismo avatar? ¿son compatibles?)
    - Producto al que se refieren (¿es el mismo? ¿es compatible?)
@@ -113,7 +124,7 @@ REGLAS OBLIGATORIAS:
       return res.status(502).json({ error: 'No se pudo interpretar el análisis: ' + e.message })
     }
     let hookExtraido = (parsed.hookExtraido || '').toString().trim()
-    const cuerpoExtraido = (parsed.cuerpoExtraido || '').toString().trim()
+    let cuerpoExtraido = (parsed.cuerpoExtraido || '').toString().trim()
 
     // ── FIX 3 — Validador: el hook debe ser SOLO la primera frase corta ──
     const contarPalabras = (t) => t.split(/\s+/).filter(Boolean).length
@@ -129,7 +140,22 @@ REGLAS OBLIGATORIAS:
         console.warn(`[metodo2-analisis] hook aún supera 12 palabras tras recorte: "${hookExtraido}"`)
       }
     }
-    const hookDescartado = (parsed.hookDescartado || '').toString().trim()
+    let hookDescartado = (parsed.hookDescartado || '').toString().trim()
+
+    // ── PARTE 3 — Validador: el hook descartado debe ser SOLO la primera frase ──
+    const contarFrases = (texto) => {
+      if (!texto) return 0
+      return texto.split(/[.!?]+/).filter(s => s.trim().length > 0).length
+    }
+    if (contarFrases(hookDescartado) > 1 || contarPalabras(hookDescartado) > 15) {
+      console.log('[M2 VALIDADOR] Hook descartado excede límites. Corrigiendo...')
+      const match = txtCuerpo.match(/^[^.!?]+[.!?]/)
+      if (match) {
+        hookDescartado = match[0].trim()
+        cuerpoExtraido = txtCuerpo.substring(match[0].length).trim()
+      }
+    }
+
     const analisisHook = parsed.analisisHook || {}
     const analisisCuerpo = parsed.analisisCuerpo || {}
     const compatibilidad = parsed.compatibilidad || { nivel: 'media', razones: '', advertencias: [] }

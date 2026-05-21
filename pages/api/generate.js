@@ -1081,7 +1081,37 @@ Empieza DIRECTAMENTE con ═══ de VERSIÓN 1, sin texto introductorio`
 
     } else if (modo === 'auditar') {
       const userMsg = body[0].content
-      const promptAuditoria = `Eres un auditor estricto de marketing de respuesta directa. Revisa el siguiente guión/idea contra los LINEAMIENTOS DEL CLIENTE (incluidos en el input) y reporta cumplimiento criterio por criterio.
+      // ── Detección del formato declarado (video | imagen) ──
+      // El frontend envía "FORMATO: video" o "FORMATO: imagen" dentro del input.
+      // Si NO viene, se ASUME video por default (la mayoría del flujo es video).
+      const formatoMatch = String(userMsg || '').match(/FORMATO:\s*([a-záéíóú]+)/i)
+      const formatoAuditoria = (formatoMatch && formatoMatch[1].toLowerCase() === 'imagen') ? 'imagen' : 'video'
+
+      // ── PASO 3 — Reglas de evaluación diferenciadas por formato ──
+      const bloqueCriteriosFormato = formatoAuditoria === 'imagen'
+        ? `═══ EVALUACIÓN SEGÚN FORMATO: IMAGEN ═══
+El contenido es una PIEZA VISUAL. Evalúalo como COMPOSICIÓN VISUAL:
+- Evalúa la COMPOSICIÓN VISUAL: headline corto, 3-4 bullets de máximo 6 palabras cada uno, foto del producto en uso.
+- Si el contenido es un párrafo narrativo largo → márcalo como ❌ NO ADECUADO para imagen.
+- Evalúa si los bullets son ultra-cortos y específicos.
+- Evalúa la composición visual obligatoria del tipo de imagen declarado.
+PUNTAJE GLOBAL para imagen — pondera así: 20% Nivel, 20% Motivo, 20% Ángulo, 20% Estructura visual, 20% Bullets.`
+        : `═══ EVALUACIÓN SEGÚN FORMATO: VIDEO ═══
+El contenido es un GUION DE VIDEO. Evalúalo como CONTENIDO NARRATIVO:
+- Evalúa la NARRATIVA: hook, desarrollo, cierre y CTA.
+- NO exijas bullets. NO exijas headline visual. NO exijas composición fotográfica.
+- NO penalices que el contenido sea un párrafo narrativo — un párrafo narrado es EXACTAMENTE lo correcto para video.
+- Evalúa la duración estimada (palabras ÷ 3 = segundos aproximados).
+- Evalúa si la apertura es "scroll-stopping" según cómo está descrita.
+- Evalúa la coherencia entre el nivel, el motivo y el ángulo declarados y el contenido.
+- NO incluyas la sección "TIPO DE IMAGEN" en tu respuesta — no aplica a video.
+PUNTAJE GLOBAL para video — pondera así: 25% Nivel, 25% Motivo, 25% Ángulo, 25% Narrativa (hook + desarrollo + cierre + CTA).`
+
+      const promptAuditoria = `FORMATO DECLARADO: ${formatoAuditoria}. Aplica los criterios de auditoría correspondientes a este formato y NUNCA mezcles criterios de video con criterios de imagen.
+
+Eres un auditor estricto de marketing de respuesta directa. Revisa el siguiente guión/idea contra los LINEAMIENTOS DEL CLIENTE (incluidos en el input) y reporta cumplimiento criterio por criterio.
+
+${bloqueCriteriosFormato}
 
 REGLAS ABSOLUTAS DE AUDITORÍA:
 - Solo evalúa contra los lineamientos explícitamente provistos en el bloque "═══ LINEAMIENTOS DEL CLIENTE A VERIFICAR ═══" del input.
@@ -1089,11 +1119,12 @@ REGLAS ABSOLUTAS DE AUDITORÍA:
 - Si una decisión es obligatoria (ej: "ESTRUCTURA: 1) Nombrar el dolor 2)..."), evalúa pasó por paso.
 - Sé crítico y específico. Cita LÍNEAS o FRAGMENTOS exactos del contenido como evidencia.
 - Si el guión cumple en parte: ⚠️ + qué falta. Si cumple bien: ✅ + cita evidencia. Si no cumple: ❌ + cita la desviación.
+- RESPETA EL FORMATO DECLARADO (${formatoAuditoria}): si es video NUNCA penalices por falta de bullets ni de composición visual; si es imagen NUNCA penalices por no ser un guion narrativo.
 
 INPUT (decisiones + lineamientos + contenido a auditar):
 ${userMsg}
 
-FORMATO DE RESPUESTA EXACTO — devuelve EXACTAMENTE esta estructura, una sección por lineamiento presente en el input. Si alguno no aplica (ej: TIPO DE IMAGEN solo si es imagen), omítelo:
+FORMATO DE RESPUESTA EXACTO — devuelve EXACTAMENTE esta estructura, una sección por lineamiento presente en el input:
 
 📊 AUDITORÍA DE LINEAMIENTOS
 
@@ -1111,16 +1142,20 @@ MOTIVO [nombre]:
 ✅ [criterio]: explicación
 ⚠️ [criterio]: explicación
 ❌ [criterio]: explicación
-
+${formatoAuditoria === 'imagen' ? `
 TIPO DE IMAGEN [nombre]:
-(solo si el formato es imagen)
 ✅ [criterio]: explicación
 ⚠️ [criterio]: explicación
 ❌ [criterio]: explicación
-
+` : `
+NARRATIVA (hook + desarrollo + cierre + CTA):
+✅ [criterio]: explicación
+⚠️ [criterio]: explicación
+❌ [criterio]: explicación
+`}
 PUNTAJE GLOBAL: X/100
 
-(usa la siguiente rúbrica: 90-100 = todos los lineamientos cumplidos; 70-89 = mayoría con uno o dos parciales; 50-69 = mitad parciales/no cumplidos; <50 = mayoría no cumplidos. Sé estricto, no inflate.)
+(usa la siguiente rúbrica: 90-100 = todos los lineamientos cumplidos; 70-89 = mayoría con uno o dos parciales; 50-69 = mitad parciales/no cumplidos; <50 = mayoría no cumplidos. Aplica la ponderación por formato indicada arriba. Sé estricto, no inflate.)
 
 RECOMENDACIONES (top 3 cambios concretos para subir el puntaje):
 1. [acción específica que respete el lineamiento del nivel — no inventes nada que viole prohibiciones]

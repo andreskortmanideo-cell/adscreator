@@ -91,6 +91,42 @@ EJEMPLOS:
 
 ANTES DE FINALIZAR CADA HOOK, pregúntate: "¿Este hook contradice algo del cuerpo?" — si la respuesta es sí, ELIGE OTRA PLANTILLA o reformula.
 
+8. REGLA DE RELLENO DE PLACEHOLDERS (CRÍTICA):
+
+Cuando rellenes los placeholders ___ de las plantillas, usa SIEMPRE palabras CONCRETAS del producto, del dolor o del avatar. NUNCA uses pronombres vagos.
+
+PROHIBIDO RELLENAR ___ CON:
+❌ "esto" / "eso" / "aquello"
+❌ "algo" / "una cosa" / "lo que"
+❌ "el problema" (sin especificar cuál)
+❌ Adjetivos genéricos: "bueno", "increíble", "asombroso"
+
+OBLIGATORIO RELLENAR ___ CON:
+✅ Términos del campo del producto: "depilación", "rozaduras", "picor", "irritación", "piel", "limpieza", "grasa", "motor", etc. (extraídos del cuerpo del anuncio)
+✅ Palabras del dolor del avatar: "esa incomodidad diaria", "ese ardor", "esa frustración"
+✅ Resultados concretos: "diez días", "veinte minutos", "cinco minutos"
+✅ El producto o categoría: "esta depiladora", "esta crema", "esta pulverizadora"
+
+TEST DE GENERICIDAD: Si tu hook puede servir para CUALQUIER producto, está MAL.
+- "Esto me cambió la vida" → ❌ sirve para cualquier producto
+- "Esta depiladora me cambió la rutina" → ✅ específico
+
+EJEMPLO DE BUEN RELLENO:
+Plantilla: "___ hasta descubrir ___"
+❌ MAL: "Esto me estaba matando hasta descubrir esto"
+✅ BIEN: "El picor diario me mataba hasta encontrar esta crema"
+
+Plantilla: "# secretos que ___ no quieren que sepas"
+❌ MAL: "5 secretos que los hombres no quieren que sepas"
+✅ BIEN: "5 secretos de depilación que los expertos no dicen"
+
+ANTES DE ENTREGAR CADA HOOK, verifica:
+1. ¿Contiene al menos UNA palabra del campo del producto? (depilación, piel, rozaduras, etc.)
+2. ¿Podría leerse SOLO y reconocer de qué producto habla?
+3. ¿Evita pronombres vagos como "esto"/"eso"?
+
+Si la respuesta a alguna es NO, REGENERA con palabras concretas.
+
 EJEMPLO DEL FORMATO DE RESPUESTA:
 Plantilla #15: "# señales de que estás ___"
 HOOK FINAL: "5 señales de que necesitas otra herramienta"
@@ -249,6 +285,18 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
       advertenciaMeta: (h.advertenciaMeta || 'Cumple políticas').toString()
     })
 
+    function detectarGenericidad(hookTexto) {
+      if (!hookTexto) return false
+      const t = hookTexto.toLowerCase()
+      const palabrasVagas = ['esto', 'eso', 'aquello', 'algo', 'una cosa']
+      const cuentaVagas = palabrasVagas.filter(p => {
+        const regex = new RegExp(`\\b${p}\\b`, 'gi')
+        return regex.test(t)
+      }).length
+      // Si tiene 2+ palabras vagas, es genérico
+      return cuentaVagas >= 2
+    }
+
     // Detectar contradicción simple por palabras opuestas
     function detectarContradiccion(hookTexto, cuerpoTexto) {
       if (!hookTexto || !cuerpoTexto) return false
@@ -285,6 +333,9 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
         }
         if (detectarContradiccion(h.texto, cuerpoTxt)) {
           advertencias.push(`Hook ${i+1}: CONTRADICCIÓN con cuerpo detectada`)
+        }
+        if (detectarGenericidad(h.texto)) {
+          advertencias.push(`Hook ${i+1}: DEMASIADO GENÉRICO (múltiples palabras vagas como "esto"/"eso")`)
         }
       })
       return advertencias

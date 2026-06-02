@@ -51,7 +51,42 @@ function validarHook(hook, cuerpoTxt, analisis) {
   const ultima = palabras[palabras.length - 1].toLowerCase().replace(/[.!?¿¡,;:]+$/, '')
   if (TERMINACIONES_MALAS.has(ultima)) return { valido: false, razon: 'termina en preposición/conjunción' }
 
-  // 3. Contiene palabra clave del cuerpo
+  // 3. NO empieza con palabra vaga
+  const primera = palabras[0].toLowerCase().replace(/[¿¡(]/g, '')
+  const palabrasVagasInicio = new Set(['esto', 'eso', 'aquello', 'algo'])
+  if (palabrasVagasInicio.has(primera)) {
+    return { valido: false, razon: `empieza con palabra vaga ("${palabras[0]}")` }
+  }
+
+  // 4. NO empieza con arranque tibio (regex porque puede ser frase de 2-3 palabras)
+  const arranquesTibios = [
+    /^¿?cómo\s/i,
+    /^¿?como\s/i,
+    /^(tres|cinco|siete)\s+(formas|maneras|trucos|consejos)\s/i,
+    /^\d+\s+(formas|maneras|trucos|consejos|razones|cosas)\s/i,
+    /^combate\s/i,
+    /^descubre\s/i,
+    /^conoce\s/i,
+    /^aprende\s/i,
+    /^observa\s+(cómo|como)\s/i,
+    /^mira\s+(cómo|como)\s/i,
+    /^la\s+asombrosa\s/i,
+    /^la\s+increíble\s/i
+  ]
+  for (const rgx of arranquesTibios) {
+    if (rgx.test(texto)) {
+      return { valido: false, razon: `arranque tibio: "${texto.split(/\s+/).slice(0, 3).join(' ')}..."` }
+    }
+  }
+
+  // 5. Pregunta debe cerrar con ?
+  const tieneAperturaPregunta = texto.startsWith('¿')
+  const tieneCierrePregunta = texto.endsWith('?')
+  if (tieneAperturaPregunta && !tieneCierrePregunta) {
+    return { valido: false, razon: 'pregunta sin signo de cierre "?"' }
+  }
+
+  // 6. Contiene palabra clave del cuerpo
   const palabrasClave = extraerPalabrasClave(cuerpoTxt, analisis)
   const tieneClave = palabras.some(p => {
     const pl = p.toLowerCase().replace(/[.,!?¿¡:;()"']/g, '')

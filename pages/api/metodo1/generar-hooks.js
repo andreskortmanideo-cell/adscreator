@@ -39,8 +39,26 @@ export default async function handler(req, res) {
       })
       .slice() // copia para no mutar el original
 
-    // Tomar muestra aleatoria de 50 (suficientes para variedad sin saturar el prompt)
-    const muestra = plantillasUsables
+    // Filtrar plantillas listicle suaves que producen hooks tibios
+    const arranquesTibios = [
+      /^cómo\s/i, /^como\s/i,
+      /^maneras\s/i,
+      /^formas\s/i,
+      /^# (consejos|maneras|formas|trucos|ideas|cosas)/i,
+      /^# pasos para/i,
+      /^# razones por las que/i,
+      /^combate/i,
+      /^descubre/i,
+      /^conoce/i
+    ]
+    const plantillasSinTibias = plantillasUsables.filter(h => {
+      const t = textoDeHook(h).trim().toLowerCase()
+      return !arranquesTibios.some(rgx => rgx.test(t))
+    })
+
+    // Tomar muestra aleatoria de 50 SIN tibias (si hay suficientes)
+    const baseMuestra = plantillasSinTibias.length >= 30 ? plantillasSinTibias : plantillasUsables
+    const muestra = baseMuestra
       .sort(() => 0.5 - Math.random())
       .slice(0, 50)
 
@@ -64,6 +82,49 @@ REGLA INVIOLABLE: NO INVENTES HOOKS DESDE CERO. Debes ELEGIR 3 plantillas DISTIN
 
 PLANTILLAS DISPONIBLES (elige 3 DIFERENTES):
 ${plantillasNumeradas}
+
+═══════════════════════════════════════════════════
+TONO DEL HOOK — REGLA CRÍTICA DE PROVOCACIÓN
+
+Los hooks tibios NO funcionan en Meta Ads. El usuario está scrolleando rápido y solo se detiene ante un hook que GENERE TENSIÓN, CURIOSIDAD o IDENTIFICACIÓN INSTANTÁNEA.
+
+ARRANQUES PROHIBIDOS (suenan a anuncio antiguo o blog):
+❌ "Cómo evitar..." / "Cómo X para siempre"
+❌ "Tres formas de..." / "5 maneras de..."
+❌ "Combate la..." / "Elimina la..."
+❌ "Descubre cómo..." / "Conoce el truco..."
+❌ "Aprende a..." / "Consigue el..."
+
+ARRANQUES DESEADOS (crudos, provocadores, en primera persona):
+✅ Dolor en primera persona: "No aguantaba más...", "Pasaba años...", "Ya no podía..."
+✅ Provocación directa al espectador: "No raspes otro...", "Deja de frotar...", "Para de gastar..."
+✅ Confesión cruda: "Estaba a punto de cambiar de oficio...", "Casi tiro la toalla..."
+✅ Cifra dura con contraste: "Tres horas a veinte minutos...", "Diez días sin..."
+✅ Curiosidad con tensión: "Lo que nadie te dijo sobre...", "Por qué seguías..."
+✅ Pregunta provocadora con número: "¿Cuántas horas pierdes al día...?"
+
+TEST FINAL ANTES DE ENTREGAR EL HOOK:
+Léelo en voz alta. Pregúntate:
+- ¿Sueno como una persona REAL contando su experiencia? ✅
+- ¿Sueno como un comercial de TV de los 90? ❌ REESCRIBE
+- ¿Una tía cualquiera podría leerlo en su feed y pensar "este me habla a mí"? ✅
+- ¿Suena a artículo de blog o de revista? ❌ REESCRIBE
+
+EJEMPLOS DE PARES (mismo significado, distinto tono):
+
+❌ TIBIO: "Cómo evitar rozaduras incómodas para siempre"
+✅ CRUDO: "Diez días sin rozaduras cambiaron mi vida"
+
+❌ TIBIO: "Tres formas de terminar con la incomodidad"
+✅ CRUDO: "No aguantaba más ese picor diario"
+
+❌ TIBIO: "Combate la grasa incrustada con alta presión"
+✅ CRUDO: "Deja de frotar dos horas para limpiar en cinco"
+
+❌ TIBIO: "Descubre cómo limpiar tu motor rápido"
+✅ CRUDO: "Mi espalda no aguantaba otra hora raspando"
+
+═══════════════════════════════════════════════════
 
 INSTRUCCIONES:
 1. ANALIZA el cuerpo del anuncio, el producto y el avatar
@@ -274,6 +335,13 @@ PALABRAS Y EXPRESIONES OK (colombianas/neutras):
 ✅ "no más", "ya no más"
 
 IMPORTANTE: el español debe sentirse natural y cotidiano para un colombiano leyendo esto en su feed, NO acartonado ni regional de otro país.
+
+ÚLTIMO CHECK ANTES DE RESPONDER:
+1. Ningún hook empieza con "Cómo", "Tres formas", "Descubre", "Combate", "Conoce", "Aprende a"
+2. Cada hook suena a persona real, no a anuncio tradicional
+3. Cada hook tiene tensión/curiosidad/dolor crudo en sus primeras 3 palabras
+
+Si algún hook falla estas verificaciones, REESCRIBE con otra plantilla y otro arranque.
 
 OUTPUT JSON ESTRICTO:
 {

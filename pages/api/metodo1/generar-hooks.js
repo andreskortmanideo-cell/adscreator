@@ -107,18 +107,32 @@ OBLIGATORIO RELLENAR ___ CON:
 ✅ Resultados concretos: "diez días", "veinte minutos", "cinco minutos"
 ✅ El producto o categoría: "esta depiladora", "esta crema", "esta pulverizadora"
 
+═══════════════════════════════════════════════════
 TEST DE GENERICIDAD OBLIGATORIO ANTES DE ENTREGAR CADA HOOK:
-El hook DEBE contener al menos UNA palabra extraída del cuerpo del anuncio.
 
-Ejemplos basados en este cuerpo: "rozándome, incómodo, gimnasio, depilación, piel, dolor, irritación, diez días, confianza, rascar"
+El hook DEBE contener al menos UNA palabra extraída del cuerpo del anuncio que vas a procesar (no del cuerpo de los ejemplos, del que TÚ tienes ahora arriba).
 
-✅ "El picor diario me mataba hasta esta crema" (contiene "picor" → del cuerpo)
-✅ "Diez días sin rozaduras cambiaron todo" (contiene "diez días" y "rozaduras" → del cuerpo)
-✅ "5 trucos de depilación que nadie cuenta" (contiene "depilación" → relacionado)
+Lee el cuerpo del anuncio, identifica las palabras clave del producto/dolor/avatar específicas de ESTE caso, y úsalas.
 
-❌ "Por esto necesitas cambiar tu rutina hoy" (NO contiene ninguna palabra del cuerpo)
-❌ "Esto me cambió la vida" (NO contiene ninguna palabra del cuerpo)
-❌ "Te prometo que nunca sentiste alivio así" (palabra "alivio" no está en el cuerpo)
+EJEMPLOS DEL PATRÓN (para que entiendas la regla, NO para copiar palabras):
+
+EJEMPLO 1 — Producto: pulverizadora para mecánicos
+Cuerpo menciona: "grasa, motor, taller, manguera, tres horas"
+✅ "Pasé de tres horas a veinte minutos en el taller" (contiene "tres horas", "taller")
+❌ "Esto me cambió la rutina" (no contiene NADA del cuerpo)
+
+EJEMPLO 2 — Producto: depiladora masculina
+Cuerpo menciona: "rozaduras, picor, piel, diez días, confianza"
+✅ "Diez días sin rozaduras cambiaron todo" (contiene "diez días", "rozaduras")
+❌ "Te prometo alivio como nunca" (no contiene NADA específico)
+
+EJEMPLO 3 — Producto: mantel impermeable
+Cuerpo menciona: "vino, manchas, niños, cinco años, plástico"
+✅ "Cinco años sobreviviendo derrames de niños" (contiene "cinco años", "niños")
+❌ "Por fin algo que funciona" (genérico, podría ser cualquier producto)
+
+REGLA UNIVERSAL: si tu hook se puede usar tal cual con OTRO producto distinto, es genérico. Si solo tiene sentido con el producto del cuerpo actual, está bien.
+═══════════════════════════════════════════════════
 
 EJEMPLO DE BUEN RELLENO:
 Plantilla: "___ hasta descubrir ___"

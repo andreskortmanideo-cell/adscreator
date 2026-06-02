@@ -2821,34 +2821,87 @@ ${guionTexto}`
                       style={{...inp,height:38,padding:'9px 12px',marginBottom:0}}/>
                   </div>
 
-                  {/* Referencia read-only — colapsable */}
-                  <div style={{marginTop:16}}>
-                    <button
-                      onClick={()=>setM1Detalles(!m1Detalles)}
-                      style={{background:'transparent',border:'none',color:D.blue,cursor:'pointer',fontSize:13,padding:'4px 0',fontFamily:'inherit'}}>
-                      {m1Detalles ? '▾' : '▸'} Ver detalles del análisis (razonamiento, hook detectado, cuerpo extraído)
-                    </button>
-                    {m1Detalles && (
-                      <div style={{marginTop:8}}>
-                        <div style={{...crd,background:D.accent}}>
-                          {m1Analisis.razonamiento && (
-                            <div style={{marginBottom:12}}>
-                              <div style={fldLbl}>Razonamiento del sistema</div>
-                              <div style={{fontSize:13,color:D.textMid,lineHeight:1.6}}>{m1Analisis.razonamiento}</div>
-                            </div>
-                          )}
-                          <div style={{marginBottom:12}}>
-                            <div style={fldLbl}>Hook original</div>
-                            <div style={{fontSize:14,color:D.text,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{m1HookOriginal||'—'}</div>
-                          </div>
-                          <div>
-                            <div style={fldLbl}>Cuerpo</div>
-                            <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,whiteSpace:'pre-wrap',maxHeight:220,overflowY:'auto'}}>{m1Cuerpo||'—'}</div>
+                  {/* Razonamiento read-only — colapsable */}
+                  {m1Analisis.razonamiento && (
+                    <div style={{marginTop:16}}>
+                      <button
+                        onClick={()=>setM1Detalles(!m1Detalles)}
+                        style={{background:'transparent',border:'none',color:D.blue,cursor:'pointer',fontSize:13,padding:'4px 0',fontFamily:'inherit'}}>
+                        {m1Detalles ? '▾' : '▸'} Ver razonamiento del sistema
+                      </button>
+                      {m1Detalles && (
+                        <div style={{marginTop:8}}>
+                          <div style={{...crd,background:D.accent}}>
+                            <div style={{fontSize:13,color:D.textMid,lineHeight:1.6}}>{m1Analisis.razonamiento}</div>
                           </div>
                         </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Hook a cambiar / Cuerpo a conservar — editables ── */}
+                  {(() => {
+                    const contarPalabras = s => (s||'').trim() ? (s||'').trim().split(/\s+/).length : 0
+                    const palabrasHook = contarPalabras(m1HookOriginal)
+                    const palabrasCuerpo = contarPalabras(m1Cuerpo)
+                    const productoStr = (m1Analisis.producto||'').toString().toLowerCase()
+                    const palabrasProducto = productoStr
+                      .replace(/[.,!?¿¡:;()"']/g,' ')
+                      .split(/\s+/)
+                      .filter(p => p.length >= 4)
+                    const cuerpoLc = (m1Cuerpo||'').toLowerCase()
+                    const cuerpoMencionaProducto = palabrasProducto.length > 0 &&
+                      palabrasProducto.some(p => cuerpoLc.includes(p.substring(0, Math.min(5, p.length))))
+                    return (
+                      <div style={{marginTop:16}}>
+                        <div style={{marginBottom:14}}>
+                          <div style={fldLbl}>Hook a cambiar</div>
+                          <textarea
+                            value={m1HookOriginal}
+                            onChange={e=>setM1HookOriginal(e.target.value)}
+                            rows={2}
+                            style={{...inp,fontSize:14,lineHeight:1.5,minHeight:48}}/>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:4}}>
+                            <div style={{fontSize:11,color:D.textDim,lineHeight:1.4}}>
+                              Este texto es lo que se va a reemplazar. Ajústalo si quieres conservar más del original.
+                            </div>
+                            <div style={{fontSize:11,color:(palabrasHook>=5&&palabrasHook<=20)?D.green:D.textDim,fontWeight:600,marginLeft:8,whiteSpace:'nowrap'}}>
+                              {palabrasHook} palabra{palabrasHook===1?'':'s'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{marginBottom:10}}>
+                          <div style={fldLbl}>Cuerpo a conservar</div>
+                          <textarea
+                            value={m1Cuerpo}
+                            onChange={e=>setM1Cuerpo(e.target.value)}
+                            rows={8}
+                            style={{...inp,fontSize:13,lineHeight:1.6,minHeight:160}}/>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:4}}>
+                            <div style={{fontSize:11,color:D.textDim,lineHeight:1.4}}>
+                              Este texto se conserva EXACTAMENTE como está. Si tu producto se menciona aquí, los hooks nuevos conectarán mejor con él.
+                            </div>
+                            <div style={{fontSize:11,color:D.textDim,fontWeight:600,marginLeft:8,whiteSpace:'nowrap'}}>
+                              {palabrasCuerpo} palabra{palabrasCuerpo===1?'':'s'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {palabrasProducto.length > 0 && (
+                          cuerpoMencionaProducto ? (
+                            <div style={{padding:'8px 12px',background:D.greenBg,border:`1px solid ${D.greenBorder}`,borderRadius:8,fontSize:12,color:D.green,lineHeight:1.5}}>
+                              ✅ El cuerpo conservado menciona el producto. Los hooks nuevos podrán conectar con él.
+                            </div>
+                          ) : (
+                            <div style={{padding:'8px 12px',background:'#fef3c7',border:'1px solid #fde68a',borderRadius:8,fontSize:12,color:'#92400e',lineHeight:1.5}}>
+                              ⚠️ Atención: el cuerpo conservado NO menciona el producto. Los hooks nuevos podrían quedar desconectados. Considera mover la mención del producto al cuerpo.
+                            </div>
+                          )
+                        )}
                       </div>
-                    )}
-                  </div>
+                    )
+                  })()}
 
                   <div style={{display:'flex',gap:8}}>
                     <button onClick={()=>setM1Paso(1)} disabled={m1Cargando}

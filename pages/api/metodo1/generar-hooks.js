@@ -223,6 +223,16 @@ ${cuerpoTxt}
 HOOK ORIGINAL (referencia, no copies):
 ${hookOrig}
 
+REGLA DE CONEXIÓN HOOK-CUERPO:
+El cuerpo del anuncio (que se conserva intacto) empieza inmediatamente después del hook que generes. Lee la PRIMERA FRASE del cuerpo y asegúrate de que tu hook nuevo CONECTE naturalmente con ella.
+
+EJEMPLO:
+Cuerpo empieza con: "Es impermeable, resistente y deja ver la superficie original..."
+❌ MAL: Hook = "¿Cansado de limpiar manchas?" (¿"Es impermeable" qué?  No se entiende qué es "es")
+✅ BIEN: Hook = "Mi mantel sobrevivió cinco años de niños" (introduce el sujeto "mantel" que el cuerpo describe)
+
+Antes de entregar cada hook, lee mentalmente: HOOK + CUERPO unidos. ¿Fluye natural? Si no, REESCRIBE el hook para que conecte.
+
 REQUISITOS DE LOS HOOKS:
 
 REGLA INVIOLABLE DE LONGITUD DEL HOOK:

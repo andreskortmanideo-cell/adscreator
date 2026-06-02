@@ -419,6 +419,52 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
       return { generico: false, coincidencias }
     }
 
+    function detectarTibieza(hookTexto) {
+      if (!hookTexto) return { tibio: false }
+      const t = hookTexto.toLowerCase()
+
+      // Adjetivos publicitarios prohibidos
+      const adjetivosTibios = [
+        'asombroso', 'asombrosa', 'asombrosos', 'asombrosas',
+        'increíble', 'increible', 'increíbles', 'increibles',
+        'tremendo', 'tremenda', 'tremendos', 'tremendas',
+        'maravilloso', 'maravillosa',
+        'fantástico', 'fantastica', 'fantastico',
+        'espectacular', 'espectaculares',
+        'fabuloso', 'fabulosa',
+        'extraordinario', 'extraordinaria',
+        'sorprendente', 'sorprendentes',
+        'revolucionario', 'revolucionaria'
+      ]
+
+      // Arranques publicitarios prohibidos (refuerzo de Parte A original)
+      const arranquesProhibidos = [
+        /^la asombrosa /i, /^la increíble /i, /^la increible /i,
+        /^observa cómo /i, /^observa como /i,
+        /^mira cómo /i, /^mira como /i,
+        /^descubre /i, /^conoce /i,
+        /^aprende /i, /^encuentra /i,
+        /^combate /i, /^elimina /i
+      ]
+
+      // 1. Detectar adjetivo tibio
+      for (const adj of adjetivosTibios) {
+        const regex = new RegExp(`\\b${adj}\\b`, 'i')
+        if (regex.test(t)) {
+          return { tibio: true, razon: `adjetivo publicitario tibio: "${adj}"` }
+        }
+      }
+
+      // 2. Detectar arranque publicitario
+      for (const rgx of arranquesProhibidos) {
+        if (rgx.test(hookTexto.trim())) {
+          return { tibio: true, razon: `arranque publicitario: "${hookTexto.trim().split(' ').slice(0,3).join(' ')}..."` }
+        }
+      }
+
+      return { tibio: false }
+    }
+
     // Detectar contradicción simple por palabras opuestas
     function detectarContradiccion(hookTexto, cuerpoTexto) {
       if (!hookTexto || !cuerpoTexto) return false
@@ -458,6 +504,10 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
         const gen = detectarGenericidad(h.texto, cuerpoTxt, analisis)
         if (gen.generico) {
           advertencias.push(`Hook ${i+1}: GENÉRICO (${gen.razon})`)
+        }
+        const tib = detectarTibieza(h.texto)
+        if (tib.tibio) {
+          advertencias.push(`Hook ${i+1}: TIBIO (${tib.razon})`)
         }
       })
       return advertencias
@@ -510,6 +560,43 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
     const advertencias = validarHooksDelJefe(hooksDevolver, hookOrig, cuerpoTxt, analisis)
     if (advertencias.length > 0) {
       console.log('[M1 PLANTILLAS]', advertencias)
+    }
+
+    // Si hay 1 o más hooks tibios, reintentar UNA vez con prompt reforzado
+    const hooksTibios = advertencias.filter(a => a.includes('TIBIO'))
+    if (hooksTibios.length > 0 && hooksTibios.length < 3) {
+      console.log('[M1 REINTENTO TIBIEZA]', hooksTibios)
+      try {
+        const promptReintentoTibieza = prompt +
+          '\n\n═══ CORRECCIÓN OBLIGATORIA ═══\n' +
+          'TU INTENTO ANTERIOR USÓ ADJETIVOS PUBLICITARIOS PROHIBIDOS COMO "asombrosa", "increíble", "tremenda" o ARRANQUES PROHIBIDOS COMO "La asombrosa...", "Observa cómo...", "Mira cómo...".\n' +
+          'ESTOS ADJETIVOS Y ARRANQUES NO SE ACEPTAN. SUENAN A COMERCIAL DE TV DE LOS 90.\n' +
+          'Regenera los 3 hooks usando arranques CRUDOS Y PROVOCADORES:\n' +
+          '- Dolor en primera persona ("No aguantaba...", "Pasaba años...")\n' +
+          '- Provocación al espectador ("Deja de...", "No raspes otro...")\n' +
+          '- Cifra dura con contraste ("Tres horas a veinte minutos...")\n' +
+          '- Pregunta directa con tensión ("¿Cuántas horas pierdes...?")\n' +
+          'NO uses adjetivos vagos ni arranques de "Observa", "Mira", "Descubre", "La asombrosa".'
+
+        const r2 = await llamarModelo(modeloSel, promptReintentoTibieza, 3000)
+        registrarLlamada('metodo1-generacion (reintento tibieza)', r2.inputTokens, r2.outputTokens)
+        const parsed2 = parseJsonTolerante(r2.texto)
+        const hooks2 = Array.isArray(parsed2.hooks) ? parsed2.hooks.slice(0, 3).map(mapHook) : []
+
+        // Validar que el reintento no tenga tibieza
+        const hooks2SinTibieza = hooks2.filter(h => !detectarTibieza(h.texto).tibio && validarHook(h.texto))
+
+        // Si el reintento mejora la cantidad de hooks sin tibieza, usarlo
+        const hooksActualesSinTibieza = hooksDevolver.filter(h => !detectarTibieza(h.texto).tibio)
+        if (hooks2SinTibieza.length > hooksActualesSinTibieza.length) {
+          console.log('[M1 REINTENTO TIBIEZA] Reintento mejoró:', hooksActualesSinTibieza.length, '→', hooks2SinTibieza.length)
+          // Reemplazar hooksDevolver con el reintento
+          hooksDevolver.length = 0
+          hooksDevolver.push(...hooks2.slice(0, 3))
+        }
+      } catch (e) {
+        console.error('Reintento M1 (tibieza) falló:', e)
+      }
     }
 
     // ── Auto-save: suma versión de generación al anuncio ─────────

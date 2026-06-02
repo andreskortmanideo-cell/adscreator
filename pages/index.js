@@ -65,6 +65,8 @@ const DURACIONES_DISPONIBLES = [
   { valor: '50', label: '60s' },
   { valor: '60', label: '70s' }
 ]
+
+const ANGULOS_M1 = ['Transformación','Problema/Dolor','FOMO','Beneficio/Resultado','Aspiracional','Enemigo en Común','Ironía/Provocación','Urgencia/Escasez','Exclusividad','Autoridad/Prueba Social','Comparación/Contraste','Precio/Valor','Curiosidad','Novedad','Historia','Simplicidad']
 const labelDuracion = (v) => {
   const d = DURACIONES_DISPONIBLES.find(x => String(x.valor) === String(v))
   return d ? d.label : `${v}s`
@@ -239,6 +241,7 @@ export default function Home() {
   const [m1Cuerpo,setM1Cuerpo]=useState('')
   const [m1Hooks,setM1Hooks]=useState([])
   const [m1Detalles,setM1Detalles]=useState(false) // collapse de detalles del análisis
+  const [angulosHooksM1,setAngulosHooksM1]=useState(['Transformación','Problema/Dolor','Autoridad/Prueba Social'])
   // ── Método 2 — Fusión Hook + Cuerpo ────────────────────────────
   const [m2Cargando,setM2Cargando]=useState(false)
   const [m2Paso,setM2Paso]=useState(1) // 1=input, 2=revisar, 3=resultado
@@ -566,6 +569,15 @@ export default function Home() {
       setM1HookOriginal(p.m1HookOriginal || '')
       setM1Cuerpo(p.m1Cuerpo || '')
       setM1Hooks(Array.isArray(p.m1Hooks) ? p.m1Hooks : [])
+      const hooksGuardados = Array.isArray(p.m1Hooks) ? p.m1Hooks : []
+      const angulosGuardados = hooksGuardados.map(h => h && h.anguloUsado).filter(a => a && ANGULOS_M1.includes(a))
+      if (angulosGuardados.length === 3) {
+        setAngulosHooksM1(angulosGuardados)
+      } else {
+        const principalLoad = (p.m1Analisis && p.m1Analisis.angulo) || 'Transformación'
+        const restoLoad = ANGULOS_M1.filter(a => a !== principalLoad)
+        setAngulosHooksM1([principalLoad, restoLoad[0], restoLoad[1]])
+      }
       // metodo1-generacion → paso 3; metodo1-analisis → paso 2
       setM1Paso(p.m1Paso || (Array.isArray(p.m1Hooks) && p.m1Hooks.length > 0 ? 3 : 2))
     } else if (p.modo === 'metodo2') {
@@ -738,6 +750,9 @@ export default function Home() {
       setM1HookOriginal(d.hookOriginal || '')
       setM1Cuerpo(d.cuerpo || '')
       setM1Hooks([])
+      const principalDetectado = (d.analisis && d.analisis.angulo) || 'Transformación'
+      const restoAngulos = ANGULOS_M1.filter(a => a !== principalDetectado)
+      setAngulosHooksM1([principalDetectado, restoAngulos[0], restoAngulos[1]])
       if (d.anuncioId) {
         setAnuncioIdActual(d.anuncioId)
         try { localStorage.setItem('anuncioIdActual', String(d.anuncioId)) } catch {}
@@ -764,6 +779,7 @@ export default function Home() {
           analisisConfirmado: m1Analisis,
           hookOriginal: m1HookOriginal,
           cuerpo: m1Cuerpo,
+          angulosHooks: angulosHooksM1,
           modelo: modeloSel,
           autor: nombreAutor.trim()
         })
@@ -796,6 +812,7 @@ export default function Home() {
           analisisConfirmado: m1Analisis,
           hookOriginal: m1HookOriginal,
           cuerpo: m1Cuerpo,
+          angulosHooks: angulosHooksM1,
           modelo: modeloSel,
           autor: nombreAutor.trim(),
           correccionUsuario: m1Correccion.trim()
@@ -2903,6 +2920,28 @@ ${guionTexto}`
                     )
                   })()}
 
+                  <div style={{marginTop:16,marginBottom:10}}>
+                    <div style={fldLbl}>Ángulo de venta de cada hook (cada uno será un video distinto)</div>
+                    {[0,1,2].map(idx => (
+                      <div key={idx} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                        <span style={{minWidth:60,fontSize:12,color:D.textDim,fontWeight:600}}>Hook {idx+1}:</span>
+                        <select
+                          value={angulosHooksM1[idx]}
+                          onChange={e=>{
+                            const nuevos=[...angulosHooksM1]
+                            nuevos[idx]=e.target.value
+                            setAngulosHooksM1(nuevos)
+                          }}
+                          style={{flex:1,padding:'8px 10px',borderRadius:8,border:`1px solid ${D.inputBorder}`,background:D.input,color:D.text,fontSize:13,fontFamily:'inherit'}}>
+                          {ANGULOS_M1.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                    <div style={{fontSize:11,color:D.textDim,marginTop:4,lineHeight:1.4}}>
+                      Sugeridos según el análisis. Cámbialos si quieres probar otros ángulos.
+                    </div>
+                  </div>
+
                   <div style={{display:'flex',gap:8}}>
                     <button onClick={()=>setM1Paso(1)} disabled={m1Cargando}
                       style={{flex:1,padding:12,fontSize:12,border:`1px solid ${D.cardBorder}`,borderRadius:9,background:'transparent',color:D.textMid,cursor:m1Cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:m1Cargando?.5:1}}>
@@ -2926,11 +2965,18 @@ ${guionTexto}`
                       <div key={i} style={crd}>
                         <div style={{fontSize:11,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:8}}>Hook {i+1}</div>
                         <div style={{fontSize:18,fontWeight:700,color:D.text,lineHeight:1.4,marginBottom:12}}>{h.texto}</div>
-                        {h.transicion && (
-                          <div style={{display:'inline-block',fontSize:11,fontWeight:600,padding:'4px 10px',borderRadius:20,background:D.blueDark,color:D.blue,border:`1px solid ${D.blueDim}`,marginBottom:10}}>
-                            🔗 Transición: {h.transicion}
-                          </div>
-                        )}
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
+                          {h.anguloUsado && (
+                            <div style={{display:'inline-block',fontSize:11,fontWeight:600,padding:'4px 10px',borderRadius:20,background:D.greenBg,color:D.green,border:`1px solid ${D.greenBorder}`}}>
+                              🎯 Ángulo: {h.anguloUsado}
+                            </div>
+                          )}
+                          {h.transicion && (
+                            <div style={{display:'inline-block',fontSize:11,fontWeight:600,padding:'4px 10px',borderRadius:20,background:D.blueDark,color:D.blue,border:`1px solid ${D.blueDim}`}}>
+                              🔗 Transición: {h.transicion}
+                            </div>
+                          )}
+                        </div>
                         <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,marginBottom:10}}>
                           <b style={{color:D.text}}>💡 Idea visual:</b> {h.ideaVisual}
                         </div>

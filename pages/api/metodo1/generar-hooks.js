@@ -26,6 +26,27 @@ const TERMINACIONES_MALAS = new Set([
   'pero','que','para','por','sobre','sin','si','no','su','sus','mi','mis','tu','tus'
 ])
 
+const ANGULOS_DISPONIBLES = ['Transformación','Problema/Dolor','FOMO','Beneficio/Resultado','Aspiracional','Enemigo en Común','Ironía/Provocación','Urgencia/Escasez','Exclusividad','Autoridad/Prueba Social','Comparación/Contraste','Precio/Valor','Curiosidad','Novedad','Historia','Simplicidad']
+
+const DEFINICIONES_ANGULOS = {
+  'Transformación': 'el antes vs después, el cambio logrado',
+  'Problema/Dolor': 'el sufrimiento que resuelve',
+  'FOMO': 'otros ya lo tienen, te quedas atrás',
+  'Beneficio/Resultado': 'el resultado concreto que entrega',
+  'Aspiracional': 'la vida o identidad deseada',
+  'Enemigo en Común': 'contra el método viejo o la industria',
+  'Ironía/Provocación': 'desafío o humor punzante',
+  'Urgencia/Escasez': 'tiempo o stock limitado',
+  'Exclusividad': 'solo para pocos, acceso especial',
+  'Autoridad/Prueba Social': 'expertos o muchos lo usan',
+  'Comparación/Contraste': 'comparado con la alternativa',
+  'Precio/Valor': 'lo que ahorras o lo que vale',
+  'Curiosidad': 'intriga, gap de información',
+  'Novedad': 'lo nuevo, lo que no conocías',
+  'Historia': 'narrativa personal, anécdota',
+  'Simplicidad': 'lo fácil que es'
+}
+
 function extraerPalabrasClave(cuerpo, analisis) {
   const palabras = (cuerpo || '').toLowerCase()
     .replace(/[.,!?¿¡:;()"']/g, ' ')
@@ -119,6 +140,18 @@ export default async function handler(req, res) {
     const angulo = (analisis.angulo || '').toString()
     const nivel = analisis.nivel != null ? String(analisis.nivel) : ''
 
+    const angulosHooks = Array.isArray(req.body?.angulosHooks) && req.body.angulosHooks.length === 3
+      ? req.body.angulosHooks
+      : null
+
+    // Fallback si no llegan ángulos: usar el del análisis + 2 complementarios
+    let angulosFinales = angulosHooks
+    if (!angulosFinales) {
+      const principal = angulo || 'Transformación'
+      const complementarios = ANGULOS_DISPONIBLES.filter(a => a !== principal)
+      angulosFinales = [principal, complementarios[0], complementarios[1]]
+    }
+
     const { costoOperacion, registrarLlamada } = crearCostoOperacion(modeloSel)
 
     // ── Pool de plantillas del jefe ───────
@@ -169,6 +202,21 @@ ${hookOrig}
 PLANTILLAS DEL JEFE (elige 3 DISTINTAS):
 ${plantillasNumeradas}
 
+═══ ÁNGULO ASIGNADO A CADA HOOK (OBLIGATORIO) ═══
+Cada hook debe atacar el producto desde UN ángulo de venta DIFERENTE. Esto es CRÍTICO: los 3 hooks se convertirán en 3 videos distintos para testear. Si los 3 dicen lo mismo, no sirven.
+
+- HOOK 1 → ángulo "${angulosFinales[0]}" (${DEFINICIONES_ANGULOS[angulosFinales[0]] || ''})
+- HOOK 2 → ángulo "${angulosFinales[1]}" (${DEFINICIONES_ANGULOS[angulosFinales[1]] || ''})
+- HOOK 3 → ángulo "${angulosFinales[2]}" (${DEFINICIONES_ANGULOS[angulosFinales[2]] || ''})
+
+Cada hook debe sentirse claramente distinto de los otros 2 porque ataca una dimensión diferente del mismo producto. NO repitas la misma idea con sinónimos.
+
+EJEMPLO (producto: pulverizadora):
+- Hook ángulo Problema/Dolor: "Mi espalda no aguantaba otra jornada"
+- Hook ángulo Transformación: "Tres horas raspando, ahora cinco minutos"
+- Hook ángulo Autoridad/Prueba Social: "Los talleres serios ya pasaron a esto"
+(Los 3 hablan de la pulverizadora pero atacan cosas distintas: dolor, cambio, prestigio)
+
 ═══ REGLAS ═══
 
 1. ELIGE 3 plantillas DISTINTAS y RELLENA los placeholders:
@@ -207,6 +255,7 @@ DEVUELVE SOLO JSON (sin texto antes ni después, sin markdown, sin comentarios):
     {
       "plantillaUsada": "<número de plantilla 1-30>",
       "plantillaOriginal": "<texto exacto de la plantilla>",
+      "anguloUsado": "<el ángulo asignado a este hook: hook 1 = '${angulosFinales[0]}', hook 2 = '${angulosFinales[1]}', hook 3 = '${angulosFinales[2]}'>",
       "texto": "<hook 5-9 palabras>",
       "transicion": "<vacía o 1-3 palabras>",
       "ideaVisual": "<escena scroll-stopping con drama/conflicto/contraste en 1-2 frases>",
@@ -216,7 +265,7 @@ DEVUELVE SOLO JSON (sin texto antes ni después, sin markdown, sin comentarios):
   ]
 }
 
-EXACTAMENTE 3 hooks. Plantillas distintas.`
+EXACTAMENTE 3 hooks. Plantillas distintas. Cada hook con SU ángulo asignado.`
 
     if (correccionUsuario && correccionUsuario.toString().trim()) {
       prompt += '\n\nCORRECCIÓN DEL USUARIO: ' + correccionUsuario.toString().trim()
@@ -226,16 +275,19 @@ EXACTAMENTE 3 hooks. Plantillas distintas.`
     const r = await llamarModelo(modeloSel, prompt, 2000)
     registrarLlamada('metodo1-generacion', r.inputTokens, r.outputTokens)
 
-    const mapHook = h => {
+    const mapHook = (h, i) => {
       const hookTexto = (h.texto || '').toString()
       const transicion = (h.transicion || '').toString().trim()
       const transicionFinal = transicion && transicion.split(/\s+/).length <= 3 ? transicion : ''
       const guionUnido = h.guionCompleto
         ? h.guionCompleto.toString()
         : (hookTexto + (transicionFinal ? ' ' + transicionFinal : '') + '\n\n' + cuerpoTxt)
+      const anguloAsignado = angulosFinales[i] || ''
+      const anguloUsado = (h.anguloUsado || anguloAsignado).toString()
       return {
         plantillaUsada: (h.plantillaUsada != null ? h.plantillaUsada : '').toString(),
         plantillaOriginal: (h.plantillaOriginal || '').toString(),
+        anguloUsado,
         texto: hookTexto,
         transicion: transicionFinal,
         ideaVisual: (h.ideaVisual || '').toString(),

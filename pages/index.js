@@ -2926,6 +2926,11 @@ ${guionTexto}`
                       <div key={i} style={crd}>
                         <div style={{fontSize:11,fontWeight:700,color:D.blue,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:8}}>Hook {i+1}</div>
                         <div style={{fontSize:18,fontWeight:700,color:D.text,lineHeight:1.4,marginBottom:12}}>{h.texto}</div>
+                        {h.transicion && (
+                          <div style={{display:'inline-block',fontSize:11,fontWeight:600,padding:'4px 10px',borderRadius:20,background:D.blueDark,color:D.blue,border:`1px solid ${D.blueDim}`,marginBottom:10}}>
+                            🔗 Transición: {h.transicion}
+                          </div>
+                        )}
                         <div style={{fontSize:13,color:D.textMid,lineHeight:1.6,marginBottom:10}}>
                           <b style={{color:D.text}}>💡 Idea visual:</b> {h.ideaVisual}
                         </div>

@@ -353,6 +353,38 @@ IMPORTANTE: el español debe sentirse natural y cotidiano para un colombiano ley
 
 Si algún hook falla estas verificaciones, REESCRIBE con otra plantilla y otro arranque.
 
+═══════════════════════════════════════════════════
+REGLA DE TRANSICIÓN HOOK-CUERPO (igual que en Método 2):
+
+Después de generar cada hook, evalúa si el hook conecta NATURAL con la primera frase del cuerpo del anuncio.
+
+CRITERIO:
+- Si fluye sin nada en medio → transicion: ""  (vacía, no agregar nada)
+- Si hay quiebre temático → transicion: <1-3 palabras de ligadura>
+
+EJEMPLOS:
+
+EJEMPLO 1 — Fluye natural (NO agregar transición):
+Hook: "Mi mantel sobrevivió cinco años de niños"
+Cuerpo arranca: "Con nuestro mantel protector, práctico y decorativo. Es impermeable..."
+transicion: "" (vacía, fluye solo)
+
+EJEMPLO 2 — Quiebre, SÍ agregar transición:
+Hook: "¿Cansado de limpiar manchas cada cinco minutos?"
+Cuerpo arranca: "Es impermeable, resistente y deja ver la superficie..."
+transicion: "Mira por qué."  (introduce la respuesta)
+
+EJEMPLO 3 — Quiebre, SÍ agregar transición:
+Hook: "Tres horas raspando reducidas a veinte minutos"
+Cuerpo arranca: "Con esta pulverizadora todo cambió..."
+transicion: "Te explico."
+
+REGLA DE ORO: si dudas, NO agregues transición (transicion vacía). Mejor sin nada que con relleno innecesario.
+
+LÍMITE: la transición NUNCA pasa de 3 palabras.
+
+═══════════════════════════════════════════════════
+
 OUTPUT JSON ESTRICTO:
 {
   "hooks": [
@@ -360,8 +392,9 @@ OUTPUT JSON ESTRICTO:
       "plantillaUsada": "<número de plantilla del pool>",
       "plantillaOriginal": "<texto exacto de la plantilla elegida>",
       "texto": "<hook final con placeholders rellenos, 5-9 palabras>",
+      "transicion": "<vacía o 1-3 palabras de ligadura>",
       "ideaVisual": "escena concreta y simple en 1-2 frases naturales",
-      "guionCompleto": "hook nuevo + cuerpo unidos en una sola pieza lista para copiar",
+      "guionCompleto": "hook + transicion + cuerpo unidos en una sola pieza lista para copiar",
       "advertenciaMeta": "si hay riesgo, lo notas. Si no, 'Cumple políticas'"
     }
   ]
@@ -377,14 +410,23 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
     const r = await llamarModelo(modeloSel, prompt, 3000)
     registrarLlamada('metodo1-generacion', r.inputTokens, r.outputTokens)
 
-    const mapHook = h => ({
-      plantillaUsada: (h.plantillaUsada != null ? h.plantillaUsada : '').toString(),
-      plantillaOriginal: (h.plantillaOriginal || '').toString(),
-      texto: (h.texto || '').toString(),
-      ideaVisual: (h.ideaVisual || '').toString(),
-      guionCompleto: (h.guionCompleto || ((h.texto || '') + '\n\n' + cuerpoTxt)).toString(),
-      advertenciaMeta: (h.advertenciaMeta || 'Cumple políticas').toString()
-    })
+    const mapHook = h => {
+      const hookTexto = (h.texto || '').toString()
+      const transicion = (h.transicion || '').toString().trim()
+      const transicionFinal = transicion && transicion.split(/\s+/).length <= 3 ? transicion : ''
+      const guionUnido = h.guionCompleto
+        ? h.guionCompleto.toString()
+        : (hookTexto + (transicionFinal ? ' ' + transicionFinal : '') + '\n\n' + cuerpoTxt)
+      return {
+        plantillaUsada: (h.plantillaUsada != null ? h.plantillaUsada : '').toString(),
+        plantillaOriginal: (h.plantillaOriginal || '').toString(),
+        texto: hookTexto,
+        transicion: transicionFinal,
+        ideaVisual: (h.ideaVisual || '').toString(),
+        guionCompleto: guionUnido,
+        advertenciaMeta: (h.advertenciaMeta || 'Cumple políticas').toString()
+      }
+    }
 
     function extraerPalabrasClave(cuerpo, analisis) {
       // Palabras del cuerpo (sustantivos significativos, ≥4 caracteres)

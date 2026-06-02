@@ -25,28 +25,26 @@ export default async function handler(req, res) {
 
     const { costoOperacion, registrarLlamada } = crearCostoOperacion(modeloSel)
 
-    // ── Referencias de hooks del jefe (data/hooks-jefe.js) ───────
-    // HOOKS_JEFE son plantillas string; si en el futuro tuvieran metadata
-    // {motivo, angulo} el filtro las selecciona, si no, todas pasan.
-    const motivoLc = motivo.toLowerCase()
-    const anguloLc = angulo.toLowerCase()
-    const hooksFiltrados = HOOKS_JEFE.filter(h => {
-      const matchMotivo = (h.motivo && h.motivo.toLowerCase().includes(motivoLc)) || !h.motivo
-      const matchAngulo = (h.angulo && h.angulo.toLowerCase().includes(anguloLc)) || !h.angulo
-      return matchMotivo && matchAngulo
-    })
+    // ── Pool de plantillas del jefe (data/hooks-jefe.js) ───────
+    // HOOKS_JEFE son plantillas string con placeholders ___ y #
+    // El LLM DEBE elegir 3 plantillas distintas y rellenarlas
     const textoDeHook = h => typeof h === 'string' ? h : (h.texto || h.plantilla || h.hook || '')
-    // Muestra aleatoria para variar las referencias entre llamadas
-    const muestraInicial = (hooksFiltrados.length > 0 ? hooksFiltrados : HOOKS_JEFE)
-      .slice()
+    // Filtrar plantillas que el LLM pueda usar para hooks cortos (5-9 palabras una vez rellenas)
+    // Las plantillas ≤7 palabras suelen quedar en rango con placeholders rellenos
+    const plantillasUsables = HOOKS_JEFE
+      .filter(h => {
+        const t = textoDeHook(h).trim()
+        const palabras = t.split(/\s+/).length
+        return palabras >= 3 && palabras <= 9
+      })
+      .slice() // copia para no mutar el original
+
+    // Tomar muestra aleatoria de 50 (suficientes para variedad sin saturar el prompt)
+    const muestra = plantillasUsables
       .sort(() => 0.5 - Math.random())
-    // FIX: solo hooks cortos (≤9 palabras) como referencia — los largos
-    // del jefe arrastraban al LLM a generar hooks demasiado largos.
-    const muestraCorta = muestraInicial
-      .filter(h => textoDeHook(h).trim().split(/\s+/).length <= 9)
-      .slice(0, 15)
-    const muestra = muestraCorta.length > 0 ? muestraCorta : muestraInicial.slice(0, 15)
-    const refsHooks = muestra.map(h => '- ' + textoDeHook(h)).join('\n')
+      .slice(0, 50)
+
+    const plantillasNumeradas = muestra.map((h, i) => `${i + 1}. ${textoDeHook(h)}`).join('\n')
 
     // ── LLAMADA ÚNICA — 3 hooks + idea visual simple ─────────────
     let prompt = `Eres experto en publicidad de Meta Ads. Te doy un análisis ESTRATÉGICO YA CONFIRMADO por el usuario y un cuerpo de guion. Tu tarea es generar 3 HOOKS ALTERNATIVOS + IDEA VISUAL SIMPLE para cada uno.
@@ -54,10 +52,32 @@ export default async function handler(req, res) {
 ANÁLISIS CONFIRMADO (úsalo como autoridad, NO lo cuestiones):
 ${JSON.stringify(analisis)}
 
-REFERENCIAS DE HOOKS DEL JEFE (úsalos como inspiración, NO copies literal, ADAPTA al producto y avatar específico):
-${refsHooks}
+═══════════════════════════════════════════════════
+PLANTILLAS DEL JEFE — OBLIGATORIO USAR
 
-Estos son hooks curados que funcionan en publicidad. Tu hook generado debe sentirse en la misma línea estilística (no genérico, no anuncio tradicional, con gancho real). NO los uses literalmente; toma su tono y energía.
+A continuación tienes 50 plantillas curadas por el jefe. Estas plantillas tienen DOS tipos de placeholders:
+
+- "___" = se reemplaza con palabras coherentes con el producto, avatar o contexto del anuncio
+- "#" = se reemplaza con un número específico (3, 5, 7 son los más comunes)
+
+REGLA INVIOLABLE: NO INVENTES HOOKS DESDE CERO. Debes ELEGIR 3 plantillas DISTINTAS de la lista y RELLENAR los placeholders adaptando al producto, avatar y análisis confirmado.
+
+PLANTILLAS DISPONIBLES (elige 3 DIFERENTES):
+${plantillasNumeradas}
+
+INSTRUCCIONES:
+1. ANALIZA el cuerpo del anuncio, el producto y el avatar
+2. ELIGE 3 plantillas que mejor encajen con el dolor/beneficio/transformación del producto
+3. RELLENA los placeholders ___ con palabras del producto/avatar
+4. RELLENA los placeholders # con un número apropiado (3, 5, 7 típicamente)
+5. Las 3 plantillas elegidas DEBEN SER DISTINTAS entre sí (no repetir número de plantilla)
+6. NO copies el hook original (es referencia, no para repetir)
+
+EJEMPLO DEL FORMATO DE RESPUESTA:
+Plantilla #15: "# señales de que estás ___"
+HOOK FINAL: "5 señales de que necesitas otra herramienta"
+(reemplazaste # por 5, y ___ por "necesitas otra herramienta" adaptado al producto)
+═══════════════════════════════════════════════════
 
 CUERPO DEL GUION:
 ${cuerpoTxt}
@@ -182,7 +202,9 @@ OUTPUT JSON ESTRICTO:
 {
   "hooks": [
     {
-      "texto": "el nuevo hook",
+      "plantillaUsada": "<número de plantilla del pool>",
+      "plantillaOriginal": "<texto exacto de la plantilla elegida>",
+      "texto": "<hook final con placeholders rellenos, 5-9 palabras>",
       "ideaVisual": "escena concreta y simple en 1-2 frases naturales",
       "guionCompleto": "hook nuevo + cuerpo unidos en una sola pieza lista para copiar",
       "advertenciaMeta": "si hay riesgo, lo notas. Si no, 'Cumple políticas'"
@@ -190,7 +212,7 @@ OUTPUT JSON ESTRICTO:
   ]
 }
 
-Devuelve EXACTAMENTE 3 objetos dentro de "hooks".`
+Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser distintas (no repetir número de plantilla).`
 
     // ── PARTE 6 — corrección opcional del usuario (regenerar con ajuste) ──
     if (correccionUsuario && correccionUsuario.toString().trim()) {
@@ -201,11 +223,33 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks".`
     registrarLlamada('metodo1-generacion', r.inputTokens, r.outputTokens)
 
     const mapHook = h => ({
+      plantillaUsada: (h.plantillaUsada != null ? h.plantillaUsada : '').toString(),
+      plantillaOriginal: (h.plantillaOriginal || '').toString(),
       texto: (h.texto || '').toString(),
       ideaVisual: (h.ideaVisual || '').toString(),
       guionCompleto: (h.guionCompleto || ((h.texto || '') + '\n\n' + cuerpoTxt)).toString(),
       advertenciaMeta: (h.advertenciaMeta || 'Cumple políticas').toString()
     })
+
+    function validarHooksDelJefe(hooks) {
+      const advertencias = []
+      const plantillasUsadas = new Set()
+      hooks.forEach((h, i) => {
+        if (!h.plantillaUsada) {
+          advertencias.push(`Hook ${i+1}: no reporta plantilla usada`)
+        }
+        if (plantillasUsadas.has(h.plantillaUsada)) {
+          advertencias.push(`Hook ${i+1}: plantilla ${h.plantillaUsada} REPETIDA`)
+        }
+        plantillasUsadas.add(h.plantillaUsada)
+        // Verificar longitud
+        const palabras = (h.texto || '').split(/\s+/).length
+        if (palabras > 9) {
+          advertencias.push(`Hook ${i+1}: ${palabras} palabras (>9)`)
+        }
+      })
+      return advertencias
+    }
 
     let parsed
     try {
@@ -250,6 +294,11 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks".`
     // Si tras el reintento aún quedan < 3 se devuelven los válidos que
     // haya; si el validador descartó TODO, se cae a los originales.
     const hooksDevolver = hooksFinal.length > 0 ? hooksFinal : hooks
+
+    const advertencias = validarHooksDelJefe(hooksDevolver)
+    if (advertencias.length > 0) {
+      console.log('[M1 PLANTILLAS]', advertencias)
+    }
 
     // ── Auto-save: suma versión de generación al anuncio ─────────
     let idAnuncio = anuncioId ? Number(anuncioId) : null

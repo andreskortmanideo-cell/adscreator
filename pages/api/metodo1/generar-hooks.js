@@ -72,6 +72,24 @@ INSTRUCCIONES:
 4. RELLENA los placeholders # con un número apropiado (3, 5, 7 típicamente)
 5. Las 3 plantillas elegidas DEBEN SER DISTINTAS entre sí (no repetir número de plantilla)
 6. NO copies el hook original (es referencia, no para repetir)
+7. REGLA DE COHERENCIA HOOK-CUERPO (CRÍTICA):
+   El hook NO puede contradecir lo que afirma el cuerpo del anuncio.
+   - Si el cuerpo confirma que el producto funciona → el hook NO puede sugerir que falla
+   - Si el cuerpo cuenta resultado positivo → el hook NO puede ser negativo del producto
+   - Si el cuerpo afirma X → el hook puede provocar curiosidad sobre X, pero NO negarlo
+
+EJEMPLOS:
+❌ INCORRECTO (contradicción):
+   Hook: "Por qué los hombres dejan la depiladora sin usar"
+   Cuerpo: "Hombres como yo ya lo usan en secreto"
+   (Hook dice que dejan, cuerpo dice que usan → contradicción)
+
+✅ CORRECTO (curiosidad sin contradicción):
+   Hook: "Por qué cambiarías de método para siempre"
+   Cuerpo: "Hombres como yo ya lo usan en secreto"
+   (Hook genera curiosidad, cuerpo refuerza la respuesta)
+
+ANTES DE FINALIZAR CADA HOOK, pregúntate: "¿Este hook contradice algo del cuerpo?" — si la respuesta es sí, ELIGE OTRA PLANTILLA o reformula.
 
 EJEMPLO DEL FORMATO DE RESPUESTA:
 Plantilla #15: "# señales de que estás ___"
@@ -231,6 +249,24 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
       advertenciaMeta: (h.advertenciaMeta || 'Cumple políticas').toString()
     })
 
+    // Detectar contradicción simple por palabras opuestas
+    function detectarContradiccion(hookTexto, cuerpoTexto) {
+      if (!hookTexto || !cuerpoTexto) return false
+      const h = hookTexto.toLowerCase()
+      const c = cuerpoTexto.toLowerCase()
+      const pares = [
+        ['no funciona', 'funciona'],
+        ['dejan de usar', 'lo usan'],
+        ['no sirve', 'sirve'],
+        ['no recomendado', 'recomendado'],
+        ['fracaso', 'éxito']
+      ]
+      for (const [negativo, positivo] of pares) {
+        if (h.includes(negativo) && c.includes(positivo)) return true
+      }
+      return false
+    }
+
     function validarHooksDelJefe(hooks) {
       const advertencias = []
       const plantillasUsadas = new Set()
@@ -246,6 +282,9 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
         const palabras = (h.texto || '').split(/\s+/).length
         if (palabras > 9) {
           advertencias.push(`Hook ${i+1}: ${palabras} palabras (>9)`)
+        }
+        if (detectarContradiccion(h.texto, cuerpoTxt)) {
+          advertencias.push(`Hook ${i+1}: CONTRADICCIÓN con cuerpo detectada`)
         }
       })
       return advertencias

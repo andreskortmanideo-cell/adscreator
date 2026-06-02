@@ -563,9 +563,10 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
     }
 
     // Si hay 1 o más hooks tibios, reintentar UNA vez con prompt reforzado
-    const hooksTibios = advertencias.filter(a => a.includes('TIBIO'))
-    if (hooksTibios.length > 0 && hooksTibios.length < 3) {
-      console.log('[M1 REINTENTO TIBIEZA]', hooksTibios)
+    // Si hay 1 o más hooks tibios pero menos de 3, reintentar y MEZCLAR mejores de ambas generaciones
+    const hooksTibiosCount = advertencias.filter(a => a.includes('TIBIO')).length
+    if (hooksTibiosCount > 0 && hooksTibiosCount < 3) {
+      console.log('[M1 REINTENTO TIBIEZA] Generación 1 tiene', hooksTibiosCount, 'hook(s) tibio(s). Generando segunda tanda...')
       try {
         const promptReintentoTibieza = prompt +
           '\n\n═══ CORRECCIÓN OBLIGATORIA ═══\n' +
@@ -583,17 +584,57 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
         const parsed2 = parseJsonTolerante(r2.texto)
         const hooks2 = Array.isArray(parsed2.hooks) ? parsed2.hooks.slice(0, 3).map(mapHook) : []
 
-        // Validar que el reintento no tenga tibieza
-        const hooks2SinTibieza = hooks2.filter(h => !detectarTibieza(h.texto).tibio && validarHook(h.texto))
-
-        // Si el reintento mejora la cantidad de hooks sin tibieza, usarlo
-        const hooksActualesSinTibieza = hooksDevolver.filter(h => !detectarTibieza(h.texto).tibio)
-        if (hooks2SinTibieza.length > hooksActualesSinTibieza.length) {
-          console.log('[M1 REINTENTO TIBIEZA] Reintento mejoró:', hooksActualesSinTibieza.length, '→', hooks2SinTibieza.length)
-          // Reemplazar hooksDevolver con el reintento
-          hooksDevolver.length = 0
-          hooksDevolver.push(...hooks2.slice(0, 3))
+        // Función para puntuar un hook (mayor puntaje = mejor)
+        const puntuarHook = (h) => {
+          let puntaje = 100
+          if (detectarTibieza(h.texto).tibio) puntaje -= 50
+          if (detectarGenericidad(h.texto, cuerpoTxt, analisis).generico) puntaje -= 30
+          if (detectarContradiccion(h.texto, cuerpoTxt)) puntaje -= 40
+          if (!validarHook(h.texto)) puntaje -= 20  // longitud o terminación mala
+          const palabras = (h.texto || '').split(/\s+/).length
+          if (palabras > 9) puntaje -= 30
+          if (palabras < 5) puntaje -= 15
+          return puntaje
         }
+
+        // Juntar las 2 generaciones (6 hooks total)
+        const todosLosHooks = [...hooksDevolver, ...hooks2]
+
+        // Puntuar cada hook
+        const hooksConPuntaje = todosLosHooks.map(h => ({
+          hook: h,
+          puntaje: puntuarHook(h),
+          plantilla: h.plantillaUsada
+        }))
+
+        // Ordenar por puntaje descendente
+        hooksConPuntaje.sort((a, b) => b.puntaje - a.puntaje)
+
+        // Tomar los 3 mejores, EVITANDO repetir plantilla
+        const seleccionados = []
+        const plantillasUsadasMix = new Set()
+        for (const item of hooksConPuntaje) {
+          if (seleccionados.length >= 3) break
+          // Si la plantilla está repetida, solo tomar si no hay alternativa
+          if (item.plantilla && plantillasUsadasMix.has(item.plantilla)) continue
+          seleccionados.push(item.hook)
+          if (item.plantilla) plantillasUsadasMix.add(item.plantilla)
+        }
+
+        // Si quedaron menos de 3 (por filtro de plantilla), completar con cualquiera
+        if (seleccionados.length < 3) {
+          for (const item of hooksConPuntaje) {
+            if (seleccionados.length >= 3) break
+            if (!seleccionados.includes(item.hook)) seleccionados.push(item.hook)
+          }
+        }
+
+        console.log('[M1 REINTENTO TIBIEZA] Seleccionados los 3 mejores de 6. Puntajes:',
+          hooksConPuntaje.slice(0, 6).map(i => i.puntaje).join(', '))
+
+        // Reemplazar hooksDevolver con la selección final
+        hooksDevolver.length = 0
+        hooksDevolver.push(...seleccionados)
       } catch (e) {
         console.error('Reintento M1 (tibieza) falló:', e)
       }

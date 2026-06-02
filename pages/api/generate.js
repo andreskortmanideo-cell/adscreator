@@ -1778,6 +1778,23 @@ ${bloqueReglasEstructuralesAngulo(anguloV)}
 ${bloqueReglasCTANivel(nivelGen)}
 ${BLOQUE_AUTOVERIFICACION}
 
+═══ REGLA DE LONGITUD DEL HOOK (CRÍTICA) ═══
+El HOOK de cada versión (la primera frase antes del cuerpo) DEBE tener:
+- Entre 5 y 9 palabras MÁXIMO
+- Una sola línea
+- Sin puntos suspensivos al final
+- Termina en palabra fuerte (sustantivo/verbo/adjetivo)
+
+EJEMPLOS BUENOS:
+✅ "Mi taller cambió en cinco minutos" (6 palabras)
+✅ "No raspes otro motor sin esto" (6 palabras)
+
+EJEMPLOS MALOS (RECHAZAR):
+❌ "En 5 minutos limpié mi motor con esta pulverizadora cuando antes me tomaba más de una hora" (16+ palabras)
+❌ "Compré esto para mi taller y ahora limpiar motores ¡ya no existe!" (12 palabras y frase rara)
+
+ANTES de entregar cada versión, cuenta las palabras del hook. Si >9 → reescríbelo MÁS CORTO.
+
 FORMATO — devuelve ÚNICAMENTE esto:
 
 ═══════════════════════════════

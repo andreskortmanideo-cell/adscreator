@@ -107,9 +107,18 @@ OBLIGATORIO RELLENAR ___ CON:
 ✅ Resultados concretos: "diez días", "veinte minutos", "cinco minutos"
 ✅ El producto o categoría: "esta depiladora", "esta crema", "esta pulverizadora"
 
-TEST DE GENERICIDAD: Si tu hook puede servir para CUALQUIER producto, está MAL.
-- "Esto me cambió la vida" → ❌ sirve para cualquier producto
-- "Esta depiladora me cambió la rutina" → ✅ específico
+TEST DE GENERICIDAD OBLIGATORIO ANTES DE ENTREGAR CADA HOOK:
+El hook DEBE contener al menos UNA palabra extraída del cuerpo del anuncio.
+
+Ejemplos basados en este cuerpo: "rozándome, incómodo, gimnasio, depilación, piel, dolor, irritación, diez días, confianza, rascar"
+
+✅ "El picor diario me mataba hasta esta crema" (contiene "picor" → del cuerpo)
+✅ "Diez días sin rozaduras cambiaron todo" (contiene "diez días" y "rozaduras" → del cuerpo)
+✅ "5 trucos de depilación que nadie cuenta" (contiene "depilación" → relacionado)
+
+❌ "Por esto necesitas cambiar tu rutina hoy" (NO contiene ninguna palabra del cuerpo)
+❌ "Esto me cambió la vida" (NO contiene ninguna palabra del cuerpo)
+❌ "Te prometo que nunca sentiste alivio así" (palabra "alivio" no está en el cuerpo)
 
 EJEMPLO DE BUEN RELLENO:
 Plantilla: "___ hasta descubrir ___"
@@ -285,16 +294,47 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
       advertenciaMeta: (h.advertenciaMeta || 'Cumple políticas').toString()
     })
 
-    function detectarGenericidad(hookTexto) {
-      if (!hookTexto) return false
+    function extraerPalabrasClave(cuerpo, analisis) {
+      // Palabras del cuerpo (sustantivos significativos, ≥4 caracteres)
+      const palabrasComunes = new Set([
+        'pero', 'para', 'como', 'cuando', 'donde', 'porque', 'desde', 'hasta',
+        'cada', 'todo', 'todos', 'todas', 'esto', 'eso', 'esta', 'este', 'estos',
+        'estas', 'algo', 'nada', 'mucho', 'muchos', 'muchas', 'poco', 'pocos',
+        'que', 'con', 'sin', 'por', 'una', 'uno', 'unos', 'unas', 'ese',
+        'mas', 'menos', 'tambien', 'aqui', 'alli', 'ahi', 'siempre', 'nunca',
+        'antes', 'ahora', 'despues', 'mientras', 'tener', 'haber', 'estar',
+        'hacer', 'poder', 'querer', 'saber', 'decir', 'venir', 'salir',
+        'dejar', 'pasar', 'sentir', 'mira', 'observa', 'fijate'
+      ])
+      const palabras = (cuerpo || '').toLowerCase()
+        .replace(/[.,!?¿¡:;()"']/g, ' ')
+        .split(/\s+/)
+        .filter(p => p.length >= 4 && !palabrasComunes.has(p))
+      // Agregar palabras del análisis (producto, avatar, etc.)
+      const extras = []
+      if (analisis?.producto) extras.push(...analisis.producto.toLowerCase().split(/\s+/).filter(p => p.length >= 4))
+      if (analisis?.avatar) extras.push(...analisis.avatar.toLowerCase().split(/\s+/).filter(p => p.length >= 4))
+      return new Set([...palabras, ...extras])
+    }
+
+    function detectarGenericidad(hookTexto, cuerpoTxt, analisis) {
+      if (!hookTexto) return { generico: true, razon: 'vacio' }
       const t = hookTexto.toLowerCase()
-      const palabrasVagas = ['esto', 'eso', 'aquello', 'algo', 'una cosa']
-      const cuentaVagas = palabrasVagas.filter(p => {
-        const regex = new RegExp(`\\b${p}\\b`, 'gi')
-        return regex.test(t)
-      }).length
-      // Si tiene 2+ palabras vagas, es genérico
-      return cuentaVagas >= 2
+      // Extraer palabras del hook (≥4 caracteres)
+      const palabrasHook = t.replace(/[.,!?¿¡:;()"']/g, ' ').split(/\s+/).filter(p => p.length >= 4)
+      const palabrasClave = extraerPalabrasClave(cuerpoTxt, analisis)
+      // Buscar coincidencias (al menos 1 palabra clave del cuerpo debe estar en el hook)
+      const coincidencias = palabrasHook.filter(p => {
+        // Coincidencia exacta o si la palabra del hook contiene la clave (ej: "depilarte" contiene "depil")
+        for (const clave of palabrasClave) {
+          if (p.includes(clave.substring(0, 5)) || clave.includes(p.substring(0, 5))) return true
+        }
+        return false
+      })
+      if (coincidencias.length === 0) {
+        return { generico: true, razon: 'no contiene ninguna palabra clave del producto/dolor' }
+      }
+      return { generico: false, coincidencias }
     }
 
     // Detectar contradicción simple por palabras opuestas
@@ -315,7 +355,7 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
       return false
     }
 
-    function validarHooksDelJefe(hooks) {
+    function validarHooksDelJefe(hooks, hookOriginal, cuerpoTxt, analisis) {
       const advertencias = []
       const plantillasUsadas = new Set()
       hooks.forEach((h, i) => {
@@ -326,7 +366,6 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
           advertencias.push(`Hook ${i+1}: plantilla ${h.plantillaUsada} REPETIDA`)
         }
         plantillasUsadas.add(h.plantillaUsada)
-        // Verificar longitud
         const palabras = (h.texto || '').split(/\s+/).length
         if (palabras > 9) {
           advertencias.push(`Hook ${i+1}: ${palabras} palabras (>9)`)
@@ -334,8 +373,9 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
         if (detectarContradiccion(h.texto, cuerpoTxt)) {
           advertencias.push(`Hook ${i+1}: CONTRADICCIÓN con cuerpo detectada`)
         }
-        if (detectarGenericidad(h.texto)) {
-          advertencias.push(`Hook ${i+1}: DEMASIADO GENÉRICO (múltiples palabras vagas como "esto"/"eso")`)
+        const gen = detectarGenericidad(h.texto, cuerpoTxt, analisis)
+        if (gen.generico) {
+          advertencias.push(`Hook ${i+1}: GENÉRICO (${gen.razon})`)
         }
       })
       return advertencias
@@ -385,7 +425,7 @@ Devuelve EXACTAMENTE 3 objetos dentro de "hooks". Las 3 plantillas DEBEN ser dis
     // haya; si el validador descartó TODO, se cae a los originales.
     const hooksDevolver = hooksFinal.length > 0 ? hooksFinal : hooks
 
-    const advertencias = validarHooksDelJefe(hooksDevolver)
+    const advertencias = validarHooksDelJefe(hooksDevolver, hookOrig, cuerpoTxt, analisis)
     if (advertencias.length > 0) {
       console.log('[M1 PLANTILLAS]', advertencias)
     }
